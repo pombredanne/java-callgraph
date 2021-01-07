@@ -77,7 +77,9 @@ public class ClassVisitor extends EmptyVisitor {
             if (constant.getTag() == 7) {
                 String referencedClass = 
                     constantPool.constantToString(constant);
-                System.out.println(String.format(classReferenceFormat, referencedClass));
+
+                // Stop class information from being printed
+                // System.out.println(String.format(classReferenceFormat, referencedClass));
             }
         }
     }

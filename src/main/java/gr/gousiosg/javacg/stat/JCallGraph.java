@@ -48,6 +48,8 @@ public class JCallGraph {
 
     public static void main(String[] args) {
 
+        BufferedWriter log = new BufferedWriter(new OutputStreamWriter(System.out));
+
         Function<ClassParser, ClassVisitor> getClassVisitor =
                 (ClassParser cp) -> {
                     try {
@@ -58,6 +60,7 @@ public class JCallGraph {
                 };
 
         try {
+            log.write("graph call-graph {\n");
             for (String arg : args) {
 
                 File f = new File(arg);
@@ -82,14 +85,22 @@ public class JCallGraph {
                                     StringBuilder::append,
                                     StringBuilder::append).toString();
 
-                    BufferedWriter log = new BufferedWriter(new OutputStreamWriter(System.out));
+
                     log.write(methodCalls);
-                    log.close();
+
                 }
             }
+            log.write("}\n");
         } catch (IOException e) {
             System.err.println("Error while processing jar: " + e.getMessage());
             e.printStackTrace();
+        } finally {
+            try {
+                log.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+                System.err.println("Oops the logger broke");
+            }
         }
     }
 
