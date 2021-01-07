@@ -60,7 +60,7 @@ public class JCallGraph {
                 };
 
         try {
-            log.write("graph call-graph {\n");
+            log.write("graph callgraph {\n");
             for (String arg : args) {
 
                 File f = new File(arg);
