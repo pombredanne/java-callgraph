@@ -56,7 +56,7 @@ public class MethodVisitor extends EmptyVisitor {
 
         // Wrap method output in quotes for proper .DOT file formatting
         format = "\"" + visitedClass.getClassName() + ":" + mg.getName() + "(" + argumentList(mg.getArgumentTypes()) + ")\""
-            + " -- " + "\"%s:%s(%s)\";";
+            + " -- " + "\"%s:%s(%s)\" ; ";
     }
 
     private String argumentList(Type[] arguments) {

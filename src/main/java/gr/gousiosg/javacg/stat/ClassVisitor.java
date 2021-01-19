@@ -65,7 +65,6 @@ public class ClassVisitor extends EmptyVisitor {
             DCManager.retrieveCalls(method, jc);
             DCManager.linkCalls(method);
             method.accept(this);
-
         }
     }
 
@@ -77,9 +76,6 @@ public class ClassVisitor extends EmptyVisitor {
             if (constant.getTag() == 7) {
                 String referencedClass = 
                     constantPool.constantToString(constant);
-
-                // Stop class information from being printed
-                // System.out.println(String.format(classReferenceFormat, referencedClass));
             }
         }
     }

@@ -28,15 +28,11 @@
 
 package gr.gousiosg.javacg.stat;
 
-import java.io.*;
-import java.util.*;
-import java.util.function.Function;
-import java.util.jar.JarEntry;
-import java.util.jar.JarFile;
-import java.util.stream.Stream;
-import java.util.stream.StreamSupport;
+import org.reflections.Reflections;
+import org.reflections.scanners.SubTypesScanner;
 
-import org.apache.bcel.classfile.ClassParser;
+import java.util.Arrays;
+import java.util.Optional;
 
 /**
  * Constructs a callgraph out of a JAR archive. Can combine multiple archives
@@ -46,76 +42,26 @@ import org.apache.bcel.classfile.ClassParser;
  */
 public class JCallGraph {
 
+    private static final String JAR_SUFFIX = ".jar";
+    private static final String DOT_FLAG = "-dot";
+
     public static void main(String[] args) {
+        // TODO: Figure out how to package Reflections into JAR properly
+        // TODO: enumerate method calls to all subtypes via Reflections
+        // TODO: Spit output into a .dot file instead out STDOUT
+        // TODO: Investigate https://jgrapht.org/ to store/cache complex queries of class information
 
-        BufferedWriter log = new BufferedWriter(new OutputStreamWriter(System.out));
-
-        Function<ClassParser, ClassVisitor> getClassVisitor =
-                (ClassParser cp) -> {
-                    try {
-                        return new ClassVisitor(cp.parse());
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                };
-
+        GraphGenerator graphGenerator = new GraphGenerator();
+        Optional<String> maybeJarName = Arrays.stream(args).filter(arg -> arg.endsWith(JAR_SUFFIX)).findFirst();
         try {
-            log.write("graph callgraph {\n");
-            for (String arg : args) {
-
-                File f = new File(arg);
-
-                if (!f.exists()) {
-                    System.err.println("Jar file " + arg + " does not exist");
-                }
-
-                try (JarFile jar = new JarFile(f)) {
-                    Stream<JarEntry> entries = enumerationAsStream(jar.entries());
-
-                    String methodCalls = entries.
-                            flatMap(e -> {
-                                if (e.isDirectory() || !e.getName().endsWith(".class"))
-                                    return (new ArrayList<String>()).stream();
-
-                                ClassParser cp = new ClassParser(arg, e.getName());
-                                return getClassVisitor.apply(cp).start().methodCalls().stream();
-                            }).
-                            map(s -> s + "\n").
-                            reduce(new StringBuilder(),
-                                    StringBuilder::append,
-                                    StringBuilder::append).toString();
-
-
-                    log.write(methodCalls);
-
-                }
-            }
-            log.write("}\n");
-        } catch (IOException e) {
-            System.err.println("Error while processing jar: " + e.getMessage());
-            e.printStackTrace();
-        } finally {
-            try {
-                log.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-                System.err.println("Oops the logger broke");
-            }
+            if (!maybeJarName.isPresent())
+                throw new Exception("No .JAR provided!");
+            if (!Arrays.asList(args).contains(DOT_FLAG))
+                throw new Exception("No -dot flag provided!");
+            graphGenerator.staticCallgraph(maybeJarName.get());
+        } catch (Exception e) {
+            System.err.println("Error: " + e.getMessage());
+            System.exit(1);
         }
-    }
-
-    public static <T> Stream<T> enumerationAsStream(Enumeration<T> e) {
-        return StreamSupport.stream(
-                Spliterators.spliteratorUnknownSize(
-                        new Iterator<T>() {
-                            public T next() {
-                                return e.nextElement();
-                            }
-
-                            public boolean hasNext() {
-                                return e.hasMoreElements();
-                            }
-                        },
-                        Spliterator.ORDERED), false);
     }
 }
