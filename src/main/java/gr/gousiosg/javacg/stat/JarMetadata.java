@@ -2,11 +2,9 @@ package gr.gousiosg.javacg.stat;
 
 import java.io.IOException;
 import java.lang.reflect.Method;
-import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.Arrays;
 import java.util.Enumeration;
-import java.util.StringJoiner;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Collectors;
@@ -37,7 +35,9 @@ public class JarMetadata {
             try {
                 Class<?> c = cl.loadClass(className);
                 System.out.println("Inspecting " + c.getName());
-                for (Method m : c.getMethods()) {
+                for (Method m : c.getDeclaredMethods()) {
+
+                    // Climb class hierarchy getting declared methods
 
                     Class<?> declaringClass = m.getDeclaringClass();
 

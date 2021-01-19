@@ -13,21 +13,12 @@
 
 package gr.gousiosg.javacg.stat;
 
+import org.apache.bcel.classfile.*;
+
 import java.util.HashMap;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import org.apache.bcel.classfile.Attribute;
-import org.apache.bcel.classfile.BootstrapMethod;
-import org.apache.bcel.classfile.BootstrapMethods;
-import org.apache.bcel.classfile.ConstantCP;
-import org.apache.bcel.classfile.ConstantMethodHandle;
-import org.apache.bcel.classfile.ConstantNameAndType;
-import org.apache.bcel.classfile.ConstantPool;
-import org.apache.bcel.classfile.ConstantUtf8;
-import org.apache.bcel.classfile.JavaClass;
-import org.apache.bcel.classfile.Method;
 
 /**
  * {@link DynamicCallManager} provides facilities to retrieve information about

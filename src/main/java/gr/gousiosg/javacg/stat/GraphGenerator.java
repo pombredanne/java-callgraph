@@ -2,6 +2,7 @@ package gr.gousiosg.javacg.stat;
 
 import org.apache.bcel.classfile.ClassParser;
 import org.reflections.Reflections;
+import org.reflections.scanners.SubTypesScanner;
 
 import java.io.*;
 import java.net.URL;
@@ -39,6 +40,8 @@ public class GraphGenerator {
                 JarMetadata jarMetadata = new JarMetadata(jar, cl);
                 jarMetadata.load();
 
+                Reflections reflections = new Reflections("edu.uic", cl, new SubTypesScanner(false));
+
                 Stream<JarEntry> entries = enumerationAsStream(jar.entries());
 
                 String methodCalls = entries.
@@ -58,10 +61,11 @@ public class GraphGenerator {
                         + "Generating Callgraph:\n"
                         + "#####################\n");
 
-
                 log.write("graph callgraph {\n");
                 log.write(methodCalls);
                 log.write("}\n");
+                System.out.println("\n\n");
+                reflections.getAllTypes().forEach(t-> System.out.println("$\t"+t));
                 }
         } catch (IOException e) {
             System.err.println("Error while processing jar: " + e.getMessage());

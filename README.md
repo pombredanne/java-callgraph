@@ -7,7 +7,7 @@ java-callgraph: Java Call Graph Utilities
 ### How to install and run
 ```
 mvn install -DskipTests
-java -jar ./target/javacg-0.1-SNAPSHOT-static.jar <OTHER-JAR> -dot
+java -jar ./target/javacg-0.1-SNAPSHOT-jar-with-dependencies.jar <OTHER-JAR> -dot
 ```
 
 ---  
