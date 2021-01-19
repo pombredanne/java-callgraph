@@ -4,9 +4,12 @@ java-callgraph: Java Call Graph Utilities
 ---
 ### Changes by [@wcygan](https://github.com/wcygan):
 - Generate static callgraph output for methods **only**, properly formatted for .DOT files for use in [Graphviz](http://www.graphviz.org/)
-### How to run
-`> mvn install -DskipTests`  
-`> java -jar ./target/javacg-0.1-SNAPSHOT-static.jar <OTHER-JAR> -dot`
+### How to install and run
+```
+mvn install -DskipTests
+java -jar ./target/javacg-0.1-SNAPSHOT-static.jar <OTHER-JAR> -dot
+```
+
 ---  
 
 A suite of programs for generating static and dynamic call graphs in Java.
