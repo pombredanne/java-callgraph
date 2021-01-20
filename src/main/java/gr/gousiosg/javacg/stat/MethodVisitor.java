@@ -44,6 +44,9 @@ import java.util.Optional;
  */
 public class MethodVisitor extends EmptyVisitor {
 
+    private static final String INIT = "<init>";
+    private static final List<String> IGNORED_METHOD_NAMES = List.of(INIT);
+
     JavaClass visitedClass;
     private MethodGen mg;
     private ConstantPoolGen cp;
@@ -93,69 +96,64 @@ public class MethodVisitor extends EmptyVisitor {
 
     @Override
     public void visitINVOKEVIRTUAL(INVOKEVIRTUAL i) {
-        visit(String.format(format,i.getReferenceType(cp)),
-                i.getMethodName(cp),
-                argumentList(i.getArgumentTypes(cp)));
+        visit(String.format(format,i.getReferenceType(cp)), i.getMethodName(cp), argumentList(i.getArgumentTypes(cp)));
     }
 
     @Override
     public void visitINVOKEINTERFACE(INVOKEINTERFACE i) {
-        visit(String.format(format,i.getReferenceType(cp)),
-                i.getMethodName(cp),
-                argumentList(i.getArgumentTypes(cp)));
+        visit(String.format(format,i.getReferenceType(cp)), i.getMethodName(cp), argumentList(i.getArgumentTypes(cp)));
     }
 
     @Override
     public void visitINVOKESPECIAL(INVOKESPECIAL i) {
-        visit(String.format(format,i.getReferenceType(cp)),
-                i.getMethodName(cp),
-                argumentList(i.getArgumentTypes(cp)));
+        // TODO: Don't expand this
+        visit(String.format(format,i.getReferenceType(cp)), i.getMethodName(cp), argumentList(i.getArgumentTypes(cp)));
     }
 
     @Override
     public void visitINVOKESTATIC(INVOKESTATIC i) {
-        visit(String.format(format,i.getReferenceType(cp)),
-                i.getMethodName(cp),
-                argumentList(i.getArgumentTypes(cp)));
+        // TODO: Don't expand this
+        visit(String.format(format,i.getReferenceType(cp)), i.getMethodName(cp), argumentList(i.getArgumentTypes(cp)));
     }
 
     @Override
     public void visitINVOKEDYNAMIC(INVOKEDYNAMIC i) {
-        visit(String.format(format,i.getReferenceType(cp)),
-                i.getMethodName(cp),
-                argumentList(i.getArgumentTypes(cp)));
+        visit(String.format(format,i.getReferenceType(cp)), i.getMethodName(cp), argumentList(i.getArgumentTypes(cp)));
     }
 
     public void visit(String receiverTypeName, String receiverMethodName, String receiverArgTypeNames) {
 
-        List<String> expandedCalls = new ArrayList<>();
-
         String fromSignature = buildMethodSignature(visitedClass.getClassName(), mg.getName(), argumentList(mg.getArgumentTypes()));
         String toSignature = buildMethodSignature(receiverTypeName, receiverMethodName, receiverArgTypeNames);
 
-        expandedCalls.add(createEdge(fromSignature, toSignature));
+        methodCalls.add(createEdge(fromSignature, toSignature));
 
-        Optional<Class<?>> maybeCallerClass = jarMetadata.getClass(visitedClass.getClassName());
-        Optional<Class<?>> maybeReceiverClass = jarMetadata.getClass(receiverTypeName);
+        if (!IGNORED_METHOD_NAMES.contains(receiverMethodName)) {
 
-        maybeCallerClass.ifPresent(caller -> {
-            maybeReceiverClass.ifPresent(receiver -> {
-                jarMetadata.getReflections().getSubTypesOf(receiver).forEach(subtype -> {
-                    String toSubtypeSignature = buildMethodSignature(subtype.getName(), receiverMethodName, receiverArgTypeNames);
-                    expandedCalls.add(createEdge(fromSignature, toSubtypeSignature));
+            List<String> expandedCalls = new ArrayList<>();
+
+            Optional<Class<?>> maybeCallerClass = jarMetadata.getClass(visitedClass.getClassName());
+            Optional<Class<?>> maybeReceiverClass = jarMetadata.getClass(receiverTypeName);
+
+            maybeCallerClass.ifPresent(caller -> {
+                maybeReceiverClass.ifPresent(receiver -> {
+                    jarMetadata.getReflections().getSubTypesOf(receiver).forEach(subtype -> {
+                        String toSubtypeSignature = buildMethodSignature(subtype.getName(), receiverMethodName, receiverArgTypeNames);
+                        expandedCalls.add(createEdge(fromSignature, toSubtypeSignature));
+                    });
                 });
             });
-        });
 
-        methodCalls.addAll(expandedCalls);
+            methodCalls.addAll(expandedCalls);
+        }
     }
 
-    public String buildMethodSignature(String typeName, String methodName, String argTypeNames) {
-        return typeName + ":" + methodName + "(" + argTypeNames + ")";
+    public String buildMethodSignature(String className, String methodName, String argTypeNames) {
+        return className + ":" + methodName + "(" + argTypeNames + ")";
     }
 
+    // TODO: Replace this using graphviz-java library
     public String createEdge(String from, String to) {
-        // Could add coloring here
         return "\"" + from + "\" -- \"" + to + "\" ;\n";
     }
 }

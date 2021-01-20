@@ -12,6 +12,14 @@ import java.util.jar.JarFile;
 
 public class JarMetadata {
 
+    // TODO: Figure out a nice way to retain information from previous JARs while also
+    //       being able to analyze different JARs
+    //       -> Maybe we have to wrap a class around this that stores info from previous JARs
+
+    // TODO: Investigate https://jgrapht.org/ to store/cache complex queries of class information
+
+    // TODO: Analyze each class hierarchy and determine top-level method declarations
+
     private final JarFile jarFile;
     private final URLClassLoader cl;
     private final Reflections reflections;

@@ -1,8 +1,12 @@
 package gr.gousiosg.javacg.stat;
 
+import gr.gousiosg.javacg.dyn.Pair;
 import org.apache.bcel.classfile.ClassParser;
+
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.URL;
@@ -16,21 +20,32 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class GraphGenerator {
-    public void staticCallgraph(String jarName, String entryPoint) {
-        BufferedWriter log = new BufferedWriter(new OutputStreamWriter(System.out));
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(GraphGenerator.class);
+    private static final String GRAPH_BEGINNING = "graph callgraph {\n";
+    private static final String GRAPH_ENDING = "}\n";
+
+    public static void staticCallgraph(List<Pair<String, File>> jars, String entryPoint, Optional<BufferedWriter> maybeOutfileWriter) {
+        if (jars.isEmpty()) {
+            LOGGER.error("Oops! No JARs to look at! Goodbye!");
+            return;
+        }
+
+        BufferedWriter writer = maybeOutfileWriter
+                .orElse(new BufferedWriter(new OutputStreamWriter(System.out)));
 
         try {
-            File f = new File(jarName);
-            if (!f.exists()) {
-                System.err.println("Jar file " + jarName + " does not exist");
-            }
+            // TODO: Support multiple jars and loop through them
+            String jarPath = jars.get(0).first;
+            File file = jars.get(0).second;
 
-            try (JarFile jar = new JarFile(f)) {
+            try (JarFile jar = new JarFile(file)) {
+
+                /* Load JAR specific information */
                 URL[] urls = { new URL("jar:file:" + jar.getName() +"!/") };
                 URLClassLoader cl = URLClassLoader.newInstance(urls);
 
                 Reflections reflections = new Reflections(entryPoint, cl, new SubTypesScanner(true));
-
                 JarMetadata jarMetadata = new JarMetadata(jar, cl, reflections);
 
                 Stream<JarEntry> entries = enumerationAsStream(jar.entries());
@@ -44,31 +59,29 @@ public class GraphGenerator {
                             }
                         };
 
+                /* Collect callgraph strings of form (a -> b) */
                 List<String> methodCalls = entries
                         .flatMap(e -> {
                             if (e.isDirectory() || !e.getName().endsWith(".class"))
-                                return (new ArrayList<String>()).stream();
+                                return Stream.of();
 
-                            ClassParser cp = new ClassParser(jarName, e.getName());
+                            ClassParser cp = new ClassParser(jarPath, e.getName());
                             return getClassVisitor.apply(cp).start().methodCalls().stream();
                         })
                         .collect(Collectors.toList());
 
-                log.write("graph callgraph {\n");
-                for (String methodCall : methodCalls) {
-                    log.write(methodCall);
-                }
-                log.write("}\n");
-                }
+                /* Write graph */
+                LOGGER.info("Writing graph...");
+                writeGraph(writer, methodCalls);
+            }
         } catch (IOException e) {
-            System.err.println("Error while processing jar: " + e.getMessage());
+            LOGGER.error("Error while processing jar: " + e.getMessage());
             e.printStackTrace();
         } finally {
             try {
-                log.close();
+                writer.close();
             } catch (IOException e) {
-                e.printStackTrace();
-                System.err.println("Oops the logger broke");
+                LOGGER.error("Oh no! The writer broke!");
             }
         }
     }
@@ -86,5 +99,19 @@ public class GraphGenerator {
                             }
                         },
                         Spliterator.ORDERED), false);
+    }
+
+    public static void writeGraph(Writer writer, List<String> methodCalls) {
+        try {
+            writer.write(GRAPH_BEGINNING);
+            for (String methodCall : methodCalls) {
+                writer.write(methodCall);
+            }
+            writer.write(GRAPH_ENDING);
+        } catch (IOException e) {
+            System.err.println("Unable to write graph!");
+            e.printStackTrace();
+            System.exit(1);
+        }
     }
 }

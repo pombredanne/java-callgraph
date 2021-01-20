@@ -28,8 +28,22 @@
 
 package gr.gousiosg.javacg.stat;
 
+import gr.gousiosg.javacg.dyn.Pair;
+import org.apache.commons.cli.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.nio.file.InvalidPathException;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Constructs a callgraph out of a JAR archive. Can combine multiple archives
@@ -39,27 +53,99 @@ import java.util.Optional;
  */
 public class JCallGraph {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(JCallGraph.class);
     private static final String JAR_SUFFIX = ".jar";
-    private static final String DOT_FLAG = "-dot";
+    private static final String DOT_SUFFIX = ".dot";
 
     public static void main(String[] args) {
-        // TODO: Spit output into a .dot file instead out STDOUT
-        // TODO: Investigate https://jgrapht.org/ to store/cache complex queries of class information
-        // TODO: Analyze each class hierarchy and determine top-level method declarations
 
-        GraphGenerator graphGenerator = new GraphGenerator();
-        Optional<String> maybeJarName = Arrays.stream(args).filter(arg -> arg.endsWith(JAR_SUFFIX)).findFirst();
+        LOGGER.info("Parsing command line arguments...");
+
+        /* Setup cmdline options */
+        Options options = new Options();
+
+        options.addOption(Option.builder("d")
+                .longOpt("dot")
+                .hasArg(true)
+                .desc("[OPTIONAL] used to specify output for DOT file")
+                .required(false)
+                .build());
+
+        options.addOption(Option.builder("e")
+                .longOpt("entrypoint")
+                .hasArg(true)
+                .desc("[REQUIRED] describes entrypoint in a JAR")
+                .required(true)
+                .build());
+
+        options.addOption(Option.builder("j")
+                .longOpt("jar")
+                .hasArg(true)
+                .desc("[REQUIRED] one or more JARs to analyze")
+                .required(true)
+                .build());
+
+        /* Setup argument variables */
+        List<String> jarPaths = new ArrayList<>();
+        String entryPoint = null;
+        Optional<BufferedWriter> maybeOutfileWriter = Optional.empty();
+
+        /* Parse cmdline arguments */
+        CommandLineParser parser = new DefaultParser();
+        CommandLine cmd;
+
         try {
-            if (!maybeJarName.isPresent())
-                throw new Exception("No .JAR provided!");
-            if (!Arrays.asList(args).contains(DOT_FLAG))
-                throw new Exception("No -dot flag provided!");
+            cmd = parser.parse(options, args);
 
-            String entryPoint = "edu.uic";
-            graphGenerator.staticCallgraph(maybeJarName.get(), entryPoint);
-        } catch (Exception e) {
-            System.err.println("Error: " + e.getMessage());
+            /* Parse dotfile */
+            if (cmd.hasOption("d")) {
+                String outfilePath = cmd.getOptionValue("d");
+                if (!outfilePath.endsWith(DOT_SUFFIX))
+                    throw new ParseException("Please provide a valid .dot output path!");
+                try {
+                    maybeOutfileWriter = Optional.of(new BufferedWriter(new FileWriter(outfilePath)));
+                } catch (InvalidPathException | IOException e) {
+                    throw new ParseException("Couldn't create file at " + outfilePath);
+                }
+            }
+
+            /* Parse entry point*/
+            if (cmd.hasOption("e")) {
+                entryPoint = cmd.getOptionValue("e");
+            }
+
+            /* Parse JARs  */
+            if (cmd.hasOption("j")) {
+                jarPaths.addAll(Arrays.asList(cmd.getOptionValues("j")));
+            }
+
+        } catch (ParseException pe) {
+            LOGGER.error("Error parsing command-line arguments: " + pe.getMessage());
+            LOGGER.error("Please, follow the instructions below:");
+            HelpFormatter formatter = new HelpFormatter();
+            formatter.printHelp( "Log messages to sequence diagrams converter", options);
             System.exit(1);
         }
+
+        List<Pair<String, File>> jars = jarPaths.stream()
+                .map(path -> {
+                    if (!path.endsWith(JAR_SUFFIX)) {
+                        LOGGER.error("Path should end in file of type .jar!\n"
+                                    + "---> " + path + " <---");
+                        System.exit(1);
+                    }
+
+                    File file = new File(path);
+                    if (!file.exists()) {
+                        LOGGER.error("JAR Path " + path + " doesn't exist!");
+                        System.exit(1);
+                    }
+
+                    return new Pair<>(path, file);
+                })
+                .collect(Collectors.toList());
+
+        LOGGER.info("Beginning callgraph analysis...");
+        GraphGenerator.staticCallgraph(jars, entryPoint, maybeOutfileWriter);
     }
 }
