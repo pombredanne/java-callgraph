@@ -54,11 +54,11 @@ public class GraphGenerator {
                         })
                         .collect(Collectors.toList());
 
-                methodCalls.forEach(System.out::println);
-
-//                log.write("graph callgraph {\n");
-//                log.write(methodCalls);
-//                log.write("}\n");
+                log.write("graph callgraph {\n");
+                for (String methodCall : methodCalls) {
+                    log.write(methodCall);
+                }
+                log.write("}\n");
                 }
         } catch (IOException e) {
             System.err.println("Error while processing jar: " + e.getMessage());

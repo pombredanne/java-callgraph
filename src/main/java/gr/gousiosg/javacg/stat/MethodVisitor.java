@@ -156,6 +156,6 @@ public class MethodVisitor extends EmptyVisitor {
 
     public String createEdge(String from, String to) {
         // Could add coloring here
-        return "\"" + from + "\" -- \"" + to + "\" ;";
+        return "\"" + from + "\" -- \"" + to + "\" ;\n";
     }
 }
