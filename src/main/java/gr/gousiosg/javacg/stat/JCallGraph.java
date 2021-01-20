@@ -43,10 +43,9 @@ public class JCallGraph {
     private static final String DOT_FLAG = "-dot";
 
     public static void main(String[] args) {
-        // TODO: Figure out how to package Reflections into JAR properly
-        // TODO: enumerate method calls to all subtypes via Reflections
         // TODO: Spit output into a .dot file instead out STDOUT
         // TODO: Investigate https://jgrapht.org/ to store/cache complex queries of class information
+        // TODO: Analyze each class hierarchy and determine top-level method declarations
 
         GraphGenerator graphGenerator = new GraphGenerator();
         Optional<String> maybeJarName = Arrays.stream(args).filter(arg -> arg.endsWith(JAR_SUFFIX)).findFirst();
@@ -55,7 +54,9 @@ public class JCallGraph {
                 throw new Exception("No .JAR provided!");
             if (!Arrays.asList(args).contains(DOT_FLAG))
                 throw new Exception("No -dot flag provided!");
-            graphGenerator.staticCallgraph(maybeJarName.get());
+
+            String entryPoint = "edu.uic";
+            graphGenerator.staticCallgraph(maybeJarName.get(), entryPoint);
         } catch (Exception e) {
             System.err.println("Error: " + e.getMessage());
             System.exit(1);

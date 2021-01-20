@@ -11,20 +11,13 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 public class GraphGenerator {
-    public void staticCallgraph(String jarName) {
+    public void staticCallgraph(String jarName, String entryPoint) {
         BufferedWriter log = new BufferedWriter(new OutputStreamWriter(System.out));
-        Function<ClassParser, ClassVisitor> getClassVisitor =
-                (ClassParser cp) -> {
-                    try {
-                        return new ClassVisitor(cp.parse());
-                    } catch (IOException e) {
-                        throw new UncheckedIOException(e);
-                    }
-                };
 
         try {
             File f = new File(jarName);
@@ -33,39 +26,39 @@ public class GraphGenerator {
             }
 
             try (JarFile jar = new JarFile(f)) {
-
                 URL[] urls = { new URL("jar:file:" + jar.getName() +"!/") };
                 URLClassLoader cl = URLClassLoader.newInstance(urls);
 
-                JarMetadata jarMetadata = new JarMetadata(jar, cl);
-                jarMetadata.load();
+                Reflections reflections = new Reflections(entryPoint, cl, new SubTypesScanner(true));
 
-                Reflections reflections = new Reflections("edu.uic", cl, new SubTypesScanner(false));
+                JarMetadata jarMetadata = new JarMetadata(jar, cl, reflections);
 
                 Stream<JarEntry> entries = enumerationAsStream(jar.entries());
 
-                String methodCalls = entries.
-                        flatMap(e -> {
+                Function<ClassParser, ClassVisitor> getClassVisitor =
+                        (ClassParser cp) -> {
+                            try {
+                                return new ClassVisitor(cp.parse(), jarMetadata);
+                            } catch (IOException e) {
+                                throw new UncheckedIOException(e);
+                            }
+                        };
+
+                List<String> methodCalls = entries
+                        .flatMap(e -> {
                             if (e.isDirectory() || !e.getName().endsWith(".class"))
                                 return (new ArrayList<String>()).stream();
 
                             ClassParser cp = new ClassParser(jarName, e.getName());
                             return getClassVisitor.apply(cp).start().methodCalls().stream();
-                        }).
-                        map(s -> s + "\n").
-                        reduce(new StringBuilder(),
-                                StringBuilder::append,
-                                StringBuilder::append).toString();
+                        })
+                        .collect(Collectors.toList());
 
-                System.out.println("\n#####################\n"
-                        + "Generating Callgraph:\n"
-                        + "#####################\n");
+                methodCalls.forEach(System.out::println);
 
-                log.write("graph callgraph {\n");
-                log.write(methodCalls);
-                log.write("}\n");
-                System.out.println("\n\n");
-                reflections.getAllTypes().forEach(t-> System.out.println("$\t"+t));
+//                log.write("graph callgraph {\n");
+//                log.write(methodCalls);
+//                log.write("}\n");
                 }
         } catch (IOException e) {
             System.err.println("Error while processing jar: " + e.getMessage());

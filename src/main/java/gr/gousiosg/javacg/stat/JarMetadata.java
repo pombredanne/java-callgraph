@@ -1,25 +1,30 @@
 package gr.gousiosg.javacg.stat;
 
+import org.reflections.Reflections;
+
 import java.io.IOException;
-import java.lang.reflect.Method;
 import java.net.URLClassLoader;
-import java.util.Arrays;
 import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.Optional;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-import java.util.stream.Collectors;
 
 public class JarMetadata {
 
     private final JarFile jarFile;
     private final URLClassLoader cl;
+    private final Reflections reflections;
+    private final HashMap<String, Class<?>> nameToClass = new HashMap<>();
 
-    public JarMetadata(JarFile jarFile, URLClassLoader cl) {
+    public JarMetadata(JarFile jarFile, URLClassLoader cl, Reflections reflections) throws IOException {
         this.jarFile = jarFile;
         this.cl = cl;
+        this.reflections = reflections;
+        load();
     }
 
-    public void load() throws IOException {
+    private void load() throws IOException {
         Enumeration<JarEntry> e = jarFile.entries();
 
         while (e.hasMoreElements()) {
@@ -33,28 +38,22 @@ public class JarMetadata {
             className = className.replace('/', '.');
 
             try {
-                Class<?> c = cl.loadClass(className);
-                System.out.println("Inspecting " + c.getName());
-                for (Method m : c.getDeclaredMethods()) {
-
-                    // Climb class hierarchy getting declared methods
-
-                    Class<?> declaringClass = m.getDeclaringClass();
-
-                    String params = Arrays.stream(m.getParameterTypes())
-                            .map(Class::getName)
-                            .collect(Collectors.joining(","));
-
-                    String methodSignature = m.getName() + "(" + params + ")";
-
-                    System.out.println("\t"+ declaringClass + ":" + methodSignature);
+                Class<?> clazz = cl.loadClass(className);
+                if (nameToClass.containsKey(className)) {
+                    throw new Error("Class already found!" + className);
                 }
-
+                nameToClass.put(className, clazz);
             } catch (ClassNotFoundException classNotFoundException) {
                 classNotFoundException.printStackTrace();
             }
         }
     }
 
+    public Optional<Class<?>> getClass(String qualifiedName) {
+        return  Optional.ofNullable(nameToClass.get(qualifiedName));
+    }
 
+    public Reflections getReflections() {
+        return this.reflections;
+    }
 }

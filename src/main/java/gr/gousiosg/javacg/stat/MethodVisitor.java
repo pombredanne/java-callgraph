@@ -34,6 +34,7 @@ import org.apache.bcel.generic.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * The simplest of method visitors, prints any invoked method
@@ -48,15 +49,14 @@ public class MethodVisitor extends EmptyVisitor {
     private ConstantPoolGen cp;
     private String format;
     private List<String> methodCalls = new ArrayList<>();
+    private final JarMetadata jarMetadata;
 
-    public MethodVisitor(MethodGen m, JavaClass jc) {
+    public MethodVisitor(MethodGen m, JavaClass jc, JarMetadata jarMetadata) {
+        this.jarMetadata = jarMetadata;
         visitedClass = jc;
         mg = m;
         cp = mg.getConstantPool();
-
-        // Wrap method output in quotes for proper .DOT file formatting
-        format = "\"" + visitedClass.getClassName() + ":" + mg.getName() + "(" + argumentList(mg.getArgumentTypes()) + ")\""
-            + " -- " + "\"%s:%s(%s)\" ; ";
+        format = "%s";
     }
 
     private String argumentList(Type[] arguments) {
@@ -93,27 +93,69 @@ public class MethodVisitor extends EmptyVisitor {
 
     @Override
     public void visitINVOKEVIRTUAL(INVOKEVIRTUAL i) {
-        methodCalls.add(String.format(format,i.getReferenceType(cp),i.getMethodName(cp),argumentList(i.getArgumentTypes(cp))));
+        visit(String.format(format,i.getReferenceType(cp)),
+                i.getMethodName(cp),
+                argumentList(i.getArgumentTypes(cp)));
     }
 
     @Override
     public void visitINVOKEINTERFACE(INVOKEINTERFACE i) {
-        methodCalls.add(String.format(format,i.getReferenceType(cp),i.getMethodName(cp),argumentList(i.getArgumentTypes(cp))));
+        visit(String.format(format,i.getReferenceType(cp)),
+                i.getMethodName(cp),
+                argumentList(i.getArgumentTypes(cp)));
     }
 
     @Override
     public void visitINVOKESPECIAL(INVOKESPECIAL i) {
-        methodCalls.add(String.format(format,i.getReferenceType(cp),i.getMethodName(cp),argumentList(i.getArgumentTypes(cp))));
+        visit(String.format(format,i.getReferenceType(cp)),
+                i.getMethodName(cp),
+                argumentList(i.getArgumentTypes(cp)));
     }
 
     @Override
     public void visitINVOKESTATIC(INVOKESTATIC i) {
-        methodCalls.add(String.format(format,i.getReferenceType(cp),i.getMethodName(cp),argumentList(i.getArgumentTypes(cp))));
+        visit(String.format(format,i.getReferenceType(cp)),
+                i.getMethodName(cp),
+                argumentList(i.getArgumentTypes(cp)));
     }
 
     @Override
     public void visitINVOKEDYNAMIC(INVOKEDYNAMIC i) {
-        methodCalls.add(String.format(format,i.getType(cp),i.getMethodName(cp),
-                argumentList(i.getArgumentTypes(cp))));
+        visit(String.format(format,i.getReferenceType(cp)),
+                i.getMethodName(cp),
+                argumentList(i.getArgumentTypes(cp)));
+    }
+
+    public void visit(String receiverTypeName, String receiverMethodName, String receiverArgTypeNames) {
+
+        List<String> expandedCalls = new ArrayList<>();
+
+        String fromSignature = buildMethodSignature(visitedClass.getClassName(), mg.getName(), argumentList(mg.getArgumentTypes()));
+        String toSignature = buildMethodSignature(receiverTypeName, receiverMethodName, receiverArgTypeNames);
+
+        expandedCalls.add(createEdge(fromSignature, toSignature));
+
+        Optional<Class<?>> maybeCallerClass = jarMetadata.getClass(visitedClass.getClassName());
+        Optional<Class<?>> maybeReceiverClass = jarMetadata.getClass(receiverTypeName);
+
+        maybeCallerClass.ifPresent(caller -> {
+            maybeReceiverClass.ifPresent(receiver -> {
+                jarMetadata.getReflections().getSubTypesOf(receiver).forEach(subtype -> {
+                    String toSubtypeSignature = buildMethodSignature(subtype.getName(), receiverMethodName, receiverArgTypeNames);
+                    expandedCalls.add(createEdge(fromSignature, toSubtypeSignature));
+                });
+            });
+        });
+
+        methodCalls.addAll(expandedCalls);
+    }
+
+    public String buildMethodSignature(String typeName, String methodName, String argTypeNames) {
+        return typeName + ":" + methodName + "(" + argTypeNames + ")";
+    }
+
+    public String createEdge(String from, String to) {
+        // Could add coloring here
+        return "\"" + from + "\" -- \"" + to + "\" ;";
     }
 }

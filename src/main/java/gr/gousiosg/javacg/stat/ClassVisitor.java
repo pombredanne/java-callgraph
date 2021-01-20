@@ -46,10 +46,12 @@ public class ClassVisitor extends EmptyVisitor {
     private String classReferenceFormat;
     private final DynamicCallManager DCManager = new DynamicCallManager();
     private List<String> methodCalls = new ArrayList<>();
+    private final JarMetadata jarMetadata;
 
-    public ClassVisitor(JavaClass jc) {
+    public ClassVisitor(JavaClass jc, JarMetadata jarMetadata) {
         clazz = jc;
         constants = new ConstantPoolGen(clazz.getConstantPool());
+        this.jarMetadata = jarMetadata;
         classReferenceFormat = "C:" + clazz.getClassName() + " %s";
     }
 
@@ -78,7 +80,7 @@ public class ClassVisitor extends EmptyVisitor {
 
     public void visitMethod(Method method) {
         MethodGen mg = new MethodGen(method, clazz.getClassName(), constants);
-        MethodVisitor visitor = new MethodVisitor(mg, clazz);
+        MethodVisitor visitor = new MethodVisitor(mg, clazz, jarMetadata);
         methodCalls.addAll(visitor.start());
     }
 
