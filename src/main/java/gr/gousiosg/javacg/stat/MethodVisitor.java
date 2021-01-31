@@ -28,13 +28,15 @@
 
 package gr.gousiosg.javacg.stat;
 
+import gr.gousiosg.javacg.dyn.Pair;
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.generic.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Optional;
+import java.lang.reflect.Method;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * The simplest of method visitors, prints any invoked method
@@ -44,14 +46,50 @@ import java.util.Optional;
  */
 public class MethodVisitor extends EmptyVisitor {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(MethodVisitor.class);
+
     private static final String INIT = "<init>";
     private static final List<String> IGNORED_METHOD_NAMES = List.of(INIT);
+    private static final Boolean EXPAND = true;
+    private static final Boolean DONT_EXPAND = true;
+
+    // TODO move these to a constants file
+    private static final String JAVA= "java.";
+    private static final String JAVAX= "javax.";
+    private static final String JAVA_ASSIST = "javassist.";
+    private static final String SLF4J = "org.slf4j";
+    private static final String APACHE = "org.apache";
+    private static final String REFLECTIONS = "org.reflections";
+    private static final String GURU = "guru.";
+    private static final String KITFOX = "com.kitfox";
+    private static final String WEBJARS = "org.webjars";
+    private static final String ARXN = "net.arnx";
+    private static final String GOOGLE = "com.google";
+    private static final String CUCUMBER = "io.cucumber";
+    private static final String HAMCREST = "org.hamcrest";
+    private static final String ECLIPSE = "com.eclipsesource";
+
+    private static final List<String> IGNORED_CALLING_PACKAGES = List.of(
+            JAVA,
+            JAVAX,
+            REFLECTIONS,
+            SLF4J, APACHE,
+            JAVA_ASSIST,
+            GURU,
+            KITFOX,
+            WEBJARS,
+            ARXN,
+            GOOGLE,
+            CUCUMBER,
+            HAMCREST,
+            ECLIPSE
+    );
 
     JavaClass visitedClass;
     private MethodGen mg;
     private ConstantPoolGen cp;
     private String format;
-    private List<String> methodCalls = new ArrayList<>();
+    private Set<Pair<String, String>> methodCalls = new HashSet<>();
     private final JarMetadata jarMetadata;
 
     public MethodVisitor(MethodGen m, JavaClass jc, JarMetadata jarMetadata) {
@@ -73,9 +111,9 @@ public class MethodVisitor extends EmptyVisitor {
         return sb.toString();
     }
 
-    public List<String> start() {
+    public Set<Pair<String, String>> start() {
         if (mg.isAbstract() || mg.isNative())
-            return Collections.emptyList();
+            return Collections.emptySet();
 
         for (InstructionHandle ih = mg.getInstructionList().getStart(); 
                 ih != null; ih = ih.getNext()) {
@@ -96,64 +134,87 @@ public class MethodVisitor extends EmptyVisitor {
 
     @Override
     public void visitINVOKEVIRTUAL(INVOKEVIRTUAL i) {
-        visit(String.format(format,i.getReferenceType(cp)), i.getMethodName(cp), argumentList(i.getArgumentTypes(cp)));
+        visit(String.format(format,i.getReferenceType(cp)), i.getMethodName(cp), argumentList(i.getArgumentTypes(cp)), EXPAND);
     }
 
     @Override
     public void visitINVOKEINTERFACE(INVOKEINTERFACE i) {
-        visit(String.format(format,i.getReferenceType(cp)), i.getMethodName(cp), argumentList(i.getArgumentTypes(cp)));
+        visit(String.format(format,i.getReferenceType(cp)), i.getMethodName(cp), argumentList(i.getArgumentTypes(cp)), EXPAND);
     }
 
     @Override
     public void visitINVOKESPECIAL(INVOKESPECIAL i) {
-        // TODO: Don't expand this
-        visit(String.format(format,i.getReferenceType(cp)), i.getMethodName(cp), argumentList(i.getArgumentTypes(cp)));
+        // Don't expand this
+        visit(String.format(format,i.getReferenceType(cp)), i.getMethodName(cp), argumentList(i.getArgumentTypes(cp)), DONT_EXPAND);
     }
 
     @Override
     public void visitINVOKESTATIC(INVOKESTATIC i) {
-        // TODO: Don't expand this
-        visit(String.format(format,i.getReferenceType(cp)), i.getMethodName(cp), argumentList(i.getArgumentTypes(cp)));
+        // Don't expand this
+        visit(String.format(format,i.getReferenceType(cp)), i.getMethodName(cp), argumentList(i.getArgumentTypes(cp)), DONT_EXPAND);
     }
 
     @Override
     public void visitINVOKEDYNAMIC(INVOKEDYNAMIC i) {
-        visit(String.format(format,i.getReferenceType(cp)), i.getMethodName(cp), argumentList(i.getArgumentTypes(cp)));
+        visit(String.format(format,i.getReferenceType(cp)), i.getMethodName(cp), argumentList(i.getArgumentTypes(cp)), EXPAND);
     }
 
-    public void visit(String receiverTypeName, String receiverMethodName, String receiverArgTypeNames) {
 
-        String fromSignature = buildMethodSignature(visitedClass.getClassName(), mg.getName(), argumentList(mg.getArgumentTypes()));
-        String toSignature = buildMethodSignature(receiverTypeName, receiverMethodName, receiverArgTypeNames);
+    private void visit(String receiverTypeName, String receiverMethodName, String receiverArgTypeNames, Boolean shouldExpand) {
 
+        if (IGNORED_CALLING_PACKAGES.stream().anyMatch(pkg -> visitedClass.getClassName().contains(pkg))) {
+            return;
+        }
+
+        String fromSignature = fullyQualifiedMethodSignature(visitedClass.getClassName(), mg.getName(), argumentList(mg.getArgumentTypes()));
+        String toSignature = fullyQualifiedMethodSignature(receiverTypeName, receiverMethodName, receiverArgTypeNames);
         methodCalls.add(createEdge(fromSignature, toSignature));
 
-        if (!IGNORED_METHOD_NAMES.contains(receiverMethodName)) {
-
-            List<String> expandedCalls = new ArrayList<>();
-
-            Optional<Class<?>> maybeCallerClass = jarMetadata.getClass(visitedClass.getClassName());
+        if (shouldExpand && !IGNORED_METHOD_NAMES.contains(receiverMethodName)) {
             Optional<Class<?>> maybeReceiverClass = jarMetadata.getClass(receiverTypeName);
+            if (maybeReceiverClass.isEmpty()) {
+                LOGGER.info("Error from: " + fromSignature + " -> " + toSignature);
+                LOGGER.error("\tCouldn't find " + receiverTypeName);
+                return;
+            }
 
-            maybeCallerClass.ifPresent(caller -> {
-                maybeReceiverClass.ifPresent(receiver -> {
-                    jarMetadata.getReflections().getSubTypesOf(receiver).forEach(subtype -> {
-                        String toSubtypeSignature = buildMethodSignature(subtype.getName(), receiverMethodName, receiverArgTypeNames);
-                        expandedCalls.add(createEdge(fromSignature, toSubtypeSignature));
-                    });
-                });
-            });
-
-            methodCalls.addAll(expandedCalls);
+            expand(maybeReceiverClass.get(), receiverMethodName, receiverArgTypeNames, fromSignature);
         }
     }
 
-    public String buildMethodSignature(String className, String methodName, String argTypeNames) {
+    private void expand(Class<?> receiver, String receiverMethodName, String receiverArgTypeNames, String fromSignature) {
+        ClassHierarchyInspector inspector = jarMetadata.getInspector();
+        jarMetadata.getReflections().getSubTypesOf(receiver)
+                .stream()
+                .map(subtype ->
+                        inspector.getTopLevelSignature(
+                                subtype,
+                                ClassHierarchyInspector.methodSignature(
+                                        receiverMethodName,
+                                        receiverArgTypeNames)
+                        )
+                )
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(this::fullyQualifiedMethodSignature)
+                .forEach(toSubtypeSignature -> methodCalls.add(createEdge(fromSignature, toSubtypeSignature)));
+    }
+
+    private String fullyQualifiedMethodSignature(Method method) {
+        return fullyQualifiedMethodSignature(
+                method.getDeclaringClass().getName(),
+                method.getName(),
+                Arrays.stream(method.getParameterTypes())
+                        .map(Class::getName)
+                        .collect(Collectors.joining(","))
+        );
+    }
+
+    public String fullyQualifiedMethodSignature(String className, String methodName, String argTypeNames) {
         return className + ":" + methodName + "(" + argTypeNames + ")";
     }
 
-    // TODO: Replace this using graphviz-java library
-    public String createEdge(String from, String to) {
-        return "\"" + from + "\" -- \"" + to + "\" ;\n";
+    public Pair<String, String> createEdge(String from, String to) {
+        return new Pair<>(from, to);
     }
 }

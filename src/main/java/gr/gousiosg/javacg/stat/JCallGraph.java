@@ -33,12 +33,7 @@ import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.nio.file.InvalidPathException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -55,31 +50,26 @@ public class JCallGraph {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JCallGraph.class);
     private static final String JAR_SUFFIX = ".jar";
-    private static final String DOT_SUFFIX = ".dot";
+    private static final String JAR_INPUT = "j";
+    private static final String JAR_INPUT_LONG = "jar";
+    private static final String NAME_INPUT = "n";
+    private static final String NAME_INPUT_LONG = "name";
 
     public static void main(String[] args) {
-
         LOGGER.info("Parsing command line arguments...");
 
         /* Setup cmdline options */
         Options options = new Options();
 
-        options.addOption(Option.builder("d")
-                .longOpt("dot")
+        options.addOption(Option.builder(NAME_INPUT)
+                .longOpt(NAME_INPUT_LONG)
                 .hasArg(true)
-                .desc("[OPTIONAL] used to specify output for DOT file")
-                .required(false)
-                .build());
-
-        options.addOption(Option.builder("e")
-                .longOpt("entrypoint")
-                .hasArg(true)
-                .desc("[REQUIRED] describes entrypoint in a JAR")
+                .desc("[REQUIRED] used to specify output name for the graph")
                 .required(true)
                 .build());
 
-        options.addOption(Option.builder("j")
-                .longOpt("jar")
+        options.addOption(Option.builder(JAR_INPUT)
+                .longOpt(JAR_INPUT_LONG)
                 .hasArg(true)
                 .desc("[REQUIRED] one or more JARs to analyze")
                 .required(true)
@@ -87,8 +77,7 @@ public class JCallGraph {
 
         /* Setup argument variables */
         List<String> jarPaths = new ArrayList<>();
-        String entryPoint = null;
-        Optional<BufferedWriter> maybeOutfileWriter = Optional.empty();
+        Optional<String> output = Optional.empty();
 
         /* Parse cmdline arguments */
         CommandLineParser parser = new DefaultParser();
@@ -97,26 +86,14 @@ public class JCallGraph {
         try {
             cmd = parser.parse(options, args);
 
-            /* Parse dotfile */
-            if (cmd.hasOption("d")) {
-                String outfilePath = cmd.getOptionValue("d");
-                if (!outfilePath.endsWith(DOT_SUFFIX))
-                    throw new ParseException("Please provide a valid .dot output path!");
-                try {
-                    maybeOutfileWriter = Optional.of(new BufferedWriter(new FileWriter(outfilePath)));
-                } catch (InvalidPathException | IOException e) {
-                    throw new ParseException("Couldn't create file at " + outfilePath);
-                }
-            }
-
-            /* Parse entry point*/
-            if (cmd.hasOption("e")) {
-                entryPoint = cmd.getOptionValue("e");
+            /* Parse output name */
+            if (cmd.hasOption(NAME_INPUT)) {
+                output = Optional.of(cmd.getOptionValue(NAME_INPUT));
             }
 
             /* Parse JARs  */
-            if (cmd.hasOption("j")) {
-                jarPaths.addAll(Arrays.asList(cmd.getOptionValues("j")));
+            if (cmd.hasOption(JAR_INPUT)) {
+                jarPaths.addAll(Arrays.asList(cmd.getOptionValues(JAR_INPUT)));
             }
 
         } catch (ParseException pe) {
@@ -127,8 +104,16 @@ public class JCallGraph {
             System.exit(1);
         }
 
+        assert output.isPresent();
+        if (!output.get().matches("[a-zA-Z]+")) {
+            LOGGER.error("---> " + output.get() + " <---");
+            LOGGER.error("Please specify only a name for the output. Do not include filetype!");
+            System.exit(1);
+        }
+
         List<Pair<String, File>> jars = jarPaths.stream()
                 .map(path -> {
+
                     if (!path.endsWith(JAR_SUFFIX)) {
                         LOGGER.error("Path should end in file of type .jar!\n"
                                     + "---> " + path + " <---");
@@ -141,11 +126,13 @@ public class JCallGraph {
                         System.exit(1);
                     }
 
+                    LOGGER.info("Found JAR: " + path);
+
                     return new Pair<>(path, file);
                 })
                 .collect(Collectors.toList());
 
-        LOGGER.info("Beginning callgraph analysis...");
-        GraphGenerator.staticCallgraph(jars, entryPoint, maybeOutfileWriter);
+         LOGGER.info("Beginning callgraph analysis...");
+         GraphGenerator.staticCallgraph(jars, output.get());
     }
 }

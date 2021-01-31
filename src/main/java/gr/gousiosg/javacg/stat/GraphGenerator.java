@@ -1,90 +1,113 @@
 package gr.gousiosg.javacg.stat;
 
 import gr.gousiosg.javacg.dyn.Pair;
+import guru.nidi.graphviz.engine.Format;
+import guru.nidi.graphviz.engine.Graphviz;
+import guru.nidi.graphviz.model.MutableGraph;
 import org.apache.bcel.classfile.ClassParser;
-
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.File;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
 import java.util.function.Function;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
+import static guru.nidi.graphviz.model.Factory.mutGraph;
+import static guru.nidi.graphviz.model.Factory.mutNode;
 
 public class GraphGenerator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GraphGenerator.class);
-    private static final String GRAPH_BEGINNING = "graph callgraph {\n";
+    private static final String GRAPH_BEGINNING = "digraph callgraph {\n";
     private static final String GRAPH_ENDING = "}\n";
 
-    public static void staticCallgraph(List<Pair<String, File>> jars, String entryPoint, Optional<BufferedWriter> maybeOutfileWriter) {
-        if (jars.isEmpty()) {
-            LOGGER.error("Oops! No JARs to look at! Goodbye!");
+    public static void staticCallgraph(List<Pair<String, File>> jars, String output) {
+        List<URL> urls = new ArrayList<>();
+
+        try {
+            for (Pair<String, File> pair : jars) {
+                URL url = new URL("jar:file:" + pair.first + "!/");
+                urls.add(url);
+            }
+        } catch (MalformedURLException e) {
+            LOGGER.error("Error loading URLs: " + e.getMessage());
             return;
         }
 
-        BufferedWriter writer = maybeOutfileWriter
-                .orElse(new BufferedWriter(new OutputStreamWriter(System.out)));
+        if (urls.isEmpty()) {
+            LOGGER.error("No URLs to scan!");
+            return;
+        }
+
+        /* Setup infrastructure for analysis */
+        URLClassLoader cl = URLClassLoader.newInstance(urls.toArray(new URL[0]), ClassLoader.getSystemClassLoader());
+        Reflections reflections = new Reflections(cl, new SubTypesScanner(false));
+        JarMetadata jarMetadata = new JarMetadata(cl, reflections);
+
+        /* Store graph */
+        Set<Pair<String, String>> methodCalls = new HashSet<>();
 
         try {
-            // TODO: Support multiple jars and loop through them
-            String jarPath = jars.get(0).first;
-            File file = jars.get(0).second;
+            for (Pair<String, File> pair : jars) {
+                String jarPath = pair.first;
+                File file = pair.second;
 
-            try (JarFile jar = new JarFile(file)) {
+                try (JarFile jarFile = new JarFile(file)) {
+                    LOGGER.info("Analyzing: " + jarFile.getName());
+                    Stream<JarEntry> entries = enumerationAsStream(jarFile.entries());
 
-                /* Load JAR specific information */
-                URL[] urls = { new URL("jar:file:" + jar.getName() +"!/") };
-                URLClassLoader cl = URLClassLoader.newInstance(urls);
+                    Function<ClassParser, ClassVisitor> getClassVisitor =
+                            (ClassParser cp) -> {
+                                try {
+                                    return new ClassVisitor(cp.parse(), jarMetadata);
+                                } catch (IOException e) {
+                                    throw new UncheckedIOException(e);
+                                }
+                            };
 
-                Reflections reflections = new Reflections(entryPoint, cl, new SubTypesScanner(true));
-                JarMetadata jarMetadata = new JarMetadata(jar, cl, reflections);
+                    /* Analyze each jar entry */
+                    entries.flatMap(e -> {
+                        if (e.isDirectory() || !e.getName().endsWith(".class"))
+                            return Stream.of();
 
-                Stream<JarEntry> entries = enumerationAsStream(jar.entries());
+                        ClassParser cp = new ClassParser(jarPath, e.getName());
+                        return getClassVisitor.apply(cp).start().methodCalls().stream();
+                    }).forEach(methodCalls::add);
 
-                Function<ClassParser, ClassVisitor> getClassVisitor =
-                        (ClassParser cp) -> {
-                            try {
-                                return new ClassVisitor(cp.parse(), jarMetadata);
-                            } catch (IOException e) {
-                                throw new UncheckedIOException(e);
-                            }
-                        };
-
-                /* Collect callgraph strings of form (a -> b) */
-                List<String> methodCalls = entries
-                        .flatMap(e -> {
-                            if (e.isDirectory() || !e.getName().endsWith(".class"))
-                                return Stream.of();
-
-                            ClassParser cp = new ClassParser(jarPath, e.getName());
-                            return getClassVisitor.apply(cp).start().methodCalls().stream();
-                        })
-                        .collect(Collectors.toList());
-
-                /* Write graph */
-                LOGGER.info("Writing graph...");
-                writeGraph(writer, methodCalls);
+                } catch (IOException e) {
+                    LOGGER.error("Error when analyzing JAR \"" + jarPath + "\": + e.getMessage()");
+                    e.printStackTrace();
+                }
             }
-        } catch (IOException e) {
-            LOGGER.error("Error while processing jar: " + e.getMessage());
-            e.printStackTrace();
         } finally {
-            try {
-                writer.close();
-            } catch (IOException e) {
-                LOGGER.error("Oh no! The writer broke!");
+            if (methodCalls.isEmpty()) {
+                LOGGER.error("No method calls to look at!");
+            } else {
+                LOGGER.info("Adding edges to the graph...");
+                MutableGraph graph = mutGraph(output).setDirected(true);
+                methodCalls.forEach(pair -> graph.add(mutNode(pair.first).addLink(mutNode(pair.second))));
+                try {
+                    // TODO: Maybe only spit out .dot
+                    Graphviz.fromGraph(graph).render(Format.PNG).toFile(new File("./output/" + output + ".png"));
+                    Graphviz.fromGraph(graph).render(Format.DOT).toFile(new File("./output/" + output + ".dot"));
+                } catch (IOException e) {
+                    LOGGER.error(e.getMessage());
+                }
             }
         }
     }
+
 
     public static <T> Stream<T> enumerationAsStream(Enumeration<T> e) {
         return StreamSupport.stream(
@@ -99,19 +122,5 @@ public class GraphGenerator {
                             }
                         },
                         Spliterator.ORDERED), false);
-    }
-
-    public static void writeGraph(Writer writer, List<String> methodCalls) {
-        try {
-            writer.write(GRAPH_BEGINNING);
-            for (String methodCall : methodCalls) {
-                writer.write(methodCall);
-            }
-            writer.write(GRAPH_ENDING);
-        } catch (IOException e) {
-            System.err.println("Unable to write graph!");
-            e.printStackTrace();
-            System.exit(1);
-        }
     }
 }

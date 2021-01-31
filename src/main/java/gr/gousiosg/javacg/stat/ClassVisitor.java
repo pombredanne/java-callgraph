@@ -28,12 +28,13 @@
 
 package gr.gousiosg.javacg.stat;
 
+import gr.gousiosg.javacg.dyn.Pair;
 import org.apache.bcel.classfile.*;
 import org.apache.bcel.generic.ConstantPoolGen;
 import org.apache.bcel.generic.MethodGen;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * The simplest of class visitors, invokes the method visitor class for each
@@ -45,7 +46,8 @@ public class ClassVisitor extends EmptyVisitor {
     private ConstantPoolGen constants;
     private String classReferenceFormat;
     private final DynamicCallManager DCManager = new DynamicCallManager();
-    private List<String> methodCalls = new ArrayList<>();
+
+    private Set<Pair<String, String>> methodCalls = new HashSet<>();
     private final JarMetadata jarMetadata;
 
     public ClassVisitor(JavaClass jc, JarMetadata jarMetadata) {
@@ -89,7 +91,7 @@ public class ClassVisitor extends EmptyVisitor {
         return this;
     }
 
-    public List<String> methodCalls() {
+    public Set<Pair<String, String>> methodCalls() {
         return this.methodCalls;
     }
 }
