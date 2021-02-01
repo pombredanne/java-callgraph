@@ -29,10 +29,8 @@ import static guru.nidi.graphviz.model.Factory.mutNode;
 public class GraphGenerator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GraphGenerator.class);
-    private static final String GRAPH_BEGINNING = "digraph callgraph {\n";
-    private static final String GRAPH_ENDING = "}\n";
 
-    public static void staticCallgraph(List<Pair<String, File>> jars, String output) {
+    public static void staticCallgraph(List<Pair<String, File>> jars, String outputName) {
         List<URL> urls = new ArrayList<>();
 
         try {
@@ -94,16 +92,21 @@ public class GraphGenerator {
             if (methodCalls.isEmpty()) {
                 LOGGER.error("No method calls to look at!");
             } else {
-                LOGGER.info("Adding edges to the graph...");
-                MutableGraph graph = mutGraph(output).setDirected(true);
-                methodCalls.forEach(pair -> graph.add(mutNode(pair.first).addLink(mutNode(pair.second))));
-                try {
-                    // TODO: Maybe only spit out .dot
-                    Graphviz.fromGraph(graph).render(Format.PNG).toFile(new File("./output/" + output + ".png"));
-                    Graphviz.fromGraph(graph).render(Format.DOT).toFile(new File("./output/" + output + ".dot"));
-                } catch (IOException e) {
-                    LOGGER.error(e.getMessage());
-                }
+
+
+                methodCalls.forEach(pair -> {
+                    LOGGER.info(pair.first + " -> " + pair.second);
+                });
+
+//                LOGGER.info("Adding edges to the graph...");
+//                MutableGraph graph = mutGraph(outputName).setDirected(true);
+//                methodCalls.forEach(pair -> graph.add(mutNode(pair.first).addLink(mutNode(pair.second))));
+//                try {
+//                    Graphviz.fromGraph(graph).render(Format.PNG).toFile(new File("./output/" + outputName + ".png"));
+//                    Graphviz.fromGraph(graph).render(Format.DOT).toFile(new File("./output/" + outputName + ".dot"));
+//                } catch (IOException e) {
+//                    LOGGER.error("Trouble writing graph: " + e.getMessage());
+//                }
             }
         }
     }

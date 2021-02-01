@@ -38,6 +38,8 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static gr.gousiosg.javacg.stat.IgnoredConstants.*;
+
 /**
  * The simplest of method visitors, prints any invoked method
  * signature for all method invocations.
@@ -47,43 +49,8 @@ import java.util.stream.Collectors;
 public class MethodVisitor extends EmptyVisitor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MethodVisitor.class);
-
-    private static final String INIT = "<init>";
-    private static final List<String> IGNORED_METHOD_NAMES = List.of(INIT);
     private static final Boolean EXPAND = true;
-    private static final Boolean DONT_EXPAND = true;
-
-    // TODO move these to a constants file
-    private static final String JAVA= "java.";
-    private static final String JAVAX= "javax.";
-    private static final String JAVA_ASSIST = "javassist.";
-    private static final String SLF4J = "org.slf4j";
-    private static final String APACHE = "org.apache";
-    private static final String REFLECTIONS = "org.reflections";
-    private static final String GURU = "guru.";
-    private static final String KITFOX = "com.kitfox";
-    private static final String WEBJARS = "org.webjars";
-    private static final String ARXN = "net.arnx";
-    private static final String GOOGLE = "com.google";
-    private static final String CUCUMBER = "io.cucumber";
-    private static final String HAMCREST = "org.hamcrest";
-    private static final String ECLIPSE = "com.eclipsesource";
-
-    private static final List<String> IGNORED_CALLING_PACKAGES = List.of(
-            JAVA,
-            JAVAX,
-            REFLECTIONS,
-            SLF4J, APACHE,
-            JAVA_ASSIST,
-            GURU,
-            KITFOX,
-            WEBJARS,
-            ARXN,
-            GOOGLE,
-            CUCUMBER,
-            HAMCREST,
-            ECLIPSE
-    );
+    private static final Boolean DONT_EXPAND = false;
 
     JavaClass visitedClass;
     private MethodGen mg;
@@ -144,13 +111,11 @@ public class MethodVisitor extends EmptyVisitor {
 
     @Override
     public void visitINVOKESPECIAL(INVOKESPECIAL i) {
-        // Don't expand this
         visit(String.format(format,i.getReferenceType(cp)), i.getMethodName(cp), argumentList(i.getArgumentTypes(cp)), DONT_EXPAND);
     }
 
     @Override
     public void visitINVOKESTATIC(INVOKESTATIC i) {
-        // Don't expand this
         visit(String.format(format,i.getReferenceType(cp)), i.getMethodName(cp), argumentList(i.getArgumentTypes(cp)), DONT_EXPAND);
     }
 
@@ -162,7 +127,7 @@ public class MethodVisitor extends EmptyVisitor {
 
     private void visit(String receiverTypeName, String receiverMethodName, String receiverArgTypeNames, Boolean shouldExpand) {
 
-        if (IGNORED_CALLING_PACKAGES.stream().anyMatch(pkg -> visitedClass.getClassName().contains(pkg))) {
+        if (IGNORED_CALLING_PACKAGES.stream().anyMatch(pkg -> visitedClass.getClassName().startsWith(pkg))) {
             return;
         }
 
@@ -171,33 +136,39 @@ public class MethodVisitor extends EmptyVisitor {
         methodCalls.add(createEdge(fromSignature, toSignature));
 
         if (shouldExpand && !IGNORED_METHOD_NAMES.contains(receiverMethodName)) {
-            Optional<Class<?>> maybeReceiverClass = jarMetadata.getClass(receiverTypeName);
-            if (maybeReceiverClass.isEmpty()) {
-                LOGGER.info("Error from: " + fromSignature + " -> " + toSignature);
+            Optional<Class<?>> maybeReceiverType = jarMetadata.getClass(receiverTypeName);
+            if (maybeReceiverType.isEmpty()) {
+                LOGGER.error("Error from: " + fromSignature + " -> " + toSignature);
                 LOGGER.error("\tCouldn't find " + receiverTypeName);
                 return;
             }
-
-            expand(maybeReceiverClass.get(), receiverMethodName, receiverArgTypeNames, fromSignature);
+            expand(maybeReceiverType.get(), receiverMethodName, receiverArgTypeNames, fromSignature);
         }
     }
 
-    private void expand(Class<?> receiver, String receiverMethodName, String receiverArgTypeNames, String fromSignature) {
+    private void expand(Class<?> receiverType, String receiverMethodName, String receiverArgTypeNames, String fromSignature) {
         ClassHierarchyInspector inspector = jarMetadata.getInspector();
-        jarMetadata.getReflections().getSubTypesOf(receiver)
-                .stream()
-                .map(subtype ->
-                        inspector.getTopLevelSignature(
-                                subtype,
-                                ClassHierarchyInspector.methodSignature(
-                                        receiverMethodName,
-                                        receiverArgTypeNames)
-                        )
-                )
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .map(this::fullyQualifiedMethodSignature)
-                .forEach(toSubtypeSignature -> methodCalls.add(createEdge(fromSignature, toSubtypeSignature)));
+        try {
+            LOGGER.info("Expanding to subtypes of " + receiverType.getName());
+            jarMetadata.getReflections().getSubTypesOf(receiverType)
+                    .stream()
+                    .map(subtype ->
+                            inspector.getTopLevelSignature(
+                                    subtype,
+                                    ClassHierarchyInspector.methodSignature(
+                                            receiverMethodName,
+                                            receiverArgTypeNames)
+                            )
+                    )
+                    .filter(Optional::isPresent)
+                    .map(Optional::get)
+                    .map(this::fullyQualifiedMethodSignature)
+                    .forEach(toSubtypeSignature -> methodCalls.add(createEdge(fromSignature, toSubtypeSignature)));
+        } catch (Exception e) {
+            LOGGER.error("Error when expanding to subtypes of " + receiverType.getName());
+        }
+
+
     }
 
     private String fullyQualifiedMethodSignature(Method method) {

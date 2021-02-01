@@ -113,10 +113,9 @@ public class JCallGraph {
 
         List<Pair<String, File>> jars = jarPaths.stream()
                 .map(path -> {
-
                     if (!path.endsWith(JAR_SUFFIX)) {
-                        LOGGER.error("Path should end in file of type .jar!\n"
-                                    + "---> " + path + " <---");
+                        LOGGER.error("---> " + path + " <---");
+                        LOGGER.error("Path should end in file of type .jar!");
                         System.exit(1);
                     }
 
@@ -127,7 +126,6 @@ public class JCallGraph {
                     }
 
                     LOGGER.info("Found JAR: " + path);
-
                     return new Pair<>(path, file);
                 })
                 .collect(Collectors.toList());
