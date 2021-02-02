@@ -15,6 +15,7 @@ public class ClassHierarchyInspector {
 
     Map<Class<?>, Map<String, Method>> methodHierarchy = new HashMap<>();
 
+    // TODO: Maybe we can remove our local storage and reduce this to use only the reflection API
     private void loadHierarchy(Class<?> clazz) {
         try {
             if (methodHierarchy.containsKey(clazz)) {

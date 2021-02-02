@@ -56,61 +56,56 @@ public class GraphGenerator {
         /* Store graph */
         Set<Pair<String, String>> methodCalls = new HashSet<>();
 
-        try {
-            for (Pair<String, File> pair : jars) {
-                String jarPath = pair.first;
-                File file = pair.second;
+        for (Pair<String, File> pair : jars) {
+            String jarPath = pair.first;
+            File file = pair.second;
 
-                try (JarFile jarFile = new JarFile(file)) {
-                    LOGGER.info("Analyzing: " + jarFile.getName());
-                    Stream<JarEntry> entries = enumerationAsStream(jarFile.entries());
+            try (JarFile jarFile = new JarFile(file)) {
+                LOGGER.info("Analyzing: " + jarFile.getName());
+                Stream<JarEntry> entries = enumerationAsStream(jarFile.entries());
 
-                    Function<ClassParser, ClassVisitor> getClassVisitor =
-                            (ClassParser cp) -> {
-                                try {
-                                    return new ClassVisitor(cp.parse(), jarMetadata);
-                                } catch (IOException e) {
-                                    throw new UncheckedIOException(e);
-                                }
-                            };
+                Function<ClassParser, ClassVisitor> getClassVisitor =
+                        (ClassParser cp) -> {
+                            try {
+                                return new ClassVisitor(cp.parse(), jarMetadata);
+                            } catch (IOException e) {
+                                throw new UncheckedIOException(e);
+                            }
+                        };
 
-                    /* Analyze each jar entry */
-                    entries.flatMap(e -> {
-                        if (e.isDirectory() || !e.getName().endsWith(".class"))
-                            return Stream.of();
+                /* Analyze each jar entry */
+                entries.flatMap(e -> {
+                    if (e.isDirectory() || !e.getName().endsWith(".class"))
+                        return Stream.of();
 
-                        ClassParser cp = new ClassParser(jarPath, e.getName());
-                        return getClassVisitor.apply(cp).start().methodCalls().stream();
-                    }).forEach(methodCalls::add);
+                    // TODO: Filter here instead of at method level
+                    LOGGER.info("$\tInspecting " + e.getName());
 
-                } catch (IOException e) {
-                    LOGGER.error("Error when analyzing JAR \"" + jarPath + "\": + e.getMessage()");
-                    e.printStackTrace();
-                }
+                    ClassParser cp = new ClassParser(jarPath, e.getName());
+                    return getClassVisitor.apply(cp).start().methodCalls().stream();
+                }).forEach(methodCalls::add);
+
+            } catch (IOException e) {
+                LOGGER.error("Error when analyzing JAR \"" + jarPath + "\": + e.getMessage()");
+                e.printStackTrace();
             }
-        } finally {
-            if (methodCalls.isEmpty()) {
-                LOGGER.error("No method calls to look at!");
-            } else {
+        }
 
-
-                methodCalls.forEach(pair -> {
-                    LOGGER.info(pair.first + " -> " + pair.second);
-                });
-
-//                LOGGER.info("Adding edges to the graph...");
-//                MutableGraph graph = mutGraph(outputName).setDirected(true);
-//                methodCalls.forEach(pair -> graph.add(mutNode(pair.first).addLink(mutNode(pair.second))));
-//                try {
-//                    Graphviz.fromGraph(graph).render(Format.PNG).toFile(new File("./output/" + outputName + ".png"));
-//                    Graphviz.fromGraph(graph).render(Format.DOT).toFile(new File("./output/" + outputName + ".dot"));
-//                } catch (IOException e) {
-//                    LOGGER.error("Trouble writing graph: " + e.getMessage());
-//                }
+        if (methodCalls.isEmpty()) {
+            LOGGER.error("No method calls to look at!");
+        } else {
+            LOGGER.info("Adding edges to the graph...");
+            MutableGraph graph = mutGraph(outputName).setDirected(true);
+            methodCalls.forEach(pair -> graph.add(mutNode(pair.first).addLink(mutNode(pair.second))));
+            try {
+                // TODO: Get rid of Graphviz and spit output into a .dot or .txt file, then use another program to parse and analyze the graph
+                Graphviz.fromGraph(graph).render(Format.PNG).toFile(new File("./output/" + outputName + ".png"));
+                Graphviz.fromGraph(graph).render(Format.DOT).toFile(new File("./output/" + outputName + ".dot"));
+            } catch (IOException e) {
+                LOGGER.error("Trouble writing graph: " + e.getMessage());
             }
         }
     }
-
 
     public static <T> Stream<T> enumerationAsStream(Enumeration<T> e) {
         return StreamSupport.stream(

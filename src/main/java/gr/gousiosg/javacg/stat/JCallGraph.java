@@ -104,8 +104,10 @@ public class JCallGraph {
             System.exit(1);
         }
 
-        assert output.isPresent();
-        if (!output.get().matches("[a-zA-Z]+")) {
+        if (output.isEmpty()) {
+            LOGGER.error("Please specify a name for the results!");
+            System.exit(1);
+        } else if (!output.get().matches("[a-zA-Z]+")) {
             LOGGER.error("---> " + output.get() + " <---");
             LOGGER.error("Please specify only a name for the output. Do not include filetype!");
             System.exit(1);

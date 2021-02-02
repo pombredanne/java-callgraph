@@ -13,6 +13,8 @@ public class JarMetadata {
 
     private final URLClassLoader cl;
     private final Reflections reflections;
+
+    // TODO: Maybe we can get rid of the ClassHierarchyInspector class and incorporate it within this class
     private final ClassHierarchyInspector inspector = new ClassHierarchyInspector();
 
     public JarMetadata(URLClassLoader cl, Reflections reflections) {

@@ -38,7 +38,8 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static gr.gousiosg.javacg.stat.IgnoredConstants.*;
+import static gr.gousiosg.javacg.stat.IgnoredConstants.IGNORED_CALLING_PACKAGES;
+import static gr.gousiosg.javacg.stat.IgnoredConstants.IGNORED_METHOD_NAMES;
 
 /**
  * The simplest of method visitors, prints any invoked method
@@ -124,9 +125,9 @@ public class MethodVisitor extends EmptyVisitor {
         visit(String.format(format,i.getReferenceType(cp)), i.getMethodName(cp), argumentList(i.getArgumentTypes(cp)), EXPAND);
     }
 
-
     private void visit(String receiverTypeName, String receiverMethodName, String receiverArgTypeNames, Boolean shouldExpand) {
 
+        // TODO: Get rid of this and filter on JAR entries (in GraphGenerator.java), not class methods
         if (IGNORED_CALLING_PACKAGES.stream().anyMatch(pkg -> visitedClass.getClassName().startsWith(pkg))) {
             return;
         }
@@ -148,26 +149,21 @@ public class MethodVisitor extends EmptyVisitor {
 
     private void expand(Class<?> receiverType, String receiverMethodName, String receiverArgTypeNames, String fromSignature) {
         ClassHierarchyInspector inspector = jarMetadata.getInspector();
-        try {
-            LOGGER.info("Expanding to subtypes of " + receiverType.getName());
-            jarMetadata.getReflections().getSubTypesOf(receiverType)
-                    .stream()
-                    .map(subtype ->
-                            inspector.getTopLevelSignature(
-                                    subtype,
-                                    ClassHierarchyInspector.methodSignature(
-                                            receiverMethodName,
-                                            receiverArgTypeNames)
-                            )
-                    )
-                    .filter(Optional::isPresent)
-                    .map(Optional::get)
-                    .map(this::fullyQualifiedMethodSignature)
-                    .forEach(toSubtypeSignature -> methodCalls.add(createEdge(fromSignature, toSubtypeSignature)));
-        } catch (Exception e) {
-            LOGGER.error("Error when expanding to subtypes of " + receiverType.getName());
-        }
-
+        LOGGER.info("Expanding to subtypes of " + receiverType.getName());
+        jarMetadata.getReflections().getSubTypesOf(receiverType)
+                .stream()
+                .map(subtype ->
+                        inspector.getTopLevelSignature(
+                                subtype,
+                                ClassHierarchyInspector.methodSignature(
+                                        receiverMethodName,
+                                        receiverArgTypeNames)
+                        )
+                )
+                .filter(Optional::isPresent)
+                .map(Optional::get)
+                .map(this::fullyQualifiedMethodSignature)
+                .forEach(toSubtypeSignature -> methodCalls.add(createEdge(fromSignature, toSubtypeSignature)));
 
     }
 
