@@ -71,6 +71,6 @@ public class JCallGraph {
             System.exit(1);
         }
 
-        LOGGER.info("Finished! Enjoy!");
+        LOGGER.info("java-cg is finished! Enjoy!");
     }
 }

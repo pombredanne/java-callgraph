@@ -48,12 +48,17 @@ public class GraphHelper {
         LOGGER.info("Finding reachability for " + entrypoint + " ...");
         Iterator<String> iterator = new BreadthFirstIterator<>(graph, entrypoint);
 
+        long nodeCount = 0;
+
         /* Traverse graph using the iterator */
         while (iterator.hasNext()) {
             String next = iterator.next();
+            nodeCount++;
             LOGGER.info("\t" + next);
         }
+
         LOGGER.info("Finished finding reachability!");
+        LOGGER.info("There are " + nodeCount + " nodes in the reachability subgraph!");
     }
 
     public static void writeGraph(Graph<String, DefaultEdge> graph, String outputName) {
