@@ -11,6 +11,8 @@ import java.util.*;
 public class Arguments {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Arguments.class);
+
+    private static final String WRAPPER = "\"";
     private static final String JAR_SUFFIX = ".jar";
     private static final String JAR_INPUT = "j";
     private static final String JAR_INPUT_LONG = "jarPath";
@@ -46,7 +48,19 @@ public class Arguments {
 
             /* Parse entry point */
             if (cmd.hasOption(ENTRYPOINT_INPUT)) {
-                this.maybeEntryPoint = Optional.of(cmd.getOptionValue(ENTRYPOINT_INPUT_LONG));
+                String ep = cmd.getOptionValue(ENTRYPOINT_INPUT_LONG);
+
+                if (!ep.startsWith(WRAPPER)) {
+                    ep = WRAPPER + ep;
+                }
+
+                if (!ep.endsWith(WRAPPER)) {
+                    ep = ep + WRAPPER;
+                }
+
+                LOGGER.info("Entry Point: " + ep);
+
+                this.maybeEntryPoint = Optional.of(ep);
             }
 
             /* Parse output name */

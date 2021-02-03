@@ -10,6 +10,7 @@ import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.nio.Attribute;
 import org.jgrapht.nio.DefaultAttribute;
 import org.jgrapht.nio.dot.DOTExporter;
+import org.jgrapht.traverse.BreadthFirstIterator;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
 import org.slf4j.Logger;
@@ -30,9 +31,35 @@ public class GraphHelper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GraphHelper.class);
 
+    public static void reachability(Graph<String, DefaultEdge> graph, String entrypoint, Optional<Integer> depth) {
+        if (!graph.containsVertex(entrypoint)) {
+            LOGGER.error("---> " + entrypoint + "<---");
+            LOGGER.error("The graph doesn't contain the vertex specified as the entry point!");
+            return;
+        }
+
+        if (depth.isEmpty()) {
+            LOGGER.info("Searching graph without a depth!");
+        } else {
+            // TODO: Search graph up to specified depth
+        }
+
+        /* Setup BFS iterator */
+        LOGGER.info("Finding reachability for " + entrypoint + " ...");
+        Iterator<String> iterator = new BreadthFirstIterator<>(graph, entrypoint);
+
+        /* Traverse graph using the iterator */
+        while (iterator.hasNext()) {
+            String next = iterator.next();
+            LOGGER.info("\t" + next);
+        }
+        LOGGER.info("Finished finding reachability!");
+    }
+
     public static void writeGraph(Graph<String, DefaultEdge> graph, String outputName) {
         LOGGER.info("Attempting to store callgraph...");
 
+        /* Export graph into .dot format */
         DOTExporter<String , DefaultEdge> exporter = new DOTExporter<>(id -> id);
         exporter.setVertexAttributeProvider((v) -> {
             Map<String, Attribute> map = new LinkedHashMap<>();
@@ -40,6 +67,7 @@ public class GraphHelper {
             return map;
         });
 
+        /* Write to .dot file in output directory */
         String path = "./output/" + outputName;
         try {
             Writer writer = new FileWriter(path);
@@ -53,6 +81,7 @@ public class GraphHelper {
     public static Graph<String, DefaultEdge> staticCallgraph(List<Pair<String, File>> jars) throws InputMismatchException {
         LOGGER.info("Beginning callgraph analysis...");
 
+        /* Load JAR URLs */
         List<URL> urls = new ArrayList<>();
         try {
             for (Pair<String, File> pair : jars) {
@@ -66,7 +95,7 @@ public class GraphHelper {
 
         if (urls.isEmpty()) {
             LOGGER.error("No URLs to scan!");
-            throw new InputMismatchException("There are no JARs to load!");
+            throw new InputMismatchException("There are no URLs to scan!");
         }
 
         /* Setup infrastructure for analysis */
@@ -74,7 +103,7 @@ public class GraphHelper {
         Reflections reflections = new Reflections(cl, new SubTypesScanner(false));
         JarMetadata jarMetadata = new JarMetadata(cl, reflections);
 
-        /* Store graph */
+        /* Store method calls (caller -> receiver) */
         Map<String, Set<String>> calls = new HashMap<>();
 
         for (Pair<String, File> pair : jars) {
@@ -94,11 +123,12 @@ public class GraphHelper {
                             }
                         };
 
-                /* Analyze each jar entry */
+                /* Analyze each jar entry to find callgraph */
                 entries.flatMap(e -> {
                     if (e.isDirectory() || !e.getName().endsWith(".class"))
                         return Stream.of();
 
+                    /* Ignore specified JARs */
                     if (shouldIgnoreEntry(e.getName().replace("/", "."))) {
                         return Stream.of();
                     } else {
@@ -108,6 +138,7 @@ public class GraphHelper {
                     ClassParser cp = new ClassParser(jarPath, e.getName());
                     return getClassVisitor.apply(cp).start().methodCalls().stream();
                 }).forEach(p -> {
+                    /* Create edges between nodes */
                     calls.putIfAbsent((p.first), new HashSet<>());
                     calls.get(p.first).add(p.second);
                 });

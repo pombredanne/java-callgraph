@@ -46,18 +46,24 @@ public class JCallGraph {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JCallGraph.class);
 
-    // TODO: Stop producing the dynamic-cg JAR
     public static void main(String[] args) {
-
         try {
-            LOGGER.info("Starting!");
+            LOGGER.info("Starting java-cg!");
 
+            /* Setup arguments */
             Arguments arguments = new Arguments(args);
+
+            /* Create callgraph */
             Graph<String, DefaultEdge>  graph = GraphHelper.staticCallgraph(arguments.getJars());
 
             /* Should we store the graph in a file? */
             if (arguments.maybeOutput().isPresent()) {
                 GraphHelper.writeGraph(graph, arguments.maybeOutput().get());
+            }
+
+            /* Should we compute reachability from the entry point? */
+            if (arguments.maybeEntryPoint().isPresent()) {
+                GraphHelper.reachability(graph, arguments.maybeEntryPoint().get(), arguments.maybeDepth());
             }
 
         } catch (InputMismatchException e) {
