@@ -1,4 +1,4 @@
-package gr.gousiosg.javacg.stat;
+package gr.gousiosg.javacg.stat.support;
 
 import org.reflections.Reflections;
 import org.slf4j.Logger;

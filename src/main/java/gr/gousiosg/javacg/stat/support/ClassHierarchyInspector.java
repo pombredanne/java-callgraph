@@ -1,4 +1,4 @@
-package gr.gousiosg.javacg.stat;
+package gr.gousiosg.javacg.stat.support;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

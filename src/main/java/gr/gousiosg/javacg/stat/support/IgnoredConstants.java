@@ -1,4 +1,4 @@
-package gr.gousiosg.javacg.stat;
+package gr.gousiosg.javacg.stat.support;
 
 import java.util.List;
 
@@ -25,6 +25,10 @@ public class IgnoredConstants {
             "io.cucumber",
             "org.hamcrest",
             "com.eclipsesource",
-            "org.checkerframework"
+            "org.checkerframework",
+            "org.jgrapht",
+            "org.antlr",
+            "org.jheaps",
+            "org.jgrapht"
     );
 }

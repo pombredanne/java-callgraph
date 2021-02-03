@@ -29,6 +29,8 @@
 package gr.gousiosg.javacg.stat;
 
 import gr.gousiosg.javacg.dyn.Pair;
+import gr.gousiosg.javacg.stat.support.ClassHierarchyInspector;
+import gr.gousiosg.javacg.stat.support.JarMetadata;
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.generic.*;
 import org.slf4j.Logger;
@@ -38,8 +40,7 @@ import java.lang.reflect.Method;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static gr.gousiosg.javacg.stat.IgnoredConstants.IGNORED_CALLING_PACKAGES;
-import static gr.gousiosg.javacg.stat.IgnoredConstants.IGNORED_METHOD_NAMES;
+import static gr.gousiosg.javacg.stat.support.IgnoredConstants.IGNORED_METHOD_NAMES;
 
 /**
  * The simplest of method visitors, prints any invoked method
@@ -126,12 +127,6 @@ public class MethodVisitor extends EmptyVisitor {
     }
 
     private void visit(String receiverTypeName, String receiverMethodName, String receiverArgTypeNames, Boolean shouldExpand) {
-
-        // TODO: Get rid of this and filter on JAR entries (in GraphGenerator.java), not class methods
-        if (IGNORED_CALLING_PACKAGES.stream().anyMatch(pkg -> visitedClass.getClassName().startsWith(pkg))) {
-            return;
-        }
-
         String fromSignature = fullyQualifiedMethodSignature(visitedClass.getClassName(), mg.getName(), argumentList(mg.getArgumentTypes()));
         String toSignature = fullyQualifiedMethodSignature(receiverTypeName, receiverMethodName, receiverArgTypeNames);
         methodCalls.add(createEdge(fromSignature, toSignature));
@@ -149,7 +144,7 @@ public class MethodVisitor extends EmptyVisitor {
 
     private void expand(Class<?> receiverType, String receiverMethodName, String receiverArgTypeNames, String fromSignature) {
         ClassHierarchyInspector inspector = jarMetadata.getInspector();
-        LOGGER.info("Expanding to subtypes of " + receiverType.getName());
+        LOGGER.info("\tExpanding to subtypes of " + receiverType.getName());
         jarMetadata.getReflections().getSubTypesOf(receiverType)
                 .stream()
                 .map(subtype ->

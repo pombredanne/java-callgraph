@@ -28,17 +28,13 @@
 
 package gr.gousiosg.javacg.stat;
 
-import gr.gousiosg.javacg.dyn.Pair;
-import org.apache.commons.cli.*;
+import gr.gousiosg.javacg.stat.support.Arguments;
+import org.jgrapht.Graph;
+import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Optional;
-import java.util.stream.Collectors;
+import java.util.InputMismatchException;
 
 /**
  * Constructs a callgraph out of a JAR archive. Can combine multiple archives
@@ -49,90 +45,26 @@ import java.util.stream.Collectors;
 public class JCallGraph {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JCallGraph.class);
-    private static final String JAR_SUFFIX = ".jar";
-    private static final String JAR_INPUT = "j";
-    private static final String JAR_INPUT_LONG = "jar";
-    private static final String NAME_INPUT = "n";
-    private static final String NAME_INPUT_LONG = "name";
 
+    // TODO: Stop producing the dynamic-cg JAR
     public static void main(String[] args) {
-        LOGGER.info("Parsing command line arguments...");
-
-        /* Setup cmdline options */
-        Options options = new Options();
-
-        options.addOption(Option.builder(NAME_INPUT)
-                .longOpt(NAME_INPUT_LONG)
-                .hasArg(true)
-                .desc("[REQUIRED] used to specify output name for the graph")
-                .required(true)
-                .build());
-
-        options.addOption(Option.builder(JAR_INPUT)
-                .longOpt(JAR_INPUT_LONG)
-                .hasArg(true)
-                .desc("[REQUIRED] one or more JARs to analyze")
-                .required(true)
-                .build());
-
-        /* Setup argument variables */
-        List<String> jarPaths = new ArrayList<>();
-        Optional<String> output = Optional.empty();
-
-        /* Parse cmdline arguments */
-        CommandLineParser parser = new DefaultParser();
-        CommandLine cmd;
 
         try {
-            cmd = parser.parse(options, args);
+            LOGGER.info("Starting!");
 
-            /* Parse output name */
-            if (cmd.hasOption(NAME_INPUT)) {
-                output = Optional.of(cmd.getOptionValue(NAME_INPUT));
+            Arguments arguments = new Arguments(args);
+            Graph<String, DefaultEdge>  graph = GraphHelper.staticCallgraph(arguments.getJars());
+
+            /* Should we store the graph in a file? */
+            if (arguments.maybeOutput().isPresent()) {
+                GraphHelper.writeGraph(graph, arguments.maybeOutput().get());
             }
 
-            /* Parse JARs  */
-            if (cmd.hasOption(JAR_INPUT)) {
-                jarPaths.addAll(Arrays.asList(cmd.getOptionValues(JAR_INPUT)));
-            }
-
-        } catch (ParseException pe) {
-            LOGGER.error("Error parsing command-line arguments: " + pe.getMessage());
-            LOGGER.error("Please, follow the instructions below:");
-            HelpFormatter formatter = new HelpFormatter();
-            formatter.printHelp( "Log messages to sequence diagrams converter", options);
+        } catch (InputMismatchException e) {
+            LOGGER.error("Unable to load callgraph: " + e.getMessage());
             System.exit(1);
         }
 
-        if (output.isEmpty()) {
-            LOGGER.error("Please specify a name for the results!");
-            System.exit(1);
-        } else if (!output.get().matches("[a-zA-Z]+")) {
-            LOGGER.error("---> " + output.get() + " <---");
-            LOGGER.error("Please specify only a name for the output. Do not include filetype!");
-            System.exit(1);
-        }
-
-        List<Pair<String, File>> jars = jarPaths.stream()
-                .map(path -> {
-                    if (!path.endsWith(JAR_SUFFIX)) {
-                        LOGGER.error("---> " + path + " <---");
-                        LOGGER.error("Path should end in file of type .jar!");
-                        System.exit(1);
-                    }
-
-                    File file = new File(path);
-                    if (!file.exists()) {
-                        LOGGER.error("JAR Path " + path + " doesn't exist!");
-                        System.exit(1);
-                    }
-
-                    LOGGER.info("Found JAR: " + path);
-                    return new Pair<>(path, file);
-                })
-                .collect(Collectors.toList());
-
-         LOGGER.info("Beginning callgraph analysis...");
-         GraphGenerator.staticCallgraph(jars, output.get());
+        LOGGER.info("Finished! Enjoy!");
     }
 }

@@ -14,6 +14,8 @@
 package gr.gousiosg.javacg.stat;
 
 import org.apache.bcel.classfile.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -46,6 +48,9 @@ import java.util.regex.Pattern;
  * @author Matthieu Vergne <matthieu.vergne@gmail.com>
  */
 public class DynamicCallManager {
+
+    private static Logger LOGGER = LoggerFactory.getLogger(DynamicCallManager.class);
+
     private static final Pattern BOOTSTRAP_CALL_PATTERN = Pattern
             .compile("invokedynamic\t(\\d+):\\S+ \\S+ \\(\\d+\\)");
     private static final int CALL_HANDLE_INDEX_ARGUMENT = 1;
@@ -72,7 +77,12 @@ public class DynamicCallManager {
         while (matcher.find()) {
             int bootIndex = Integer.parseInt(matcher.group(1));
             BootstrapMethod bootMethod = boots[bootIndex];
-            int calledIndex = bootMethod.getBootstrapArguments()[CALL_HANDLE_INDEX_ARGUMENT];
+            int[] bootArgs = bootMethod.getBootstrapArguments();
+            if (bootArgs.length <= CALL_HANDLE_INDEX_ARGUMENT) {
+                LOGGER.error("Error retrieving calls: index is out of bounds!");
+                continue;
+            }
+            int calledIndex = bootArgs[CALL_HANDLE_INDEX_ARGUMENT];
             String calledName = getMethodNameFromHandleIndex(cp, calledIndex);
             String callerName = method.getName();
             dynamicCallers.put(calledName, callerName);

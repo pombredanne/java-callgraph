@@ -1,0 +1,155 @@
+package gr.gousiosg.javacg.stat.support;
+
+import gr.gousiosg.javacg.dyn.Pair;
+import org.apache.commons.cli.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.util.*;
+
+public class Arguments {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(Arguments.class);
+    private static final String JAR_SUFFIX = ".jar";
+    private static final String JAR_INPUT = "j";
+    private static final String JAR_INPUT_LONG = "jarPath";
+    private static final String OUTPUT_NAME = "o";
+    private static final String OUTPUT_NAME_LONG = "output";
+    private static final String DEPTH_INPUT = "d";
+    private static final String DEPTH_INPUT_LONG = "depth";
+    private static final String ENTRYPOINT_INPUT = "e";
+    private static final String ENTRYPOINT_INPUT_LONG = "entryPoint";
+    private static final String DOT_SUFFIX = ".dot";
+
+    private final List<Pair<String, File>> jars = new ArrayList<>();
+    private Optional<String> maybeOutput = Optional.empty();
+    private Optional<String> maybeEntryPoint = Optional.empty();
+    private Optional<Integer> maybeDepth = Optional.empty();
+
+    public Arguments (String[] args) {
+        LOGGER.info("Parsing command line arguments...");
+
+        /* Setup cmdline argument parsing */
+        Set<String> jarPaths = new HashSet<>();
+        CommandLineParser parser = new DefaultParser();
+        Options options = getOptions();
+        CommandLine cmd;
+
+        try {
+            cmd = parser.parse(options, args);
+
+            /* Parse JARs  */
+            if (cmd.hasOption(JAR_INPUT)) {
+                jarPaths.addAll(Arrays.asList(cmd.getOptionValues(JAR_INPUT)));
+            }
+
+            /* Parse entry point */
+            if (cmd.hasOption(ENTRYPOINT_INPUT)) {
+                this.maybeEntryPoint = Optional.of(cmd.getOptionValue(ENTRYPOINT_INPUT_LONG));
+            }
+
+            /* Parse output name */
+            if (cmd.hasOption(OUTPUT_NAME)) {
+                String name = cmd.getOptionValue(OUTPUT_NAME_LONG);
+
+                /* Validate output filename */
+                if (!name.matches("^[a-zA-Z0-9_]*$")) {
+                    LOGGER.error("---> " + name + " <---");
+                    LOGGER.error("Please specify a valid name (letters, numbers, underscores) for the output. Do not include filetype!");
+                    System.exit(1);
+                }
+
+                this.maybeOutput = Optional.of(name + DOT_SUFFIX);
+            }
+
+            /* Parse depth */
+            if (cmd.hasOption(DEPTH_INPUT)) {
+                String val = cmd.getOptionValue(DEPTH_INPUT_LONG);
+                try {
+                    this.maybeDepth = Optional.of(Integer.parseInt(val));
+                } catch (NumberFormatException e) {
+                    LOGGER.error("---> " + val + " <---");
+                    LOGGER.error("Please specify a valid integer for depth!");
+                    System.exit(1);
+                }
+            }
+        } catch (ParseException pe) {
+            LOGGER.error("Error parsing command-line arguments: " + pe.getMessage());
+            LOGGER.error("Please, follow the instructions below:");
+            HelpFormatter formatter = new HelpFormatter();
+            formatter.printHelp( "Log messages to sequence diagrams converter", options);
+            System.exit(1);
+        }
+
+        /* Transform jar paths into (path, file) pairs */
+        jarPaths.stream()
+                .map(path -> {
+                    if (!path.endsWith(JAR_SUFFIX)) {
+                        LOGGER.error("---> " + path + " <---");
+                        LOGGER.error("Path should end in file of type .jar!");
+                        System.exit(1);
+                    }
+
+                    File file = new File(path);
+                    if (!file.exists()) {
+                        LOGGER.error("JAR Path " + path + " doesn't exist!");
+                        System.exit(1);
+                    }
+
+                    LOGGER.info("Found JAR: " + path);
+                    return new Pair<>(path, file);
+                })
+                .forEach(this.jars::add);
+    }
+
+    private static Options getOptions() {
+        Options options = new Options();
+
+        options.addOption(Option.builder(JAR_INPUT)
+                .longOpt(JAR_INPUT_LONG)
+                .hasArg(true)
+                .desc("[REQUIRED] specify one or more paths to JARs to analyze")
+                .required(true)
+                .build());
+
+        options.addOption(Option.builder(OUTPUT_NAME)
+                .longOpt(OUTPUT_NAME_LONG)
+                .hasArg(true)
+                .desc("[OPTIONAL] specify a .dot output name for the graph")
+                .required(false)
+                .build());
+
+        options.addOption(Option.builder(DEPTH_INPUT)
+                .longOpt(DEPTH_INPUT_LONG)
+                .hasArg(true)
+                .desc("[OPTIONAL] specify a depth to explore graph to")
+                .required(false)
+                .build());
+
+        options.addOption(Option.builder(ENTRYPOINT_INPUT)
+                .longOpt(ENTRYPOINT_INPUT_LONG)
+                .hasArg(true)
+                .desc("[OPTIONAL] specify an entry point into the graph")
+                .required(false)
+                .build());
+
+        return options;
+    }
+
+    public List<Pair<String, File>> getJars() {
+        return jars;
+    }
+
+    public Optional<String> maybeOutput() {
+        return maybeOutput;
+    }
+
+    public Optional<String> maybeEntryPoint() {
+        return maybeEntryPoint;
+    }
+
+    public Optional<Integer> maybeDepth() {
+        return maybeDepth;
+    }
+}

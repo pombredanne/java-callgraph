@@ -1,0 +1,171 @@
+package gr.gousiosg.javacg.stat;
+
+import gr.gousiosg.javacg.dyn.Pair;
+import gr.gousiosg.javacg.stat.support.IgnoredConstants;
+import gr.gousiosg.javacg.stat.support.JarMetadata;
+import org.apache.bcel.classfile.ClassParser;
+import org.jgrapht.Graph;
+import org.jgrapht.graph.DefaultDirectedGraph;
+import org.jgrapht.graph.DefaultEdge;
+import org.jgrapht.nio.Attribute;
+import org.jgrapht.nio.DefaultAttribute;
+import org.jgrapht.nio.dot.DOTExporter;
+import org.reflections.Reflections;
+import org.reflections.scanners.SubTypesScanner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.*;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.util.*;
+import java.util.function.Function;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.stream.Stream;
+import java.util.stream.StreamSupport;
+
+public class GraphHelper {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(GraphHelper.class);
+
+    public static void writeGraph(Graph<String, DefaultEdge> graph, String outputName) {
+        LOGGER.info("Attempting to store callgraph...");
+
+        DOTExporter<String , DefaultEdge> exporter = new DOTExporter<>(id -> id);
+        exporter.setVertexAttributeProvider((v) -> {
+            Map<String, Attribute> map = new LinkedHashMap<>();
+            map.put("label", DefaultAttribute.createAttribute(v));
+            return map;
+        });
+
+        String path = "./output/" + outputName;
+        try {
+            Writer writer = new FileWriter(path);
+            exporter.exportGraph(graph, writer);
+            LOGGER.info("Graph written to " + path + "!");
+        } catch (IOException e) {
+            LOGGER.error("Unable to callgraph write to " + path);
+        }
+    }
+
+    public static Graph<String, DefaultEdge> staticCallgraph(List<Pair<String, File>> jars) throws InputMismatchException {
+        LOGGER.info("Beginning callgraph analysis...");
+
+        List<URL> urls = new ArrayList<>();
+        try {
+            for (Pair<String, File> pair : jars) {
+                URL url = new URL("jar:file:" + pair.first + "!/");
+                urls.add(url);
+            }
+        } catch (MalformedURLException e) {
+            LOGGER.error("Error loading URLs: " + e.getMessage());
+            throw new InputMismatchException("Couldn't load provided JARs");
+        }
+
+        if (urls.isEmpty()) {
+            LOGGER.error("No URLs to scan!");
+            throw new InputMismatchException("There are no JARs to load!");
+        }
+
+        /* Setup infrastructure for analysis */
+        URLClassLoader cl = URLClassLoader.newInstance(urls.toArray(new URL[0]), ClassLoader.getSystemClassLoader());
+        Reflections reflections = new Reflections(cl, new SubTypesScanner(false));
+        JarMetadata jarMetadata = new JarMetadata(cl, reflections);
+
+        /* Store graph */
+        Map<String, Set<String>> calls = new HashMap<>();
+
+        for (Pair<String, File> pair : jars) {
+            String jarPath = pair.first;
+            File file = pair.second;
+
+            try (JarFile jarFile = new JarFile(file)) {
+                LOGGER.info("Analyzing: " + jarFile.getName());
+                Stream<JarEntry> entries = enumerationAsStream(jarFile.entries());
+
+                Function<ClassParser, ClassVisitor> getClassVisitor =
+                        (ClassParser cp) -> {
+                            try {
+                                return new ClassVisitor(cp.parse(), jarMetadata);
+                            } catch (IOException e) {
+                                throw new UncheckedIOException(e);
+                            }
+                        };
+
+                /* Analyze each jar entry */
+                entries.flatMap(e -> {
+                    if (e.isDirectory() || !e.getName().endsWith(".class"))
+                        return Stream.of();
+
+                    if (shouldIgnoreEntry(e.getName().replace("/", "."))) {
+                        return Stream.of();
+                    } else {
+                        LOGGER.info("Inspecting " + e.getName());
+                    }
+
+                    ClassParser cp = new ClassParser(jarPath, e.getName());
+                    return getClassVisitor.apply(cp).start().methodCalls().stream();
+                }).forEach(p -> {
+                    calls.putIfAbsent((p.first), new HashSet<>());
+                    calls.get(p.first).add(p.second);
+                });
+
+            } catch (IOException e) {
+                LOGGER.error("Error when analyzing JAR \"" + jarPath + "\": + e.getMessage()");
+                e.printStackTrace();
+            }
+        }
+
+        return intoGraph(calls);
+    }
+
+    private static Graph<String, DefaultEdge> intoGraph(Map<String, Set<String>> calls) throws InputMismatchException {
+        if (calls.keySet().isEmpty()) {
+            throw new InputMismatchException("There is no call graph to look at!");
+        }
+
+        Graph<String, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
+        calls.keySet().forEach(k -> {
+            // Add (k) node if not present
+            if (!graph.containsVertex(formatNode(k)))
+                graph.addVertex(formatNode(k));
+
+            calls.get(k).forEach(v -> {
+                // Add (v) node if not present
+                if (!graph.containsVertex(formatNode(v)))
+                    graph.addVertex(formatNode(v));
+
+                // Edge is guaranteed not to be present
+                graph.addEdge(formatNode(k), formatNode(v));
+            });
+        });
+
+        return graph;
+    }
+
+    private static boolean shouldIgnoreEntry(String entry) {
+        return IgnoredConstants.IGNORED_CALLING_PACKAGES.stream()
+                .anyMatch(entry::startsWith);
+    }
+
+    private static String formatNode(String node) {
+        return '"' + node + '"';
+    }
+
+    public static <T> Stream<T> enumerationAsStream(Enumeration<T> e) {
+        return StreamSupport.stream(
+                Spliterators.spliteratorUnknownSize(
+                        new Iterator<T>() {
+                            public T next() {
+                                return e.nextElement();
+                            }
+
+                            public boolean hasNext() {
+                                return e.hasMoreElements();
+                            }
+                        },
+                        Spliterator.ORDERED), false);
+    }
+}
