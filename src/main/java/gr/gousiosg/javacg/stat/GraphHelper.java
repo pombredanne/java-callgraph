@@ -82,13 +82,16 @@ public class GraphHelper {
                     /* Get reachable target node */
                     String target = graph.getEdgeTarget(edge);
 
-                    /* Add target node and edge to subgraph */
-                    subgraph.addVertex(target);
-                    subgraph.addEdge(source, target);
+                    /* Disallow self-edges */
+                    if (!source.equals(target)) {
+                        /* Add target node and edge to subgraph */
+                        subgraph.addVertex(target);
+                        subgraph.addEdge(source, target);
 
-                    /* Have we visited this vertex before? */
-                    if (!seenBefore.contains(target)) {
-                        nextLevel.add(target);
+                        /* Have we visited this vertex before? */
+                        if (!seenBefore.contains(target)) {
+                            nextLevel.add(target);
+                        }
                     }
                 });
             }
