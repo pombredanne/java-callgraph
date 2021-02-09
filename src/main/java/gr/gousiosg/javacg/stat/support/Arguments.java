@@ -129,7 +129,7 @@ public class Arguments {
         options.addOption(Option.builder(OUTPUT_NAME)
                 .longOpt(OUTPUT_NAME_LONG)
                 .hasArg(true)
-                .desc("[OPTIONAL] specify a .dot output name for the graph")
+                .desc("[OPTIONAL] specify an output name for the graph")
                 .required(false)
                 .build());
 
