@@ -45,6 +45,9 @@ import java.util.InputMismatchException;
 public class JCallGraph {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JCallGraph.class);
+    private static final String REACHABILITY = "reachability";
+    private static final String DELIMITER = "-";
+    private static final String DOT_SUFFIX = ".dot";
 
     public static void main(String[] args) {
         try {
@@ -58,12 +61,24 @@ public class JCallGraph {
 
             /* Should we store the graph in a file? */
             if (arguments.maybeOutput().isPresent()) {
-                GraphHelper.writeGraph(graph, arguments.maybeOutput().get());
+                GraphHelper.writeGraph(graph, asDot(arguments.maybeOutput().get()));
             }
 
             /* Should we compute reachability from the entry point? */
             if (arguments.maybeEntryPoint().isPresent()) {
-                GraphHelper.reachability(graph, arguments.maybeEntryPoint().get(), arguments.maybeDepth());
+                Graph<String, DefaultEdge>  subgraph = GraphHelper.reachability(graph, arguments.maybeEntryPoint().get(), arguments.maybeDepth());
+
+                /* Should we store the reachability subgraph in a file? */
+                if (arguments.maybeOutput().isPresent()) {
+                    String subgraphOutputName = arguments.maybeOutput().get() + DELIMITER + REACHABILITY;
+
+                    /* Does this subgraph's reachability have a depth? */
+                    if (arguments.maybeDepth().isPresent()) {
+                        subgraphOutputName = subgraphOutputName + DELIMITER + arguments.maybeDepth().get();
+                    }
+
+                    GraphHelper.writeGraph(subgraph, asDot(subgraphOutputName));
+                }
             }
 
         } catch (InputMismatchException e) {
@@ -73,4 +88,9 @@ public class JCallGraph {
 
         LOGGER.info("java-cg is finished! Enjoy!");
     }
+
+    private static String asDot(String name) {
+        return name.endsWith(DOT_SUFFIX) ? name : (name + DOT_SUFFIX);
+    }
+
 }

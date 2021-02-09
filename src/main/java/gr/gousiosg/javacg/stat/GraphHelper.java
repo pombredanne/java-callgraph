@@ -31,34 +31,74 @@ public class GraphHelper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GraphHelper.class);
 
-    public static void reachability(Graph<String, DefaultEdge> graph, String entrypoint, Optional<Integer> depth) {
+    public static Graph<String, DefaultEdge> reachability(Graph<String, DefaultEdge> graph, String entrypoint, Optional<Integer> maybeMaximumDepth) {
+
         if (!graph.containsVertex(entrypoint)) {
             LOGGER.error("---> " + entrypoint + "<---");
             LOGGER.error("The graph doesn't contain the vertex specified as the entry point!");
-            return;
+            throw new InputMismatchException("graph doesn't contain vertex " + entrypoint);
         }
 
-        if (depth.isEmpty()) {
-            LOGGER.info("Searching graph without a depth!");
-        } else {
-            // TODO: Search graph up to specified depth
+        if (maybeMaximumDepth.isPresent() && (maybeMaximumDepth.get() < 0)) {
+            LOGGER.error("Depth " + maybeMaximumDepth.get() + " must be greater than 0!");
+            System.exit(1);
         }
 
-        /* Setup BFS iterator */
-        LOGGER.info("Finding reachability for " + entrypoint + " ...");
-        Iterator<String> iterator = new BreadthFirstIterator<>(graph, entrypoint);
+        LOGGER.info("Starting at entry point: " + entrypoint);
+        maybeMaximumDepth.ifPresent(d -> LOGGER.info("Traversing to depth " + d));
 
-        long nodeCount = 0;
+        Graph<String, DefaultEdge> subgraph = new DefaultDirectedGraph<>(DefaultEdge.class);
+        int currentDepth = 0;
 
-        /* Traverse graph using the iterator */
-        while (iterator.hasNext()) {
-            String next = iterator.next();
-            nodeCount++;
-            LOGGER.info("\t" + next);
+        Deque<String> reachable = new ArrayDeque<>();
+
+        reachable.push(entrypoint);
+
+        Set<String> seenBefore = new HashSet<>();
+        Set<String> nextLevel = new HashSet<>();
+
+        while (!reachable.isEmpty()) {
+
+            /* Stop once we've surpassed maximum depth */
+            if (maybeMaximumDepth.isPresent() && (maybeMaximumDepth.get() < currentDepth)) {
+                break;
+            }
+
+            while (!reachable.isEmpty()) {
+                /* Visit reachable node */
+                String source = reachable.pop();
+
+                /* Keep track of who we've visited */
+                subgraph.addVertex(source);
+                seenBefore.add(source);
+
+
+                /* Check if we can add deeper edges or not */
+                if (maybeMaximumDepth.isPresent() && (maybeMaximumDepth.get() == currentDepth)) {
+                    break;
+                }
+
+                graph.edgesOf(source).forEach(edge -> {
+                    /* Get reachable target node */
+                    String target = graph.getEdgeTarget(edge);
+
+                    /* Add target node and edge to subgraph */
+                    subgraph.addVertex(target);
+                    subgraph.addEdge(source, target);
+
+                    /* Have we visited this vertex before? */
+                    if (!seenBefore.contains(target)) {
+                        nextLevel.add(target);
+                    }
+                });
+            }
+
+            currentDepth++;
+            reachable.addAll(nextLevel);
+            nextLevel.clear();
         }
 
-        LOGGER.info("Finished finding reachability!");
-        LOGGER.info("There are " + nodeCount + " nodes in the reachability subgraph!");
+        return subgraph;
     }
 
     public static void writeGraph(Graph<String, DefaultEdge> graph, String outputName) {

@@ -22,7 +22,6 @@ public class Arguments {
     private static final String DEPTH_INPUT_LONG = "depth";
     private static final String ENTRYPOINT_INPUT = "e";
     private static final String ENTRYPOINT_INPUT_LONG = "entryPoint";
-    private static final String DOT_SUFFIX = ".dot";
 
     private final List<Pair<String, File>> jars = new ArrayList<>();
     private Optional<String> maybeOutput = Optional.empty();
@@ -74,7 +73,7 @@ public class Arguments {
                     System.exit(1);
                 }
 
-                this.maybeOutput = Optional.of(name + DOT_SUFFIX);
+                this.maybeOutput = Optional.of(name);
             }
 
             /* Parse depth */
