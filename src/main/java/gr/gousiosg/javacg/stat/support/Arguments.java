@@ -20,12 +20,15 @@ public class Arguments {
     private static final String OUTPUT_NAME_LONG = "output";
     private static final String DEPTH_INPUT = "d";
     private static final String DEPTH_INPUT_LONG = "depth";
+    private static final String COVERAGE_INPUT = "c";
+    private static final String COVERAGE_INPUT_LONG = "coverage";
     private static final String ENTRYPOINT_INPUT = "e";
     private static final String ENTRYPOINT_INPUT_LONG = "entryPoint";
 
     private final List<Pair<String, File>> jars = new ArrayList<>();
     private Optional<String> maybeOutput = Optional.empty();
     private Optional<String> maybeEntryPoint = Optional.empty();
+    private Optional<File> maybeCoverage = Optional.empty();
     private Optional<Integer> maybeDepth = Optional.empty();
 
     public Arguments (String[] args) {
@@ -43,6 +46,16 @@ public class Arguments {
             /* Parse JARs  */
             if (cmd.hasOption(JAR_INPUT)) {
                 jarPaths.addAll(Arrays.asList(cmd.getOptionValues(JAR_INPUT)));
+            }
+
+            /* Parse coverage file  */
+            if (cmd.hasOption(COVERAGE_INPUT)) {
+                String coverageFile = cmd.getOptionValue(COVERAGE_INPUT);
+                maybeCoverage = Optional.of(new File(coverageFile));
+                if (!maybeCoverage.get().exists()) {
+                    LOGGER.error("File " + coverageFile + " doesn't exist!");
+                    System.exit(1);
+                }
             }
 
             /* Parse entry point */
@@ -140,6 +153,13 @@ public class Arguments {
                 .required(false)
                 .build());
 
+        options.addOption(Option.builder(COVERAGE_INPUT)
+                .longOpt(COVERAGE_INPUT_LONG)
+                .hasArg(true)
+                .desc("[OPTIONAL] specify the coverage to apply to the reachability graph")
+                .required(false)
+                .build());
+
         options.addOption(Option.builder(ENTRYPOINT_INPUT)
                 .longOpt(ENTRYPOINT_INPUT_LONG)
                 .hasArg(true)
@@ -164,5 +184,9 @@ public class Arguments {
 
     public Optional<Integer> maybeDepth() {
         return maybeDepth;
+    }
+
+    public Optional<File> maybeCoverage() {
+        return maybeCoverage;
     }
 }
