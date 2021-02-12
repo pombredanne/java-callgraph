@@ -29,12 +29,15 @@
 package gr.gousiosg.javacg.stat;
 
 import gr.gousiosg.javacg.stat.support.Arguments;
+import gr.gousiosg.javacg.stat.support.JacocoXMLParser;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.util.InputMismatchException;
+import java.util.Set;
 
 /**
  * Constructs a callgraph out of a JAR archive. Can combine multiple archives
@@ -57,7 +60,7 @@ public class JCallGraph {
             Arguments arguments = new Arguments(args);
 
             /* Create callgraph */
-            Graph<String, DefaultEdge>  graph = GraphHelper.staticCallgraph(arguments.getJars());
+            Graph<String, DefaultEdge> graph = GraphHelper.staticCallgraph(arguments.getJars());
 
             /* Should we store the graph in a file? */
             if (arguments.maybeOutput().isPresent()) {
@@ -65,8 +68,20 @@ public class JCallGraph {
             }
 
             /* Should we compute reachability from the entry point? */
+            /* TODO: Create a custom graph node type */
             if (arguments.maybeEntryPoint().isPresent()) {
                 Graph<String, DefaultEdge>  subgraph = GraphHelper.reachability(graph, arguments.maybeEntryPoint().get(), arguments.maybeDepth());
+
+                /* Fetch and coverage */
+                if (arguments.maybeCoverage().isPresent()) {
+                    try {
+                        Set<String> coverage = JacocoXMLParser.parseCoverage(arguments.maybeCoverage().get());
+                        /* TODO: Apply coverage to subgraph */
+                    } catch (IOException e) {
+                        LOGGER.error("Error parsing coverage: " + e.getMessage());
+                        System.exit(1);
+                    }
+                }
 
                 /* Should we store the reachability subgraph in a file? */
                 if (arguments.maybeOutput().isPresent()) {

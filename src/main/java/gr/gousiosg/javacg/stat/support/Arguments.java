@@ -13,6 +13,7 @@ public class Arguments {
     private static final Logger LOGGER = LoggerFactory.getLogger(Arguments.class);
 
     private static final String WRAPPER = "\"";
+    private static final String XML_SUFFIX = ".xml";
     private static final String JAR_SUFFIX = ".jar";
     private static final String JAR_INPUT = "j";
     private static final String JAR_INPUT_LONG = "jarPath";
@@ -28,7 +29,7 @@ public class Arguments {
     private final List<Pair<String, File>> jars = new ArrayList<>();
     private Optional<String> maybeOutput = Optional.empty();
     private Optional<String> maybeEntryPoint = Optional.empty();
-    private Optional<File> maybeCoverage = Optional.empty();
+    private Optional<String> maybeCoverage = Optional.empty();
     private Optional<Integer> maybeDepth = Optional.empty();
 
     public Arguments (String[] args) {
@@ -51,11 +52,11 @@ public class Arguments {
             /* Parse coverage file  */
             if (cmd.hasOption(COVERAGE_INPUT)) {
                 String coverageFile = cmd.getOptionValue(COVERAGE_INPUT);
-                maybeCoverage = Optional.of(new File(coverageFile));
-                if (!maybeCoverage.get().exists()) {
-                    LOGGER.error("File " + coverageFile + " doesn't exist!");
+                if (!coverageFile.endsWith(XML_SUFFIX)) {
+                    LOGGER.error("File " + coverageFile + " must be an XML file!");
                     System.exit(1);
                 }
+                maybeCoverage = Optional.of(coverageFile);
             }
 
             /* Parse entry point */
@@ -186,7 +187,7 @@ public class Arguments {
         return maybeDepth;
     }
 
-    public Optional<File> maybeCoverage() {
+    public Optional<String> maybeCoverage() {
         return maybeCoverage;
     }
 }
