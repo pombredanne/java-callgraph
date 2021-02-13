@@ -147,4 +147,14 @@ public class JacocoXMLParser {
         //     -> Similar: https://suif.stanford.edu/~courses/cs243/joeq/javadoc/joeq/Util/DescriptorUtil.html#DescriptorUtil()
         return className.replace("/", ".") + ":" + methodName + "(" + args + ")";
     }
+
+    public static Set<String> mockedCoverage() {
+        return Set.of(
+                "\"edu.uic.cs398.Book.AbstractBook:magic()\"",
+                "\"edu.uic.cs398.Book.AbstractBook:bazinga()\"",
+                "\"edu.uic.cs398.Book.impl.EffectiveJava:<init>()\"",
+                "\"java.lang.Object:<init>()\"",
+                "\"edu.uic.cs398.Book.impl.ArguingWithZombies:<init>()\""
+        );
+    }
 }

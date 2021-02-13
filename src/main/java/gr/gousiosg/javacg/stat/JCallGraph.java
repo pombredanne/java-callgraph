@@ -30,6 +30,8 @@ package gr.gousiosg.javacg.stat;
 
 import gr.gousiosg.javacg.stat.support.Arguments;
 import gr.gousiosg.javacg.stat.support.JacocoXMLParser;
+import gr.gousiosg.javacg.stat.support.coloring.ColoredNode;
+import gr.gousiosg.javacg.stat.support.coloring.GraphColoring;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
@@ -64,19 +66,18 @@ public class JCallGraph {
 
             /* Should we store the graph in a file? */
             if (arguments.maybeOutput().isPresent()) {
-                GraphHelper.writeGraph(graph, asDot(arguments.maybeOutput().get()));
+                GraphHelper.writeGraph(graph, GraphHelper.defaultExporter(), asDot(arguments.maybeOutput().get()));
             }
 
             /* Should we compute reachability from the entry point? */
-            /* TODO: Create a custom graph node type */
             if (arguments.maybeEntryPoint().isPresent()) {
-                Graph<String, DefaultEdge>  subgraph = GraphHelper.reachability(graph, arguments.maybeEntryPoint().get(), arguments.maybeDepth());
+                Graph<ColoredNode, DefaultEdge>  subgraph = GraphHelper.reachability(graph, arguments.maybeEntryPoint().get(), arguments.maybeDepth());
 
-                /* Fetch and coverage */
+                /* Fetch and apply coverage */
                 if (arguments.maybeCoverage().isPresent()) {
                     try {
                         Set<String> coverage = JacocoXMLParser.parseCoverage(arguments.maybeCoverage().get());
-                        /* TODO: Apply coverage to subgraph */
+                        GraphColoring.applyCoverage(subgraph, coverage);
                     } catch (IOException e) {
                         LOGGER.error("Error parsing coverage: " + e.getMessage());
                         System.exit(1);
@@ -92,7 +93,7 @@ public class JCallGraph {
                         subgraphOutputName = subgraphOutputName + DELIMITER + arguments.maybeDepth().get();
                     }
 
-                    GraphHelper.writeGraph(subgraph, asDot(subgraphOutputName));
+                    GraphHelper.writeGraph(subgraph, GraphHelper.coloredExporter(), asDot(subgraphOutputName));
                 }
             }
 

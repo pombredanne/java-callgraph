@@ -3,6 +3,7 @@ package gr.gousiosg.javacg.stat;
 import gr.gousiosg.javacg.dyn.Pair;
 import gr.gousiosg.javacg.stat.support.IgnoredConstants;
 import gr.gousiosg.javacg.stat.support.JarMetadata;
+import gr.gousiosg.javacg.stat.support.coloring.ColoredNode;
 import org.apache.bcel.classfile.ClassParser;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultDirectedGraph;
@@ -30,7 +31,7 @@ public class GraphHelper {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GraphHelper.class);
 
-    public static Graph<String, DefaultEdge> reachability(Graph<String, DefaultEdge> graph, String entrypoint, Optional<Integer> maybeMaximumDepth) {
+    public static Graph<ColoredNode, DefaultEdge> reachability(Graph<String, DefaultEdge> graph, String entrypoint, Optional<Integer> maybeMaximumDepth) {
 
         if (!graph.containsVertex(entrypoint)) {
             LOGGER.error("---> " + entrypoint + "<---");
@@ -46,12 +47,13 @@ public class GraphHelper {
         LOGGER.info("Starting at entry point: " + entrypoint);
         maybeMaximumDepth.ifPresent(d -> LOGGER.info("Traversing to depth " + d));
 
-        Graph<String, DefaultEdge> subgraph = new DefaultDirectedGraph<>(DefaultEdge.class);
+        Graph<ColoredNode, DefaultEdge> subgraph = new DefaultDirectedGraph<>(DefaultEdge.class);
         int currentDepth = 0;
 
         Deque<String> reachable = new ArrayDeque<>();
         reachable.push(entrypoint);
 
+        Map<String, ColoredNode> subgraphNodes = new HashMap<>();
         Set<String> seenBefore = new HashSet<>();
         Set<String> nextLevel = new HashSet<>();
 
@@ -65,11 +67,14 @@ public class GraphHelper {
             while (!reachable.isEmpty()) {
                 /* Visit reachable node */
                 String source = reachable.pop();
+                ColoredNode sourceNode = subgraphNodes.containsKey(source) ? subgraphNodes.get(source) : new ColoredNode(source);
 
                 /* Keep track of who we've visited */
-                subgraph.addVertex(source);
                 seenBefore.add(source);
-
+                if (!subgraphNodes.containsKey(source)) {
+                    subgraph.addVertex(sourceNode);
+                    subgraphNodes.put(source, sourceNode);
+                }
 
                 /* Check if we can add deeper edges or not */
                 if (maybeMaximumDepth.isPresent() && (maybeMaximumDepth.get() == currentDepth)) {
@@ -77,16 +82,22 @@ public class GraphHelper {
                 }
 
                 graph.edgesOf(source).forEach(edge -> {
-                    /* Get reachable target node */
                     String target = graph.getEdgeTarget(edge);
+                    ColoredNode targetNode = subgraphNodes.containsKey(target) ? subgraphNodes.get(target) : new ColoredNode(target);
 
-                    /* Add target node and edge to subgraph */
-                    subgraph.addVertex(target);
-                    subgraph.addEdge(source, target);
+                    if (!subgraphNodes.containsKey(target)) {
+                        subgraphNodes.put(target, targetNode);
+                        subgraph.addVertex(targetNode);
+                    }
+
+                    if (graph.containsEdge(source, target) && !subgraph.containsEdge(sourceNode, targetNode)) {
+                        subgraph.addEdge(sourceNode, targetNode);
+                    }
 
                     /* Have we visited this vertex before? */
                     if (!seenBefore.contains(target)) {
                         nextLevel.add(target);
+                        seenBefore.add(target);
                     }
 
                 });
@@ -100,16 +111,8 @@ public class GraphHelper {
         return subgraph;
     }
 
-    public static void writeGraph(Graph<String, DefaultEdge> graph, String outputName) {
+    public static <T> void writeGraph(Graph<T, DefaultEdge> graph, DOTExporter<T, DefaultEdge> exporter, String outputName) {
         LOGGER.info("Attempting to store callgraph...");
-
-        /* Export graph into .dot format */
-        DOTExporter<String , DefaultEdge> exporter = new DOTExporter<>(id -> id);
-        exporter.setVertexAttributeProvider((v) -> {
-            Map<String, Attribute> map = new LinkedHashMap<>();
-            map.put("label", DefaultAttribute.createAttribute(v));
-            return map;
-        });
 
         /* Write to .dot file in output directory */
         String path = "./output/" + outputName;
@@ -243,4 +246,27 @@ public class GraphHelper {
                         },
                         Spliterator.ORDERED), false);
     }
+
+    public static DOTExporter<String , DefaultEdge> defaultExporter() {
+        DOTExporter<String , DefaultEdge> exporter = new DOTExporter<>(id -> id);
+        exporter.setVertexAttributeProvider((v) -> {
+            Map<String, Attribute> map = new LinkedHashMap<>();
+            map.put("label", DefaultAttribute.createAttribute(v));
+            return map;
+        });
+        return exporter;
+    }
+
+    public static DOTExporter<ColoredNode, DefaultEdge> coloredExporter() {
+        DOTExporter<ColoredNode , DefaultEdge> exporter = new DOTExporter<>(ColoredNode::getLabel);
+        exporter.setVertexAttributeProvider((v) -> {
+            Map<String, Attribute> map = new LinkedHashMap<>();
+            map.put("label", DefaultAttribute.createAttribute(v.getLabel()));
+            map.put("style", DefaultAttribute.createAttribute("filled"));
+            map.put("fillcolor", DefaultAttribute.createAttribute(v.getColor()));
+            return map;
+        });
+        return exporter;
+    }
+
 }
