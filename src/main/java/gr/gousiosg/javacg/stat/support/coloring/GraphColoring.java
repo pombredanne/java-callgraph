@@ -14,17 +14,16 @@ public class GraphColoring {
     private static final Logger LOGGER = LoggerFactory.getLogger(GraphColoring.class);
 
     public static void applyCoverage(Graph<ColoredNode, DefaultEdge> graph, Set<String> coverage) {
+        LOGGER.info("Applying coverage!");
         Map<String, ColoredNode> nodeMap = nodeMap(graph.vertexSet());
-        coverage.forEach(cover -> {
-                    if (nodeMap.containsKey(cover)) {
-                        nodeMap.get(cover).mark();
-                    }
-                });
+        nodeMap.keySet().forEach(node -> {
+            if (coverage.contains(node))
+                nodeMap.get(node).mark();
+        });
     }
 
     private static Map<String, ColoredNode> nodeMap(Set<ColoredNode> nodes) {
         return nodes.stream()
                 .collect(Collectors.toMap(ColoredNode::getLabel, node -> node));
     }
-
 }
