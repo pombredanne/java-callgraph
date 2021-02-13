@@ -10,7 +10,6 @@ import org.jgrapht.graph.DefaultEdge;
 import org.jgrapht.nio.Attribute;
 import org.jgrapht.nio.DefaultAttribute;
 import org.jgrapht.nio.dot.DOTExporter;
-import org.jgrapht.traverse.BreadthFirstIterator;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
 import org.slf4j.Logger;

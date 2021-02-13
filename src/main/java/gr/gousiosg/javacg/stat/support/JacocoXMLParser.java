@@ -2,18 +2,19 @@ package gr.gousiosg.javacg.stat.support;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.beans.MethodDescriptor;
-import java.io.File;
-import java.io.IOException;
-import java.util.HashSet;
-import java.util.Set;
-import org.w3c.dom.*;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
+import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
+import java.io.File;
+import java.io.IOException;
+import java.util.HashSet;
+import java.util.Set;
 
 public class JacocoXMLParser {
 
@@ -53,42 +54,55 @@ public class JacocoXMLParser {
         }
     }
 
+    /* Inspect all packages in an XML file */
     public static Set<String> inspectXML(Element root) {
         Set<String> result = new HashSet<>();
-        NodeList children = root.getElementsByTagName(PACKAGE_TAG);
         Set<Node> packages = new HashSet<>();
+
+        /* Find packages */
+        NodeList children = root.getElementsByTagName(PACKAGE_TAG);
         for (int i = 0; i < children.getLength(); i++) {
             Node node = children.item(i);
             if (node.getNodeName().equals(PACKAGE_TAG)) {
                 packages.add(node);
             }
         }
+
+        /* Inspect packages */
         for (Node packageNode : packages) {
             result.addAll(inspectPackage(packageNode));
         }
         return result;
     }
 
+    /* Inspect all classes in a Java package */
     private static Set<String> inspectPackage(Node pkg) {
         Set<String> result = new HashSet<>();
-        NodeList children = pkg.getChildNodes();
         Set<Node> classesInPackage = new HashSet<>();
+
+        /* Find classes */
+        NodeList children = pkg.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             Node child = children.item(i);
             if (child.getNodeName().equals(CLASS_TAG)) {
                 classesInPackage.add(child);
             }
         }
+
+        /* Inspect classes */
         for (Node clazz : classesInPackage) {
             result.addAll(inspectClass(clazz));
         }
         return result;
     }
 
+    /* Inspect all methods in a Java class */
     private static Set<String> inspectClass(Node clazz) {
         String clazzName = clazz.getAttributes().getNamedItem(NAME_ATTRIBUTE).getNodeValue();
         Set<String> result = new HashSet<>();
         Set<Node> methodsInClazz = new HashSet<>();
+
+        /* Find methods */
         NodeList children = clazz.getChildNodes();
         for (int i = 0; i < children.getLength(); i++) {
             Node child = children.item(i);
@@ -96,12 +110,15 @@ public class JacocoXMLParser {
                 methodsInClazz.add(child);
             }
         }
+
+        /* Inspect methods */
         for (Node method : methodsInClazz) {
             result.addAll(inspectMethod(clazzName, method));
         }
         return result;
     }
 
+    /* Inspect a method to see if it was covered with JaCoCo or not */
     private static Set<String> inspectMethod(String className, Node method) {
         Set<String> result = new HashSet<>();
         String methodName = method.getAttributes().getNamedItem(NAME_ATTRIBUTE).getNodeValue();
@@ -115,6 +132,7 @@ public class JacocoXMLParser {
                     String coveredValue = child.getAttributes().getNamedItem(COVERED_ATTRIBUTE).getNodeValue();
                     if (Integer.parseInt(coveredValue) > 0) {
                         result.add(qualifiedName);
+                        break;
                     }
                 }
             }
@@ -122,6 +140,7 @@ public class JacocoXMLParser {
         return result;
     }
 
+    /* Return string of form "fully.qualified.class.name:<method>(arg_types)" */
     private static String qualifiedName(String className, String methodName, String args) {
         // TODO: "args" is currently represented as JVM descriptors
         //     -> next, you need to parse them. Maybe BCEL can help?
