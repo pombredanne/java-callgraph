@@ -49,6 +49,20 @@ The line means that `method1` of `class1` called `method2` of `class2`.
 
 For `invokedynamic` calls, it is not possible to infer the argument types.
 
+
+#### Example
+
+You can test this program by running the following code in the root directory:
+
+```
+java -jar ./target/javacg-0.1-SNAPSHOT-jar-with-dependencies.jar -j
+./ExampleData/java-callgraph-driver-1.0-SNAPSHOT.jar -c ./ExampleData/jacoco.xml -o example  -e "edu.uic.cs398.Main:main(java.lang.String[])" -d 4
+```
+
+In the `output` folder you should see files `example-reachability-4.dot` and `example.dot`. You can use [Graphviz](https://www.graphviz.org/download/) to visualize these files. An example image is provided at `java-callgraph/ExampleData/example-reachability-4.png` (see below).
+
+![alt text](ExampleData/example-reachability-4.png)
+
 #### Known Restrictions
 
 * The static call graph generator does not account for methods invoked via
