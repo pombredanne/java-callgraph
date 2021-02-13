@@ -1,5 +1,6 @@
 package gr.gousiosg.javacg.stat.support;
 
+import gr.gousiosg.javacg.stat.support.coloring.DescriptorUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -142,19 +143,12 @@ public class JacocoXMLParser {
 
     /* Return string of form "fully.qualified.class.name:<method>(arg_types)" */
     private static String qualifiedName(String className, String methodName, String args) {
-        // TODO: "args" is currently represented as JVM descriptors
-        //     -> next, you need to parse them. Maybe BCEL can help?
-        //     -> Similar: https://suif.stanford.edu/~courses/cs243/joeq/javadoc/joeq/Util/DescriptorUtil.html#DescriptorUtil()
-        return className.replace("/", ".") + ":" + methodName + "(" + args + ")";
-    }
-
-    public static Set<String> mockedCoverage() {
-        return Set.of(
-                "\"edu.uic.cs398.Book.AbstractBook:magic()\"",
-                "\"edu.uic.cs398.Book.AbstractBook:bazinga()\"",
-                "\"edu.uic.cs398.Book.impl.EffectiveJava:<init>()\"",
-                "\"java.lang.Object:<init>()\"",
-                "\"edu.uic.cs398.Book.impl.ArguingWithZombies:<init>()\""
-        );
+        String[] params = DescriptorUtil.getParameters(args);
+        if (params == null) {
+            // TODO do something more meaningful to indicate errors
+            return "BAD COVERAGE FOR " + className + methodName;
+        }
+        String typedParams = String.join(",", params);
+        return "\"" + className.replace("/", ".") + ":" + methodName + "(" + typedParams + ")\"";
     }
 }

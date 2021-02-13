@@ -2,8 +2,9 @@ package gr.gousiosg.javacg.stat.support.coloring;
 
 public class ColoredNode {
 
+    private static final String ENTRYPOINT_COLOR = "cyan";
     private static final String GREEN = "darkolivegreen1";
-    public static String NO_COLOR = "ghostwhite";
+    private static final String NO_COLOR = "ghostwhite";
     private final String label;
     private String color = NO_COLOR;
 
@@ -19,6 +20,10 @@ public class ColoredNode {
 
     public void mark() {
         this.color = GREEN;
+    }
+
+    public void markEntryPoint() {
+        this.color = ENTRYPOINT_COLOR;
     }
 
     @Override

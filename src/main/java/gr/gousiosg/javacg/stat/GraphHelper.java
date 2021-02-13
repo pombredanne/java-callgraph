@@ -108,6 +108,7 @@ public class GraphHelper {
             nextLevel.clear();
         }
 
+        subgraphNodes.get(entrypoint).markEntryPoint();
         return subgraph;
     }
 

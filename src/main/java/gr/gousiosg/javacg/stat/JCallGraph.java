@@ -77,6 +77,7 @@ public class JCallGraph {
                 if (arguments.maybeCoverage().isPresent()) {
                     try {
                         Set<String> coverage = JacocoXMLParser.parseCoverage(arguments.maybeCoverage().get());
+                        coverage.forEach(c -> LOGGER.info("covered: " + c));
                         GraphColoring.applyCoverage(subgraph, coverage);
                     } catch (IOException e) {
                         LOGGER.error("Error parsing coverage: " + e.getMessage());
