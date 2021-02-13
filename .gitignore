@@ -5,7 +5,6 @@ nbproject/private/
 *.DS_Store
 *.lock
 *~
-output/
 target/
 bin/
 .classpath
