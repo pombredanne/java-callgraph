@@ -1,6 +1,6 @@
 package gr.gousiosg.javacg.stat.support;
 
-import gr.gousiosg.javacg.stat.support.coloring.DescriptorUtil;
+import org.objectweb.asm.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.w3c.dom.Document;
@@ -14,8 +14,10 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 public class JacocoXMLParser {
 
@@ -141,14 +143,11 @@ public class JacocoXMLParser {
         return result;
     }
 
-    /* Return string of form "fully.qualified.class.name:<method>(arg_types)" */
-    private static String qualifiedName(String className, String methodName, String args) {
-        String[] params = DescriptorUtil.getParameters(args);
-        if (params == null) {
-            // TODO do something more meaningful to indicate errors
-            return "BAD COVERAGE FOR " + className + methodName;
-        }
-        String typedParams = String.join(",", params);
-        return "\"" + className.replace("/", ".") + ":" + methodName + "(" + typedParams + ")\"";
+    /* Return string of form "fully.qualified.class.name:method(arg_types)" */
+    private static String qualifiedName(String className, String methodName, String argDescriptors) {
+        String argTypes = Arrays.stream(Type.getArgumentTypes(argDescriptors))
+                .map(Type::getClassName)
+                .collect(Collectors.joining(","));
+        return "\"" + className.replace("/", ".") + ":" + methodName + "(" + argTypes + ")\"";
     }
 }

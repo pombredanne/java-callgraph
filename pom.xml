@@ -44,7 +44,6 @@
       <artifactId>jgrapht-io</artifactId>
       <version>1.5.0</version>
     </dependency>
-
     <dependency>
       <groupId>org.apache.bcel</groupId>
       <artifactId>bcel</artifactId>
@@ -78,6 +77,13 @@
       <artifactId>jaxp-api</artifactId>
       <version>1.4.5</version>
     </dependency>
+
+    <dependency>
+      <groupId>org.ow2.asm</groupId>
+      <artifactId>asm</artifactId>
+      <version>7.0</version>
+    </dependency>
+
 
   </dependencies>
 
