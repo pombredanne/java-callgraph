@@ -128,6 +128,7 @@ public class GraphUtils {
         Map<String, ColoredNode> nodeMap = new HashMap<>();
         Deque<String> parentsToInspect = new ArrayDeque<>();
         Set<String> seenBefore = new HashSet<>();
+        Set<String> nextLevel = new HashSet<>();
 
         /* Add root node to ancestry graph */
         ColoredNode root = new ColoredNode(entrypoint);
@@ -137,9 +138,10 @@ public class GraphUtils {
 
         int currentDepth = 0;
         while (!parentsToInspect.isEmpty()) {
-            Set<String> nextLevel = new HashSet<>();
-            if (currentDepth > ancestryDepth)
+
+            if (ancestryDepth < currentDepth) {
                 break;
+            }
 
             /* Loop over all nodes that we haven't yet seen yet and are reachable at depth "currentDepth" */
             while (!parentsToInspect.isEmpty()) {
@@ -155,22 +157,16 @@ public class GraphUtils {
                     nodeMap.put(child, childNode);
                 }
 
-                graph.incomingEdgesOf(entrypoint).forEach(incomingEdge -> {
+                graph.incomingEdgesOf(child).forEach(incomingEdge -> {
                     String parent = graph.getEdgeSource(incomingEdge);
                     ColoredNode parentNode = nodeMap.containsKey(parent) ? nodeMap.get(parent) : new ColoredNode(parent);
 
-                    LOGGER.info("Found parent: " + parent);
-
                     if (!nodeMap.containsKey(parent)) {
-                        LOGGER.info("ADDING CHILD");
                         nodeMap.put(parent, parentNode);
                         ancestry.addVertex(parentNode);
                     }
 
-                    if (graph.containsEdge(parent, child) && !ancestry.containsEdge(parentNode, childNode)) {
-                        LOGGER.info("ADDING EDGE");
-                        ancestry.addEdge(parentNode, childNode);
-                    }
+                    ancestry.addEdge(parentNode, childNode);
 
                     /* Have we visited this vertex before? */
                     if (!seenBefore.contains(parent)) {
@@ -179,8 +175,10 @@ public class GraphUtils {
                     }
                 });
             }
+
             currentDepth++;
             parentsToInspect.addAll(nextLevel);
+            nextLevel.clear();
         }
 
         nodeMap.get(entrypoint).markEntryPoint();
