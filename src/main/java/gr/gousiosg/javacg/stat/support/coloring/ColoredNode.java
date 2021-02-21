@@ -24,6 +24,10 @@ public class ColoredNode {
         }
     }
 
+    public boolean marked() {
+        return !color.equals(NO_COLOR);
+    }
+
     public void markEntryPoint() {
         this.color = ENTRYPOINT_COLOR;
     }

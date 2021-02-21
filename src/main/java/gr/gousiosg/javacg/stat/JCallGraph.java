@@ -31,6 +31,7 @@ package gr.gousiosg.javacg.stat;
 import gr.gousiosg.javacg.stat.support.Arguments;
 import gr.gousiosg.javacg.stat.support.JacocoXMLParser;
 import gr.gousiosg.javacg.stat.support.coloring.ColoredNode;
+import gr.gousiosg.javacg.stat.support.coloring.CoverageStatistics;
 import gr.gousiosg.javacg.stat.support.coloring.GraphColoring;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
@@ -40,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.InputMismatchException;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -51,10 +53,16 @@ import java.util.Set;
 public class JCallGraph {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JCallGraph.class);
+
+    public static final String OUTPUT_DIRECTORY = "./output/";
     private static final String REACHABILITY = "reachability";
+    private static final String COVERAGE = "coverage";
     private static final String ANCESTRY = "ancestry";
     private static final String DELIMITER = "-";
     private static final String DOT_SUFFIX = ".dot";
+    private static final String CSV_SUFFIX = ".csv";
+
+
 
     public static void main(String[] args) {
         try {
@@ -79,8 +87,11 @@ public class JCallGraph {
 
                     /* Fetch reachability */
                     Graph<ColoredNode, DefaultEdge> reachability = GraphUtils.reachability(graph, arguments.maybeEntryPoint().get(), arguments.maybeDepth());
-
                     GraphColoring.applyCoverage(reachability, coverage);
+
+                    /* Spit out statistics regarding reachability */
+
+
                     /* Should we store the reachability reachability in a file? */
                     if (arguments.maybeOutput().isPresent()) {
                         String subgraphOutputName = arguments.maybeOutput().get() + DELIMITER + REACHABILITY;
@@ -90,7 +101,12 @@ public class JCallGraph {
                             subgraphOutputName = subgraphOutputName + DELIMITER + arguments.maybeDepth().get();
                         }
 
+                        /* Report coverage and save it to a .csv */
                         GraphUtils.writeGraph(reachability, GraphUtils.coloredExporter(), asDot(subgraphOutputName));
+                        CoverageStatistics.analyze(reachability, Optional.of(asCsv(subgraphOutputName + DELIMITER + COVERAGE)));
+                    } else {
+                        /* Report coverage, do not save it to a .csv */
+                        CoverageStatistics.analyze(reachability, Optional.empty());
                     }
 
                     /* Should we fetch ancestry? */
@@ -121,6 +137,10 @@ public class JCallGraph {
 
     private static String asDot(String name) {
         return name.endsWith(DOT_SUFFIX) ? name : (name + DOT_SUFFIX);
+    }
+
+    private static String asCsv(String name) {
+        return name.endsWith(CSV_SUFFIX) ? name : (name + CSV_SUFFIX);
     }
 
 }

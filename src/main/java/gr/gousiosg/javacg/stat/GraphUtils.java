@@ -189,7 +189,7 @@ public class GraphUtils {
         LOGGER.info("Attempting to store callgraph...");
 
         /* Write to .dot file in output directory */
-        String path = "./output/" + outputName;
+        String path = JCallGraph.OUTPUT_DIRECTORY + outputName;
         try {
             Writer writer = new FileWriter(path);
             exporter.exportGraph(graph, writer);
