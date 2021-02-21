@@ -23,11 +23,12 @@ public class JarMetadata {
     }
 
     public Optional<Class<?>> getClass(String qualifiedName) {
+        qualifiedName = qualifiedName.replace("/", ".");
         try {
             return Optional.of(
                     Class.forName(qualifiedName, false, cl)
             );
-        } catch (Exception e) {
+        } catch (NoClassDefFoundError | Exception e) {
             LOGGER.error("Unable to load class: " + qualifiedName);
             return Optional.empty();
         }

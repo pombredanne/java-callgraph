@@ -27,9 +27,9 @@ import java.util.jar.JarFile;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
-public class GraphHelper {
+public class GraphUtils {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(GraphHelper.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(GraphUtils.class);
 
     public static Graph<ColoredNode, DefaultEdge> reachability(Graph<String, DefaultEdge> graph, String entrypoint, Optional<Integer> maybeMaximumDepth) {
 
@@ -44,7 +44,7 @@ public class GraphHelper {
             System.exit(1);
         }
 
-        LOGGER.info("Starting at entry point: " + entrypoint);
+        LOGGER.info("Starting reachability at entry point: " + entrypoint);
         maybeMaximumDepth.ifPresent(d -> LOGGER.info("Traversing to depth " + d));
 
         Graph<ColoredNode, DefaultEdge> subgraph = new DefaultDirectedGraph<>(DefaultEdge.class);
@@ -110,6 +110,81 @@ public class GraphHelper {
 
         subgraphNodes.get(entrypoint).markEntryPoint();
         return subgraph;
+    }
+
+    public static Graph<ColoredNode, DefaultEdge> ancestry(Graph<String, DefaultEdge> graph, String entrypoint, int ancestryDepth) {
+
+        if (!graph.containsVertex(entrypoint)) {
+            LOGGER.error("---> " + entrypoint + "<---");
+            LOGGER.error("The graph doesn't contain the vertex specified as the entry point!");
+            throw new InputMismatchException("graph doesn't contain vertex " + entrypoint);
+        }
+
+        LOGGER.info("Starting ancestry at entry point: " + entrypoint);
+        LOGGER.info("Traversing to depth " + ancestryDepth);
+
+        /* Book-keeping */
+        Graph<ColoredNode, DefaultEdge> ancestry = new DefaultDirectedGraph<>(DefaultEdge.class);
+        Map<String, ColoredNode> nodeMap = new HashMap<>();
+        Deque<String> parentsToInspect = new ArrayDeque<>();
+        Set<String> seenBefore = new HashSet<>();
+
+        /* Add root node to ancestry graph */
+        ColoredNode root = new ColoredNode(entrypoint);
+        ancestry.addVertex(root);
+        nodeMap.put(entrypoint, root);
+        parentsToInspect.push(entrypoint);
+
+        int currentDepth = 0;
+        while (!parentsToInspect.isEmpty()) {
+            Set<String> nextLevel = new HashSet<>();
+            if (currentDepth > ancestryDepth)
+                break;
+
+            /* Loop over all nodes that we haven't yet seen yet and are reachable at depth "currentDepth" */
+            while (!parentsToInspect.isEmpty()) {
+
+                /* Fetch next node */
+                String child = parentsToInspect.pop();
+                ColoredNode childNode = nodeMap.containsKey(child) ? nodeMap.get(child) : new ColoredNode(child);
+
+                /* Keep track of who we've seen before */
+                seenBefore.add(child);
+                if (!nodeMap.containsKey(child)) {
+                    ancestry.addVertex(childNode);
+                    nodeMap.put(child, childNode);
+                }
+
+                graph.incomingEdgesOf(entrypoint).forEach(incomingEdge -> {
+                    String parent = graph.getEdgeSource(incomingEdge);
+                    ColoredNode parentNode = nodeMap.containsKey(parent) ? nodeMap.get(parent) : new ColoredNode(parent);
+
+                    LOGGER.info("Found parent: " + parent);
+
+                    if (!nodeMap.containsKey(parent)) {
+                        LOGGER.info("ADDING CHILD");
+                        nodeMap.put(parent, parentNode);
+                        ancestry.addVertex(parentNode);
+                    }
+
+                    if (graph.containsEdge(parent, child) && !ancestry.containsEdge(parentNode, childNode)) {
+                        LOGGER.info("ADDING EDGE");
+                        ancestry.addEdge(parentNode, childNode);
+                    }
+
+                    /* Have we visited this vertex before? */
+                    if (!seenBefore.contains(parent)) {
+                        nextLevel.add(parent);
+                        seenBefore.add(parent);
+                    }
+                });
+            }
+            currentDepth++;
+            parentsToInspect.addAll(nextLevel);
+        }
+
+        nodeMap.get(entrypoint).markEntryPoint();
+        return ancestry;
     }
 
     public static <T> void writeGraph(Graph<T, DefaultEdge> graph, DOTExporter<T, DefaultEdge> exporter, String outputName) {

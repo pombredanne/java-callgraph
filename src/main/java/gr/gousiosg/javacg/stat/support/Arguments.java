@@ -25,12 +25,15 @@ public class Arguments {
     private static final String COVERAGE_INPUT_LONG = "coverage";
     private static final String ENTRYPOINT_INPUT = "e";
     private static final String ENTRYPOINT_INPUT_LONG = "entryPoint";
+    private static final String ANCESTRY_INPUT = "a";
+    private static final String ANCESTRY_INPUT_LONG = "ancestry";
 
     private final List<Pair<String, File>> jars = new ArrayList<>();
     private Optional<String> maybeOutput = Optional.empty();
     private Optional<String> maybeEntryPoint = Optional.empty();
     private Optional<String> maybeCoverage = Optional.empty();
     private Optional<Integer> maybeDepth = Optional.empty();
+    private Optional<Integer> maybeAncestry = Optional.empty();
 
     public Arguments (String[] args) {
         LOGGER.info("Parsing command line arguments...");
@@ -61,7 +64,7 @@ public class Arguments {
 
             /* Parse entry point */
             if (cmd.hasOption(ENTRYPOINT_INPUT)) {
-                String ep = cmd.getOptionValue(ENTRYPOINT_INPUT_LONG);
+                String ep = cmd.getOptionValue(ENTRYPOINT_INPUT);
 
                 if (!ep.startsWith(WRAPPER)) {
                     ep = WRAPPER + ep;
@@ -78,7 +81,7 @@ public class Arguments {
 
             /* Parse output name */
             if (cmd.hasOption(OUTPUT_NAME)) {
-                String name = cmd.getOptionValue(OUTPUT_NAME_LONG);
+                String name = cmd.getOptionValue(OUTPUT_NAME);
 
                 /* Validate output filename */
                 if (!name.matches("^[a-zA-Z0-9_]*$")) {
@@ -90,9 +93,21 @@ public class Arguments {
                 this.maybeOutput = Optional.of(name);
             }
 
+            /* Parse ancestry */
+            if (cmd.hasOption(ANCESTRY_INPUT)) {
+                String val = cmd.getOptionValue(ANCESTRY_INPUT);
+                try {
+                    this.maybeAncestry = Optional.of(Integer.parseInt(val));
+                } catch (NumberFormatException e) {
+                    LOGGER.error("---> " + val + " <---");
+                    LOGGER.error("Please specify a valid integer for depth!");
+                    System.exit(1);
+                }
+            }
+
             /* Parse depth */
             if (cmd.hasOption(DEPTH_INPUT)) {
-                String val = cmd.getOptionValue(DEPTH_INPUT_LONG);
+                String val = cmd.getOptionValue(DEPTH_INPUT);
                 try {
                     this.maybeDepth = Optional.of(Integer.parseInt(val));
                 } catch (NumberFormatException e) {
@@ -168,6 +183,13 @@ public class Arguments {
                 .required(false)
                 .build());
 
+        options.addOption(Option.builder(ANCESTRY_INPUT)
+                .longOpt(ANCESTRY_INPUT_LONG)
+                .hasArg(true)
+                .desc("[OPTIONAL] specify a depth to traverse the ancestry of an entrypoint")
+                .required(false)
+                .build());
+
         return options;
     }
 
@@ -189,5 +211,9 @@ public class Arguments {
 
     public Optional<String> maybeCoverage() {
         return maybeCoverage;
+    }
+
+    public Optional<Integer> maybeAncestry() {
+        return maybeAncestry;
     }
 }

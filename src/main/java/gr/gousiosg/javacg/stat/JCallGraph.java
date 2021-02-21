@@ -38,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.util.HashSet;
 import java.util.InputMismatchException;
 import java.util.Set;
 
@@ -51,6 +52,7 @@ public class JCallGraph {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(JCallGraph.class);
     private static final String REACHABILITY = "reachability";
+    private static final String ANCESTRY = "ancestry";
     private static final String DELIMITER = "-";
     private static final String DOT_SUFFIX = ".dot";
 
@@ -62,39 +64,50 @@ public class JCallGraph {
             Arguments arguments = new Arguments(args);
 
             /* Create callgraph */
-            Graph<String, DefaultEdge> graph = GraphHelper.staticCallgraph(arguments.getJars());
+            Graph<String, DefaultEdge> graph = GraphUtils.staticCallgraph(arguments.getJars());
 
             /* Should we store the graph in a file? */
             if (arguments.maybeOutput().isPresent()) {
-                GraphHelper.writeGraph(graph, GraphHelper.defaultExporter(), asDot(arguments.maybeOutput().get()));
+                GraphUtils.writeGraph(graph, GraphUtils.defaultExporter(), asDot(arguments.maybeOutput().get()));
             }
 
             /* Should we compute reachability from the entry point? */
             if (arguments.maybeEntryPoint().isPresent()) {
-                Graph<ColoredNode, DefaultEdge>  subgraph = GraphHelper.reachability(graph, arguments.maybeEntryPoint().get(), arguments.maybeDepth());
+                try {
+                    Set<String> coverage = arguments.maybeCoverage().isEmpty() ? new HashSet<>() :
+                            JacocoXMLParser.parseCoverage(arguments.maybeCoverage().get());
 
-                /* Fetch and apply coverage */
-                if (arguments.maybeCoverage().isPresent()) {
-                    try {
-                        Set<String> coverage = JacocoXMLParser.parseCoverage(arguments.maybeCoverage().get());
-                        coverage.forEach(c -> LOGGER.info("covered: " + c));
-                        GraphColoring.applyCoverage(subgraph, coverage);
-                    } catch (IOException e) {
-                        LOGGER.error("Error parsing coverage: " + e.getMessage());
-                        System.exit(1);
-                    }
-                }
+                    /* Fetch reachability */
+                    Graph<ColoredNode, DefaultEdge> reachability = GraphUtils.reachability(graph, arguments.maybeEntryPoint().get(), arguments.maybeDepth());
 
-                /* Should we store the reachability subgraph in a file? */
-                if (arguments.maybeOutput().isPresent()) {
-                    String subgraphOutputName = arguments.maybeOutput().get() + DELIMITER + REACHABILITY;
+                    GraphColoring.applyCoverage(reachability, coverage);
+                    /* Should we store the reachability reachability in a file? */
+                    if (arguments.maybeOutput().isPresent()) {
+                        String subgraphOutputName = arguments.maybeOutput().get() + DELIMITER + REACHABILITY;
 
-                    /* Does this subgraph's reachability have a depth? */
-                    if (arguments.maybeDepth().isPresent()) {
-                        subgraphOutputName = subgraphOutputName + DELIMITER + arguments.maybeDepth().get();
+                        /* Does this reachability have a depth? */
+                        if (arguments.maybeDepth().isPresent()) {
+                            subgraphOutputName = subgraphOutputName + DELIMITER + arguments.maybeDepth().get();
+                        }
+
+                        GraphUtils.writeGraph(reachability, GraphUtils.coloredExporter(), asDot(subgraphOutputName));
                     }
 
-                    GraphHelper.writeGraph(subgraph, GraphHelper.coloredExporter(), asDot(subgraphOutputName));
+                    /* Should we fetch ancestry? */
+                    if (arguments.maybeAncestry().isPresent()) {
+                        Graph<ColoredNode, DefaultEdge> ancestry = GraphUtils.ancestry(graph, arguments.maybeEntryPoint().get(), arguments.maybeAncestry().get());
+                        GraphColoring.applyCoverage(ancestry, coverage);
+
+                        /* Should we store the ancestry in a file? */
+                        if (arguments.maybeOutput().isPresent()) {
+                            String subgraphOutputName = arguments.maybeOutput().get() + DELIMITER + ANCESTRY + DELIMITER + arguments.maybeAncestry().get();
+                            GraphUtils.writeGraph(ancestry, GraphUtils.coloredExporter(), asDot(subgraphOutputName));
+                        }
+                    }
+
+                } catch (IOException e) {
+                    LOGGER.error("Error parsing coverage: " + e.getMessage());
+                    System.exit(1);
                 }
             }
 

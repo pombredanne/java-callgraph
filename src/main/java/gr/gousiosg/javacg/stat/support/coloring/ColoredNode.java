@@ -19,7 +19,9 @@ public class ColoredNode {
     public String getLabel() { return this.label; }
 
     public void mark() {
-        this.color = GREEN;
+        if (!color.equals(ENTRYPOINT_COLOR)) {
+            this.color = GREEN;
+        }
     }
 
     public void markEntryPoint() {
