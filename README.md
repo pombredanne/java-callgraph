@@ -11,7 +11,7 @@ A program for generating static call graphs in Java.
 The java-callgraph package is build with maven. Install maven and do:
 
 ```
-mvn install -DskipTests
+mvn install
 ```
 
 This will produce a `target` directory with the following jars:
