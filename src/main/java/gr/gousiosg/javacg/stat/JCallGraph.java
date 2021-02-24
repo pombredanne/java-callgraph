@@ -33,11 +33,16 @@ import gr.gousiosg.javacg.stat.support.JacocoXMLParser;
 import gr.gousiosg.javacg.stat.support.coloring.ColoredNode;
 import gr.gousiosg.javacg.stat.support.coloring.CoverageStatistics;
 import gr.gousiosg.javacg.stat.support.coloring.GraphColoring;
+import gr.gousiosg.javacg.stat.support.parsing.JacocoCoverageParser;
+import gr.gousiosg.javacg.stat.support.parsing.Report;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
 
+import javax.xml.bind.JAXBException;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
 import java.util.HashSet;
 import java.util.InputMismatchException;
