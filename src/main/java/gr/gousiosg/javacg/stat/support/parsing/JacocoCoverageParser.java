@@ -1,8 +1,8 @@
 package gr.gousiosg.javacg.stat.support.parsing;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.xml.sax.*;
+import org.xml.sax.InputSource;
+import org.xml.sax.SAXException;
+import org.xml.sax.XMLReader;
 
 import javax.xml.bind.JAXBContext;
 import javax.xml.bind.JAXBException;
@@ -14,8 +14,6 @@ import java.io.FileReader;
 import java.io.IOException;
 
 public class JacocoCoverageParser {
-    private static final Logger LOGGER = LoggerFactory.getLogger(JacocoCoverageParser.class);
-
     private static final String XML_LOAD_EXTERNAL_DTD = "http://apache.org/xml/features/nonvalidating/load-external-dtd";
     private static final String SAX_VALIDATION = "http://xml.org/sax/features/validation";
 
