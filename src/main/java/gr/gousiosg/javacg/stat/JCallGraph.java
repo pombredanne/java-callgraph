@@ -29,20 +29,20 @@
 package gr.gousiosg.javacg.stat;
 
 import gr.gousiosg.javacg.stat.support.Arguments;
-import gr.gousiosg.javacg.stat.support.JacocoXMLParser;
-import gr.gousiosg.javacg.stat.support.coloring.ColoredNode;
-import gr.gousiosg.javacg.stat.support.coloring.CoverageStatistics;
-import gr.gousiosg.javacg.stat.support.coloring.GraphColoring;
+import gr.gousiosg.javacg.stat.support.coverage.ColoredNode;
+import gr.gousiosg.javacg.stat.support.coverage.CoverageStatistics;
+import gr.gousiosg.javacg.stat.support.coverage.JacocoCoverage;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.xml.sax.SAXException;
 
+import javax.xml.bind.JAXBException;
+import javax.xml.parsers.ParserConfigurationException;
 import java.io.IOException;
-import java.util.HashSet;
 import java.util.InputMismatchException;
 import java.util.Optional;
-import java.util.Set;
 
 /**
  * Constructs a callgraph out of a JAR archive. Can combine multiple archives
@@ -65,72 +65,77 @@ public class JCallGraph {
     public static void main(String[] args) {
         try {
             LOGGER.info("Starting java-cg!");
-
-            /* Setup arguments */
             Arguments arguments = new Arguments(args);
-
-            /* Create callgraph */
             Graph<String, DefaultEdge> graph = GraphUtils.staticCallgraph(arguments.getJars());
+            JacocoCoverage jacocoCoverage = new JacocoCoverage(arguments.maybeCoverage());
 
             /* Should we store the graph in a file? */
             if (arguments.maybeOutput().isPresent()) {
-                GraphUtils.writeGraph(graph, GraphUtils.defaultExporter(), asDot(arguments.maybeOutput().get()));
+                GraphUtils.writeGraph(graph, GraphUtils.defaultExporter(), arguments.maybeOutput().map(JCallGraph::asDot));
             }
 
             /* Should we compute reachability from the entry point? */
             if (arguments.maybeEntryPoint().isPresent()) {
-                try {
-                    Set<String> coverage = arguments.maybeCoverage().isEmpty() ? new HashSet<>() :
-                            JacocoXMLParser.parseCoverage(arguments.maybeCoverage().get());
+                inspectReachability(graph, arguments, jacocoCoverage, arguments.maybeEntryPoint().get());
+            }
 
-                    /* Fetch reachability */
-                    Graph<ColoredNode, DefaultEdge> reachability = GraphUtils.reachability(graph, arguments.maybeEntryPoint().get(), arguments.maybeDepth());
-                    GraphColoring.applyCoverage(reachability, coverage);
-
-                    /* Spit out statistics regarding reachability */
-
-
-                    /* Should we store the reachability reachability in a file? */
-                    if (arguments.maybeOutput().isPresent()) {
-                        String subgraphOutputName = arguments.maybeOutput().get() + DELIMITER + REACHABILITY;
-
-                        /* Does this reachability have a depth? */
-                        if (arguments.maybeDepth().isPresent()) {
-                            subgraphOutputName = subgraphOutputName + DELIMITER + arguments.maybeDepth().get();
-                        }
-
-                        /* Report coverage and save it to a .csv */
-                        GraphUtils.writeGraph(reachability, GraphUtils.coloredExporter(), asDot(subgraphOutputName));
-                        CoverageStatistics.analyze(reachability, Optional.of(asCsv(subgraphOutputName + DELIMITER + COVERAGE)));
-                    } else {
-                        /* Report coverage, do not save it to a .csv */
-                        CoverageStatistics.analyze(reachability, Optional.empty());
-                    }
-
-                    /* Should we fetch ancestry? */
-                    if (arguments.maybeAncestry().isPresent()) {
-                        Graph<ColoredNode, DefaultEdge> ancestry = GraphUtils.ancestry(graph, arguments.maybeEntryPoint().get(), arguments.maybeAncestry().get());
-                        GraphColoring.applyCoverage(ancestry, coverage);
-
-                        /* Should we store the ancestry in a file? */
-                        if (arguments.maybeOutput().isPresent()) {
-                            String subgraphOutputName = arguments.maybeOutput().get() + DELIMITER + ANCESTRY + DELIMITER + arguments.maybeAncestry().get();
-                            GraphUtils.writeGraph(ancestry, GraphUtils.coloredExporter(), asDot(subgraphOutputName));
-                        }
-                    }
-
-                } catch (IOException e) {
-                    LOGGER.error("Error parsing coverage: " + e.getMessage());
-                    System.exit(1);
-                }
+            /* Should we compute ancestry from the entry point? */
+            if (arguments.maybeAncestry().isPresent()) {
+                inspectAncestry(graph, arguments, jacocoCoverage, arguments.maybeEntryPoint().get(), arguments.maybeAncestry().get());
             }
 
         } catch (InputMismatchException e) {
             LOGGER.error("Unable to load callgraph: " + e.getMessage());
             System.exit(1);
+        } catch (ParserConfigurationException | SAXException | JAXBException |IOException e) {
+            LOGGER.error("Error fetching Jacoco coverage");
+            System.exit(1);
         }
 
         LOGGER.info("java-cg is finished! Enjoy!");
+    }
+
+    public static void inspectReachability(Graph<String, DefaultEdge> graph, Arguments arguments, JacocoCoverage jacocoCoverage, String entryPoint) {
+        /* Fetch reachability */
+        Graph<ColoredNode, DefaultEdge> reachability = GraphUtils.reachability(graph, entryPoint, arguments.maybeDepth());
+
+        /* Apply coverage */
+        jacocoCoverage.applyCoverage(reachability);
+
+        /* Should we write the graph to a file? */
+        Optional<String> outputName = arguments.maybeOutput().isPresent()
+                ? Optional.of(arguments.maybeOutput().get() + DELIMITER + REACHABILITY)
+                : Optional.empty();
+
+        /* Attach depth to name if present */
+        outputName = outputName.map(name -> {
+            if (arguments.maybeDepth().isPresent()) {
+                return name + DELIMITER + arguments.maybeDepth().get();
+            } else {
+                return name;
+            }
+        });
+
+        /* Store reachability in file? */
+        if (outputName.isPresent()) {
+            GraphUtils.writeGraph(reachability, GraphUtils.coloredExporter(), outputName.map(JCallGraph::asDot));
+        }
+
+        /* Analyze reachability coverage? */
+        if (jacocoCoverage.hasCoverage()) {
+            CoverageStatistics.analyze(reachability, outputName.map(name -> asCsv(name + DELIMITER + COVERAGE)));
+        }
+    }
+
+    public static void inspectAncestry(Graph<String, DefaultEdge> graph, Arguments arguments, JacocoCoverage jacocoCoverage, String entryPoint, int ancestryDepth) {
+        Graph<ColoredNode, DefaultEdge> ancestry = GraphUtils.ancestry(graph, entryPoint, ancestryDepth);
+        jacocoCoverage.applyCoverage(ancestry);
+
+        /* Should we store the ancestry in a file? */
+        if (arguments.maybeOutput().isPresent()) {
+            String subgraphOutputName = arguments.maybeOutput().get() + DELIMITER + ANCESTRY + DELIMITER + ancestryDepth;
+            GraphUtils.writeGraph(ancestry, GraphUtils.coloredExporter(), Optional.of(asDot(subgraphOutputName)));
+        }
     }
 
     private static String asDot(String name) {

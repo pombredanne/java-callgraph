@@ -1,4 +1,4 @@
-package gr.gousiosg.javacg.stat.support.parsing;
+package gr.gousiosg.javacg.stat.support.coverage;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;

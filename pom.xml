@@ -111,7 +111,7 @@
           <sources>
             <source>src/main/resources/jacoco-schema.xsd</source>
           </sources>
-          <packageName>gr.gousiosg.javacg.stat.support.parsing</packageName>
+          <packageName>gr.gousiosg.javacg.stat.support.coverage</packageName>
         </configuration>
       </plugin>
 
@@ -146,15 +146,6 @@
         </executions>
       </plugin>
 
-      <plugin>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.6.1</version>
-        <configuration>
-          <optimize>false</optimize>
-          <source>1.8</source>
-          <target>1.8</target>
-        </configuration>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-compiler-plugin</artifactId>

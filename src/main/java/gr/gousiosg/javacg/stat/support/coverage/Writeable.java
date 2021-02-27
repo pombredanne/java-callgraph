@@ -1,4 +1,4 @@
-package gr.gousiosg.javacg.stat.support.coloring;
+package gr.gousiosg.javacg.stat.support.coverage;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

@@ -3,7 +3,7 @@ package gr.gousiosg.javacg.stat;
 import gr.gousiosg.javacg.dyn.Pair;
 import gr.gousiosg.javacg.stat.support.IgnoredConstants;
 import gr.gousiosg.javacg.stat.support.JarMetadata;
-import gr.gousiosg.javacg.stat.support.coloring.ColoredNode;
+import gr.gousiosg.javacg.stat.support.coverage.ColoredNode;
 import org.apache.bcel.classfile.ClassParser;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultDirectedGraph;
@@ -30,6 +30,11 @@ import java.util.stream.StreamSupport;
 public class GraphUtils {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GraphUtils.class);
+
+    private static final String LABEL = "label";
+    private static final String STYLE = "style";
+    private static final String FILLCOLOR = "fillcolor";
+    private static final String FILLED = "filled";
 
     public static Graph<ColoredNode, DefaultEdge> reachability(Graph<String, DefaultEdge> graph, String entrypoint, Optional<Integer> maybeMaximumDepth) {
 
@@ -185,11 +190,16 @@ public class GraphUtils {
         return ancestry;
     }
 
-    public static <T> void writeGraph(Graph<T, DefaultEdge> graph, DOTExporter<T, DefaultEdge> exporter, String outputName) {
+    public static <T> void writeGraph(Graph<T, DefaultEdge> graph, DOTExporter<T, DefaultEdge> exporter, Optional<String> maybeOutputName) {
         LOGGER.info("Attempting to store callgraph...");
 
+        if (maybeOutputName.isEmpty()) {
+            LOGGER.error("No output name specified!");
+            return;
+        }
+
         /* Write to .dot file in output directory */
-        String path = JCallGraph.OUTPUT_DIRECTORY + outputName;
+        String path = JCallGraph.OUTPUT_DIRECTORY + maybeOutputName.get();
         try {
             Writer writer = new FileWriter(path);
             exporter.exportGraph(graph, writer);
@@ -325,7 +335,7 @@ public class GraphUtils {
         DOTExporter<String , DefaultEdge> exporter = new DOTExporter<>(id -> id);
         exporter.setVertexAttributeProvider((v) -> {
             Map<String, Attribute> map = new LinkedHashMap<>();
-            map.put("label", DefaultAttribute.createAttribute(v));
+            map.put(LABEL, DefaultAttribute.createAttribute(v));
             return map;
         });
         return exporter;
@@ -335,9 +345,9 @@ public class GraphUtils {
         DOTExporter<ColoredNode , DefaultEdge> exporter = new DOTExporter<>(ColoredNode::getLabel);
         exporter.setVertexAttributeProvider((v) -> {
             Map<String, Attribute> map = new LinkedHashMap<>();
-            map.put("label", DefaultAttribute.createAttribute(v.getLabel()));
-            map.put("style", DefaultAttribute.createAttribute("filled"));
-            map.put("fillcolor", DefaultAttribute.createAttribute(v.getColor()));
+            map.put(LABEL, DefaultAttribute.createAttribute(v.getLabel()));
+            map.put(STYLE, DefaultAttribute.createAttribute(FILLED));
+            map.put(FILLCOLOR, DefaultAttribute.createAttribute(v.getColor()));
             return map;
         });
         return exporter;
