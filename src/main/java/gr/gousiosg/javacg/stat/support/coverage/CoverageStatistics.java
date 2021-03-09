@@ -67,6 +67,14 @@ public class CoverageStatistics {
     }
 
     private void announce() {
+        float nodeCoverage = ((float) this.nodesCovered) / this.nodeCount * 100;
+        float lineCoverage = ((float) this.linesCovered) / (this.linesCovered + linesMissed) * 100;
+        float branchCoverage = ((float) this.branchesCovered) / (this.branchesCovered + this.branchesMissed) * 100;
+
+        nodeCoverage = (Float.isNaN(nodeCoverage)) ? 0 : nodeCoverage;
+        lineCoverage = (Float.isNaN(lineCoverage)) ? 0 : lineCoverage;
+        branchCoverage = (Float.isNaN(branchCoverage)) ? 0 : branchCoverage;
+
         LOGGER.info(SEPARATOR);
         LOGGER.info("Coverage Statistics:");
         LOGGER.info("Edge Count:            " + this.edgeCount);
@@ -76,9 +84,9 @@ public class CoverageStatistics {
         LOGGER.info("Lines Missed:          " + this.linesMissed);
         LOGGER.info("Branches Covered:      " + this.branchesCovered);
         LOGGER.info("Branches Missed:       " + this.branchesMissed);
-        LOGGER.info("Method Coverage:       " + String.format("%.2f", ((float) this.nodesCovered) / this.nodeCount * 100) + "%");
-        LOGGER.info("Line Coverage:         " + String.format("%.2f", ((float) this.linesCovered) / (this.linesCovered + linesMissed) * 100) + "%");
-        LOGGER.info("Branch Coverage:       " + String.format("%.2f", ((float) this.branchesCovered) / (this.branchesCovered + this.branchesMissed) * 100) + "%");
+        LOGGER.info("Method Coverage:       " + String.format("%.2f", nodeCoverage) + "%");
+        LOGGER.info("Line Coverage:         " + String.format("%.2f", lineCoverage) + "%");
+        LOGGER.info("Branch Coverage:       " + String.format("%.2f", branchCoverage) + "%");
         LOGGER.info(SEPARATOR);
     }
 

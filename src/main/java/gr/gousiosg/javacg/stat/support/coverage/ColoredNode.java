@@ -7,8 +7,8 @@ public class ColoredNode {
     private static final String MEDIUM_GREEN = "green1";
     private static final String MEDIUM_DARK_GREEN = "green3";
     private static final String DARK_GREEN = "green4";
-    private static final String FIREBRICK = "firebrick";
-    private static final String ENTRYPOINT_COLOR = "cyan";
+    private static final String FIREBRICK = "lightpink";
+    private static final String ENTRYPOINT_COLOR = "lightgoldenrod";
     private static final String NO_COLOR = "ghostwhite";
 
     private final String label;
