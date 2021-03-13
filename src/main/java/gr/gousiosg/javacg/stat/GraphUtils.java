@@ -35,6 +35,7 @@ public class GraphUtils {
     private static final String STYLE = "style";
     private static final String FILLCOLOR = "fillcolor";
     private static final String FILLED = "filled";
+    private static final String NODE_DELIMITER = "\"";
 
     public static Graph<ColoredNode, DefaultEdge> reachability(Graph<String, DefaultEdge> graph, String entrypoint, Optional<Integer> maybeMaximumDepth) {
 
@@ -313,7 +314,7 @@ public class GraphUtils {
     }
 
     private static String formatNode(String node) {
-        return '"' + node + '"';
+        return NODE_DELIMITER + node + NODE_DELIMITER;
     }
 
     public static <T> Stream<T> enumerationAsStream(Enumeration<T> e) {
