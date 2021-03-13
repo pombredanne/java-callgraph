@@ -5,7 +5,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URLClassLoader;
+import java.util.HashSet;
 import java.util.Optional;
+import java.util.Set;
 
 public class JarMetadata {
 
@@ -13,8 +15,8 @@ public class JarMetadata {
 
     private final URLClassLoader cl;
     private final Reflections reflections;
-
     private final ClassHierarchyInspector inspector = new ClassHierarchyInspector();
+    private final Set<String> bridgeMethods = new HashSet<>();
 
     public JarMetadata(URLClassLoader cl, Reflections reflections) {
         this.cl = cl;
@@ -41,4 +43,11 @@ public class JarMetadata {
         return inspector;
     }
 
+    public void addBridgeMethod(String bridgeMethodSignature) {
+        bridgeMethods.add(bridgeMethodSignature);
+    }
+
+    public Set<String> getBridgeMethods() {
+        return bridgeMethods;
+    }
 }

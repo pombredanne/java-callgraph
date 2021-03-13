@@ -17,7 +17,9 @@ public class ColoredNode {
     private int linesCovered = 0;
     private int linesMissed = 0;
     private int branchesCovered = 0;
-    private int branchesMissed = 0;
+
+    /* Unless this node is covered, assume there is at least one missed branch */
+    private int branchesMissed = 1;
 
     public ColoredNode(String label) {
         this.label = label;
@@ -30,6 +32,8 @@ public class ColoredNode {
     public String getLabel() { return this.label; }
 
     public void mark(Report.Package.Class.Method method) {
+
+        /* Apply coverage to node */
         for (Report.Package.Class.Method.Counter counter : method.getCounter()) {
             switch (counter.getType()) {
                 case JacocoCoverage.METHOD_TYPE: {
@@ -42,12 +46,19 @@ public class ColoredNode {
                     break;
                 }
                 case JacocoCoverage.BRANCH_TYPE: {
-                    this.branchesMissed = counter.getMissed();
-                    this.branchesCovered = counter.getCovered();
+                    this.branchesMissed += counter.getMissed();
+                    this.branchesCovered += counter.getCovered();
                     break;
                 }
                 default:
             }
+        }
+
+        /* If this method was covered, at least one branch was covered.
+        *  We must account for the assumption that this branch was missed! */
+        if (this.covered) {
+            this.branchesMissed -= 1;
+            this.branchesCovered += 1;
         }
 
         if (!this.color.equals(ENTRYPOINT_COLOR)) {

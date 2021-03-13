@@ -134,10 +134,34 @@ public class MethodVisitor extends EmptyVisitor {
         if (shouldExpand && !IGNORED_METHOD_NAMES.contains(receiverMethodName)) {
             Optional<Class<?>> maybeReceiverType = jarMetadata.getClass(receiverTypeName);
             if (maybeReceiverType.isEmpty()) {
-                LOGGER.error("Error from: " + fromSignature + " -> " + toSignature);
-                LOGGER.error("\tCouldn't find " + receiverTypeName);
+                LOGGER.error("Skipping " + toSignature);
                 return;
             }
+
+            Optional<Class<?>> maybeCallerType = jarMetadata.getClass(visitedClass.getClassName());
+            if (maybeCallerType.isEmpty()) {
+                LOGGER.error("Couldn't find Caller class type: " + visitedClass.getClassName());
+                return;
+            }
+
+            Optional<Method> maybeCallingMethod = jarMetadata.getInspector()
+                    .getTopLevelSignature(
+                            maybeCallerType.get(),
+                            ClassHierarchyInspector.methodSignature(
+                                    mg.getName(),
+                                    argumentList(mg.getArgumentTypes())
+                            )
+                    );
+
+            if (maybeCallingMethod.isEmpty()) {
+                LOGGER.error("Couldn't find top level signature for " + fromSignature);
+                return;
+            }
+
+            if (maybeCallingMethod.get().isBridge()) {
+                jarMetadata.addBridgeMethod(fromSignature);
+            }
+
             expand(maybeReceiverType.get(), receiverMethodName, receiverArgTypeNames, fromSignature);
         }
     }

@@ -281,7 +281,35 @@ public class GraphUtils {
             }
         }
 
-        return intoGraph(calls);
+        /* Convert calls into a graph */
+        Graph<String, DefaultEdge> graph =  intoGraph(calls);
+
+        /* Prune bridge methods from graph */
+        jarMetadata.getBridgeMethods().forEach(bridgeMethod -> {
+
+            /* Fetch the bridge method and make sure it has exactly one outgoing edge */
+            String bridgeNode = formatNode(bridgeMethod);
+            Optional<DefaultEdge> maybeEdge = graph.outgoingEdgesOf(bridgeNode).stream().findFirst();
+
+            if (graph.outDegreeOf(bridgeNode) != 1 || maybeEdge.isEmpty()) {
+                LOGGER.error("Found a bridge method that doesn't have exactly 1 outgoing edge: " + bridgeMethod);
+                System.exit(1);
+            }
+
+            /* Fetch the bridge method's target */
+            String bridgeTarget = graph.getEdgeTarget(maybeEdge.get());
+
+            /* Redirect all edges from the bridge method to its target */
+            graph.incomingEdgesOf(bridgeNode).forEach(edge -> {
+                String sourceNode = graph.getEdgeSource(edge);
+                graph.addEdge(sourceNode, bridgeTarget);
+            });
+
+            /* Remove the bridge method from the graph */
+            graph.removeVertex(bridgeNode);
+        });
+
+        return graph;
     }
 
     private static Graph<String, DefaultEdge> intoGraph(Map<String, Set<String>> calls) throws InputMismatchException {
