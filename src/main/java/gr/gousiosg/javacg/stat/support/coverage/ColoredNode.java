@@ -17,9 +17,7 @@ public class ColoredNode {
     private int linesCovered = 0;
     private int linesMissed = 0;
     private int branchesCovered = 0;
-
-    /* Unless this node is covered, assume there is at least one missed branch */
-    private int branchesMissed = 1;
+    private int branchesMissed = 0;
 
     public ColoredNode(String label) {
         this.label = label;
@@ -52,13 +50,6 @@ public class ColoredNode {
                 }
                 default:
             }
-        }
-
-        /* If this method was covered, at least one branch was covered.
-        *  We must account for the assumption that this branch was missed! */
-        if (this.covered) {
-            this.branchesMissed -= 1;
-            this.branchesCovered += 1;
         }
 
         if (!this.color.equals(ENTRYPOINT_COLOR)) {
