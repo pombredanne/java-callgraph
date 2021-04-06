@@ -13,24 +13,25 @@ import java.util.stream.Collectors;
 public class ClassHierarchyInspector {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClassHierarchyInspector.class);
 
-    Map<Class<?>, Map<String, Method>> methodHierarchy = new HashMap<>();
+    // memoize class -> method name -> return type -> method
+    Map<Class<?>, Map<String, Map<String, Method>>> hierarchy = new HashMap<>();
 
-    // TODO: Maybe we can remove our local storage and reduce this to use only the reflection API
     private void loadHierarchy(Class<?> clazz) {
         try {
-            if (methodHierarchy.containsKey(clazz)) {
+            if (hierarchy.containsKey(clazz)) {
                 return;
             } else {
-                methodHierarchy.put(clazz, new HashMap<>());
+                hierarchy.put(clazz, new HashMap<>());
             }
 
             Method[] declaredMethods = clazz.getDeclaredMethods();
             for (Method declaredMethod : declaredMethods) {
                 String signature = methodSignature(declaredMethod);
-                methodHierarchy.get(clazz).put(signature, declaredMethod);
+                hierarchy.get(clazz).putIfAbsent(signature, new HashMap<>());
+                String rt = declaredMethod.getReturnType().getCanonicalName();
+                hierarchy.get(clazz).get(signature).put(rt, declaredMethod);
             }
 
-            // Load information from hierarchy
             Optional<Class<?>> maybeParent = Optional.ofNullable(clazz.getSuperclass());
             maybeParent.ifPresent(this::loadHierarchy);
         } catch (Exception | NoClassDefFoundError e) {
@@ -38,13 +39,13 @@ public class ClassHierarchyInspector {
         }
     }
 
-    public Optional<Method> getTopLevelSignature(Class<?> clazz, String methodSignature) {
+    public Optional<Method> getTopLevelSignature(Class<?> clazz, String methodSignature, String returnType) {
         try {
             loadHierarchy(clazz);
             while (clazz != null) {
-                if (methodHierarchy.get(clazz).containsKey(methodSignature)) {
+                if (hierarchy.get(clazz).containsKey(methodSignature) && hierarchy.get(clazz).get(methodSignature).containsKey(returnType)) {
                     return Optional.of(
-                            methodHierarchy.get(clazz).get(methodSignature)
+                            hierarchy.get(clazz).get(methodSignature).get(returnType)
                     );
                 }
                 clazz = clazz.getSuperclass();

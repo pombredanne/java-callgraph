@@ -282,7 +282,7 @@ public class GraphUtils {
         }
 
         /* Convert calls into a graph */
-        Graph<String, DefaultEdge> graph =  intoGraph(calls);
+        Graph<String, DefaultEdge> graph = intoGraph(calls);
 
         /* Prune bridge methods from graph */
         jarMetadata.getBridgeMethods().forEach(bridgeMethod -> {
@@ -292,8 +292,12 @@ public class GraphUtils {
             Optional<DefaultEdge> maybeEdge = graph.outgoingEdgesOf(bridgeNode).stream().findFirst();
 
             if (graph.outDegreeOf(bridgeNode) != 1 || maybeEdge.isEmpty()) {
-                LOGGER.error("Found a bridge method that doesn't have exactly 1 outgoing edge: " + bridgeMethod);
-                System.exit(1);
+
+                graph.outgoingEdgesOf(bridgeNode).stream().forEach(e -> {
+                    LOGGER.error("\t" + graph.getEdgeSource(e) + " -> " + graph.getEdgeTarget(e));
+                });
+                LOGGER.error("Found a bridge method that doesn't have exactly 1 outgoing edge: " + bridgeMethod + " : " + graph.outDegreeOf(bridgeNode));
+                  System.exit(1);
             }
 
             /* Fetch the bridge method's target */
