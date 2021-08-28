@@ -40,7 +40,7 @@ There are command line options that can be used:
 | Option      | Usage                                                           | Example            |
 | :---------- | :-------------------------------------------------------------- | :----------------- |
 | `-j`        | The path to a jar file to inspect                               | `-j ../../path`    |
-| `-c`        | The path to the coverage file to use                            | `-w ../../path`    |
+| `-c`        | The path to the coverage file to use                            | `-c ../../path`    |
 | `-e`        | The name of the fuzzer's entrypoint                             | `-e "com.foo.bar.Baz:main(java.lang.String[])"`    |
 | `-d`        | The depth to run breadth first search                           | `-d 10`            |
 | `-a`        | Report the ancestry of the entrypoint                           | `-a`               |
