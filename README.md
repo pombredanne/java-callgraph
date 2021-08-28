@@ -29,8 +29,7 @@ A directed edge in the graph is denoted with two method signatures:
 You can test this program by running the following code in the root directory:
 
 ```
-java -jar ./target/javacg-0.1-SNAPSHOT-jar-with-dependencies.jar -j
-./ExampleData/java-callgraph-driver-1.0-SNAPSHOT.jar -c ./ExampleData/jacoco.xml -o example  -e "edu.uic.cs398.Main:main(java.lang.String[])" -d 4
+java -jar ./target/javacg-0.1-SNAPSHOT-jar-with-dependencies.jar -j ./ExampleData/java-callgraph-driver-1.0-SNAPSHOT.jar -c ./ExampleData/jacoco.xml -o example  -e "edu.uic.cs398.Main:main(java.lang.String[])" -d 4
 ```
 
 ### Options
