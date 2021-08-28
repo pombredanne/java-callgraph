@@ -8,6 +8,7 @@ You must have [Java](https://docs.oracle.com/en/java/javase/11/install/overview-
 
 ```console
 $ git clone git@github.com:wcygan/java-callgraph.git
+$ cd java-callgraph
 $ mvn install
 ```
 
