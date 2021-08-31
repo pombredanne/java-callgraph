@@ -2,6 +2,8 @@
 
 You can find many artifacts using the dependency here: [https://mvnrepository.com/artifact/com.pholser/junit-quickcheck-core/usages](https://mvnrepository.com/artifact/com.pholser/junit-quickcheck-core/usages).
 
+Alternatively, you can search GitHub for Maven POM files containing JUnit-Quickcheck: https://github.com/search?l=Maven+POM&p=1&q=junit-quickcheck-core&type=Code
+
 For example, here are some that I've found:
 
 - https://github.com/stanfordnlp/CoreNLP
@@ -26,3 +28,11 @@ For example, here are some that I've found:
 - https://github.com/runeflobakk/motif
 - https://github.com/neo4j-contrib/neo4j-graph-algorithms/tree/3.5/algo
 - https://github.com/rohanpadhye/JQF
+- https://github.com/jenkinsci/testingbot-plugin/blob/master/pom.xml
+- https://github.com/Convex-Dev/convex/tree/master/convex-core
+- https://github.com/Silverpeas/Silverpeas-Core/tree/master/core-api
+- https://github.com/LarsRhijns/Json-Fuzzer
+- https://github.com/bendoerr/saltedmocha
+- https://github.com/fniksic/diffstream
+- https://github.com/alensugimoto/tree-diagram-analyzer
+- https://github.com/dannicolici/jLens
