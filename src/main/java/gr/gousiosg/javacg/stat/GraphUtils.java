@@ -206,7 +206,7 @@ public class GraphUtils {
             exporter.exportGraph(graph, writer);
             LOGGER.info("Graph written to " + path + "!");
         } catch (IOException e) {
-            LOGGER.error("Unable to callgraph write to " + path);
+            LOGGER.error("Unable to write callgraph to " + path);
         }
     }
 
@@ -282,7 +282,7 @@ public class GraphUtils {
         }
 
         /* Convert calls into a graph */
-        Graph<String, DefaultEdge> graph = intoGraph(calls);
+        Graph<String, DefaultEdge> graph = buildGraph(calls);
 
         /* Prune bridge methods from graph */
         jarMetadata.getBridgeMethods().forEach(bridgeMethod -> {
@@ -316,28 +316,33 @@ public class GraphUtils {
         return graph;
     }
 
-    private static Graph<String, DefaultEdge> intoGraph(Map<String, Set<String>> calls) throws InputMismatchException {
-        if (calls.keySet().isEmpty()) {
+    private static Graph<String, DefaultEdge> buildGraph(Map<String, Set<String>> methodCalls) throws InputMismatchException {
+        if (methodCalls.keySet().isEmpty()) {
             throw new InputMismatchException("There is no call graph to look at!");
         }
 
+        /* initialize the graph */
         Graph<String, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
-        calls.keySet().forEach(k -> {
-            // Add (k) node if not present
-            if (!graph.containsVertex(formatNode(k)))
-                graph.addVertex(formatNode(k));
 
-            calls.get(k).forEach(v -> {
-                // Add (v) node if not present
-                if (!graph.containsVertex(formatNode(v)))
-                    graph.addVertex(formatNode(v));
+        /* fill the graph with vertices and edges */
+        methodCalls.keySet().forEach(source -> {
+            String sourceNode = formatNode(source);
+            putIfAbsent(graph, sourceNode);
 
-                // Edge is guaranteed not to be present
-                graph.addEdge(formatNode(k), formatNode(v));
+            methodCalls.get(source).forEach(destination -> {
+                String destinationNode = formatNode(destination);
+                putIfAbsent(graph, destinationNode);
+                graph.addEdge(sourceNode, destinationNode);
             });
         });
 
         return graph;
+    }
+
+    private static void putIfAbsent(Graph<String, DefaultEdge> graph, String vertex) {
+        if (!graph.containsVertex(vertex)) {
+            graph.addVertex(vertex);
+        }
     }
 
     private static boolean shouldIgnoreEntry(String entry) {
@@ -345,7 +350,7 @@ public class GraphUtils {
                 .anyMatch(entry::startsWith);
     }
 
-    private static String formatNode(String node) {
+    public static String formatNode(String node) {
         return NODE_DELIMITER + node + NODE_DELIMITER;
     }
 

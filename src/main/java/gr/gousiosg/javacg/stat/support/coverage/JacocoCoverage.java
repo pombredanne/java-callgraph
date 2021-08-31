@@ -1,5 +1,6 @@
 package gr.gousiosg.javacg.stat.support.coverage;
 
+import gr.gousiosg.javacg.stat.GraphUtils;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 import org.objectweb.asm.Type;
@@ -25,7 +26,7 @@ public class JacocoCoverage {
 
     private Map<String, Report.Package.Class.Method> methodCoverage = new HashMap<>();
 
-    public JacocoCoverage(Optional<String > maybeFilepath) throws IOException, ParserConfigurationException, JAXBException, SAXException {
+    public JacocoCoverage(Optional<String> maybeFilepath) throws IOException, ParserConfigurationException, JAXBException, SAXException {
 
         if (maybeFilepath.isPresent()) {
             /* Convert the jacoco.xml file into a Report object */
@@ -47,12 +48,12 @@ public class JacocoCoverage {
 
                     /* Store "covered" methods in methodCoverage */
                     methods.forEach(method -> {
-                        String qualifiedName = qualifiedName(
+                        String qualifiedName = fullyQualifiedMethodName(
                                 clazz.getName(),
                                 method.getName(),
                                 method.getDesc()
                         );
-                        methodCoverage.putIfAbsent(qualifiedName, method);
+                        methodCoverage.putIfAbsent(GraphUtils.formatNode(qualifiedName), method);
                     });
                 }
             }
@@ -70,10 +71,10 @@ public class JacocoCoverage {
                 Report.Package.Class.Method m = methodCoverage.get(node);
                 nodeMap.get(node).mark(m);
             } else {
+                LOGGER.warn("Couldn't find coverage for " + node);
                 nodeMap.get(node).markMissing();
             }
         });
-
     }
 
     private static Map<String, ColoredNode> nodeMap(Set<ColoredNode> nodes) {
@@ -81,11 +82,8 @@ public class JacocoCoverage {
                 .collect(Collectors.toMap(ColoredNode::getLabel, node -> node));
     }
 
-    private static String qualifiedName(String className, String methodName, String argDescriptors) {
-        String argTypes = Arrays.stream(Type.getArgumentTypes(argDescriptors))
-                .map(Type::getClassName)
-                .collect(Collectors.joining(","));
-        return "\"" + className.replace("/", ".") + ":" + methodName + "(" + argTypes + ")\"";
+    public static String fullyQualifiedMethodName(String className, String methodName, String methodDescriptor) {
+        return className.replace("/", ".") + ":" + methodName + methodDescriptor;
     }
 
     public boolean hasCoverage() {

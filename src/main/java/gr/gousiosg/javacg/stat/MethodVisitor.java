@@ -41,6 +41,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 import static gr.gousiosg.javacg.stat.support.IgnoredConstants.IGNORED_METHOD_NAMES;
+import static gr.gousiosg.javacg.stat.support.coverage.JacocoCoverage.fullyQualifiedMethodName;
 
 /**
  * The simplest of method visitors, prints any invoked method
@@ -208,7 +209,7 @@ public class MethodVisitor extends EmptyVisitor {
 
     private String fullyQualifiedMethodSignature(Method method) {
         Type.getSignature(method);
-        return fullyQualifiedMethodSignature(
+        return fullyQualifiedMethodName(
                 method.getDeclaringClass().getName(),
                 method.getName(),
                 Type.getSignature(method)
@@ -216,11 +217,7 @@ public class MethodVisitor extends EmptyVisitor {
     }
 
     public String fullyQualifiedMethodSignature(String className, String methodName, Type[] argTypeNames, Type returnType) {
-        return fullyQualifiedMethodSignature(className, methodName, Type.getMethodSignature(returnType, argTypeNames));
-    }
-
-    public String fullyQualifiedMethodSignature(String className, String methodName, String typeDescriptors) {
-        return className + ":" + methodName + typeDescriptors;
+        return fullyQualifiedMethodName(className, methodName, Type.getMethodSignature(returnType, argTypeNames));
     }
 
     public Pair<String, String> createEdge(String from, String to) {
