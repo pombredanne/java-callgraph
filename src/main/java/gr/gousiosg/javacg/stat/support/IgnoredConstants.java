@@ -1,23 +1,23 @@
 package gr.gousiosg.javacg.stat.support;
 
-import java.util.List;
+import java.util.Collection;
+import java.util.Set;
 
 public class IgnoredConstants {
 
     /* Do not expand method calls with these names */
-    public static final List<String> IGNORED_METHOD_NAMES = List.of(
+    public static final Collection<String> IGNORED_METHOD_NAMES = Set.of(
             "<init>",
             "<clinit>"
     );
 
     /* Do not look into jar entries with these prefixes */
-    public static final List<String> IGNORED_CALLING_PACKAGES = List.of(
+    public static final Collection<String> IGNORED_CALLING_PACKAGES = Set.of(
             "java.",
             "javax.",
             "javassist.",
             "org.slf4j",
             "org.apache",
-            "javassist.",
             "guru.",
             "com.kitfox",
             "org.reflections",
@@ -28,9 +28,9 @@ public class IgnoredConstants {
             "org.hamcrest",
             "com.eclipsesource",
             "org.checkerframework",
-            "org.jgrapht",
             "org.antlr",
             "org.jheaps",
-            "org.jgrapht"
+            "org.jgrapht",
+            "com.linkedin"
     );
 }
