@@ -1,6 +1,7 @@
 package gr.gousiosg.javacg.stat.support.coverage;
 
 import gr.gousiosg.javacg.stat.GraphUtils;
+import gr.gousiosg.javacg.stat.support.MethodSignatureUtil;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 import org.objectweb.asm.Type;
@@ -48,11 +49,10 @@ public class JacocoCoverage {
 
                     /* Store "covered" methods in methodCoverage */
                     methods.forEach(method -> {
-                        String qualifiedName = fullyQualifiedMethodName(
-                                clazz.getName(),
-                                method.getName(),
-                                method.getDesc()
-                        );
+                        String qualifiedName = MethodSignatureUtil.fullyQualifiedMethodSignature(
+                            clazz.getName(),
+                            method.getName(),
+                            method.getDesc());
                         methodCoverage.putIfAbsent(GraphUtils.formatNode(qualifiedName), method);
                     });
                 }
@@ -80,10 +80,6 @@ public class JacocoCoverage {
     private static Map<String, ColoredNode> nodeMap(Set<ColoredNode> nodes) {
         return nodes.stream()
                 .collect(Collectors.toMap(ColoredNode::getLabel, node -> node));
-    }
-
-    public static String fullyQualifiedMethodName(String className, String methodName, String methodDescriptor) {
-        return className.replace("/", ".") + ":" + methodName + methodDescriptor;
     }
 
     public boolean hasCoverage() {

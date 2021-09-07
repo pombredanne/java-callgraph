@@ -31,6 +31,7 @@ package gr.gousiosg.javacg.stat;
 import gr.gousiosg.javacg.dyn.Pair;
 import gr.gousiosg.javacg.stat.support.ClassHierarchyInspector;
 import gr.gousiosg.javacg.stat.support.JarMetadata;
+import gr.gousiosg.javacg.stat.support.MethodSignatureUtil;
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.generic.*;
 import org.slf4j.Logger;
@@ -38,10 +39,8 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static gr.gousiosg.javacg.stat.support.IgnoredConstants.IGNORED_METHOD_NAMES;
-import static gr.gousiosg.javacg.stat.support.coverage.JacocoCoverage.fullyQualifiedMethodName;
 
 /**
  * The simplest of method visitors, prints any invoked method
@@ -135,14 +134,14 @@ public class MethodVisitor extends EmptyVisitor {
         String callerMethodName = mg.getName();
         Type[] callerArgumentTypes = mg.getArgumentTypes();
         Type callerReturnType = mg.getReturnType();
-        String callerSignature = fullyQualifiedMethodSignature(callerClassType, callerMethodName, callerArgumentTypes, callerReturnType);
+        String callerSignature = MethodSignatureUtil.fullyQualifiedMethodSignature(callerClassType, callerMethodName, callerArgumentTypes, callerReturnType);
 
         /* receiver method info */
         String receiverClassType = String.format(format, i.getReferenceType(cp));
         String receiverMethodName = i.getMethodName(cp);
         Type[] receiverArgumentTypes = i.getArgumentTypes(cp);
         Type receiverReturnType = i.getReturnType(cp);
-        String receiverSignature = fullyQualifiedMethodSignature(receiverClassType, receiverMethodName, receiverArgumentTypes, receiverReturnType);
+        String receiverSignature = MethodSignatureUtil.fullyQualifiedMethodSignature(receiverClassType, receiverMethodName, receiverArgumentTypes, receiverReturnType);
 
         /* Record initial method call */
         methodCalls.add(createEdge(callerSignature, receiverSignature));
@@ -163,11 +162,7 @@ public class MethodVisitor extends EmptyVisitor {
             Optional<Method> maybeCallingMethod = jarMetadata.getInspector()
                     .getTopLevelSignature(
                             maybeCallerType.get(),
-                            ClassHierarchyInspector.methodSignature(
-                                    callerMethodName,
-                                    argumentList(callerArgumentTypes)
-                            ),
-                            callerReturnType.getSignature()
+                            MethodSignatureUtil.namedMethodSignature(callerMethodName, callerArgumentTypes, callerReturnType)
                     );
 
             if (maybeCallingMethod.isEmpty()) {
@@ -185,7 +180,7 @@ public class MethodVisitor extends EmptyVisitor {
 
     }
 
-    private void expand(Class<?> receiverType, String receiverMethodName, Type[] receiverArgTypeNames, Type receiverReturnType, String callerSignature) {
+    private void expand(Class<?> receiverType, String receiverMethodName, Type[] receiverArgumentTypes, Type receiverReturnType, String callerSignature) {
         ClassHierarchyInspector inspector = jarMetadata.getInspector();
         LOGGER.info("\tExpanding to subtypes of " + receiverType.getName());
         jarMetadata.getReflections().getSubTypesOf(receiverType)
@@ -193,31 +188,15 @@ public class MethodVisitor extends EmptyVisitor {
                 .map(subtype ->
                         inspector.getTopLevelSignature(
                                 subtype,
-                                ClassHierarchyInspector.methodSignature(
-                                        receiverMethodName,
-                                        argumentList(receiverArgTypeNames)),
-                                receiverReturnType.getSignature()
+                                MethodSignatureUtil.namedMethodSignature(receiverMethodName, receiverArgumentTypes, receiverReturnType)
                         )
                 )
                 .filter(Optional::isPresent)
                 .map(Optional::get)
-                .map(this::fullyQualifiedMethodSignature)
+                .map(MethodSignatureUtil::fullyQualifiedMethodSignature)
                 /* Record expanded method call */
                 .forEach(toSubtypeSignature -> methodCalls.add(createEdge(callerSignature, toSubtypeSignature)));
 
-    }
-
-    private String fullyQualifiedMethodSignature(Method method) {
-        Type.getSignature(method);
-        return fullyQualifiedMethodName(
-                method.getDeclaringClass().getName(),
-                method.getName(),
-                Type.getSignature(method)
-        );
-    }
-
-    public String fullyQualifiedMethodSignature(String className, String methodName, Type[] argTypeNames, Type returnType) {
-        return fullyQualifiedMethodName(className, methodName, Type.getMethodSignature(returnType, argTypeNames));
     }
 
     public Pair<String, String> createEdge(String from, String to) {

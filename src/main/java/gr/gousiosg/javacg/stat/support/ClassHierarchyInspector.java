@@ -13,25 +13,37 @@ import java.util.stream.Collectors;
 public class ClassHierarchyInspector {
     private static final Logger LOGGER = LoggerFactory.getLogger(ClassHierarchyInspector.class);
 
-    // memoize class -> method name -> return type -> method
-    Map<Class<?>, Map<String, Map<String, Method>>> hierarchy = new HashMap<>();
+    /**
+     *  {
+     *    {@link Class} -> {
+     *      {@link MethodSignatureUtil#namedMethodSignature(Method)} -> {@link Method}
+     *    }
+     *  }
+     */
+    Map<Class<?>, Map<String, Method>> classDeclaredMethods = new HashMap<>();
 
+    /**
+     * Memoize the declared methods of a class hierarchy into {@link classDeclaredMethods}
+     * @param clazz the {@link Class} to expand the hierarchy of
+     */
     private void loadHierarchy(Class<?> clazz) {
         try {
-            if (hierarchy.containsKey(clazz)) {
+            if (classDeclaredMethods.containsKey(clazz)) {
+                // We're done! This hierarchy has been explored already...
                 return;
             } else {
-                hierarchy.put(clazz, new HashMap<>());
+                // ... We need to explore this class hierarchy!
+                classDeclaredMethods.putIfAbsent(clazz, new HashMap<>());
             }
 
-            Method[] declaredMethods = clazz.getDeclaredMethods();
-            for (Method declaredMethod : declaredMethods) {
-                String signature = methodSignature(declaredMethod);
-                hierarchy.get(clazz).putIfAbsent(signature, new HashMap<>());
-                String rt = declaredMethod.getReturnType().getCanonicalName();
-                hierarchy.get(clazz).get(signature).put(rt, declaredMethod);
-            }
+            // Memoize the declared methods of this class.
+            // May contain overridden methods
+            Arrays.stream(clazz.getDeclaredMethods()).forEach(method -> {
+                String namedSignature = MethodSignatureUtil.namedMethodSignature(method);
+                classDeclaredMethods.get(clazz).put(namedSignature, method);
+            });
 
+            // Traverse the hierarchy and load it
             Optional<Class<?>> maybeParent = Optional.ofNullable(clazz.getSuperclass());
             maybeParent.ifPresent(this::loadHierarchy);
         } catch (Exception | NoClassDefFoundError e) {
@@ -39,31 +51,27 @@ public class ClassHierarchyInspector {
         }
     }
 
-    public Optional<Method> getTopLevelSignature(Class<?> clazz, String methodSignature, String returnType) {
+    /**
+     *
+     * @param clazz a {@link Class}
+     * @param namedMethodSignature a method signature resembling {@link MethodSignatureUtil#namedMethodSignature(Method)}
+     * @return a {@link Optional<Method>}
+     */
+    public Optional<Method> getTopLevelSignature(Class<?> clazz, String namedMethodSignature) {
         try {
+            // Ensure the hierarchy is loaded
             loadHierarchy(clazz);
             while (clazz != null) {
-                if (hierarchy.get(clazz).containsKey(methodSignature) && hierarchy.get(clazz).get(methodSignature).containsKey(returnType)) {
-                    return Optional.of(
-                            hierarchy.get(clazz).get(methodSignature).get(returnType)
-                    );
+                if (classDeclaredMethods.containsKey(clazz) && classDeclaredMethods.get(clazz).containsKey(namedMethodSignature)) {
+                    // Retrieve the method associated with `clazz` and `namedMethodSignature`
+                    return Optional.of(classDeclaredMethods.get(clazz).get(namedMethodSignature));
                 }
+                // Traverse the class hierarchy of `clazz`
                 clazz = clazz.getSuperclass();
             }
         } catch (Exception | NoClassDefFoundError e) {
-            LOGGER.error("Unable to find method " + methodSignature + " in class " + clazz.getName());
+            LOGGER.error("Unable to find method " + namedMethodSignature + " in class " + clazz.getName());
         }
         return Optional.empty();
-    }
-
-    public static String methodSignature(Method method) {
-        String params = Arrays.stream(method.getParameterTypes())
-                .map(Class::getName)
-                .collect(Collectors.joining(","));
-        return methodSignature(method.getName(), params);
-    }
-
-    public static String methodSignature(String name, String parameterTypes) {
-        return name + "(" + parameterTypes + ")";
     }
 }
