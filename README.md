@@ -28,10 +28,10 @@ This will produce a `target` directory with the following jar:
 ## Usage
 
 ### Example
-You can test this program by running the following code in the root directory:
+After running `mvn install`, you can test this program by running the following code in the root directory:
 
 ```
-java -jar ./target/javacg-0.1-SNAPSHOT-jar-with-dependencies.jar -j ./output/java-callgraph-driver-1.0-SNAPSHOT.jar -o example -e "edu.uic.cs398.Main.main([Ljava/lang/String;)V" -c ./output/jacoco.xml
+$ java -jar ./target/javacg-0.1-SNAPSHOT-jar-with-dependencies.jar -j ./output/java-callgraph-driver-1.0-SNAPSHOT.jar -o example -e "edu.uic.cs398.Main.main([Ljava/lang/String;)V" -c ./output/jacoco.xml
 ```
 
 This program will generate a graph and save it to a file `<output-name>.dot` which you can use [Graphviz](https://www.graphviz.org/download/) to visualize.
@@ -56,7 +56,7 @@ There are command line options that can be used:
 | :---------- | :-------------------------------------------------------------- | :-----------------                                         |
 | `-j`        | The path to a jar file to inspect                               | `-j ./output/java-callgraph-driver-1.0-SNAPSHOT.jar`       |
 | `-c`        | The path to the coverage file to use                            | `-c ./output/jacoco.xml`                                   |
-| `-e`        | The name of the fuzzer's entrypoint                             | `-e -e "edu.uic.cs398.Main.main([Ljava/lang/String;)V"`    |
+| `-e`        | The name of the fuzzer's entrypoint                             | `-e "edu.uic.cs398.Main.main([Ljava/lang/String;)V"`    |
 | `-d`        | The depth to run breadth first search                           | `-d 10`                                                    |
 | `-a`        | Report the ancestry of the entrypoint                           | `-a`                                                       |
 | `-o`        | The name of the output file                                     | `-o example`                                               |
