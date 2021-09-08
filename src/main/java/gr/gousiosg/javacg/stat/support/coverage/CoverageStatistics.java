@@ -24,6 +24,10 @@ public class CoverageStatistics {
     @Writeable private final int branchesCovered;
     @Writeable private final int branchesMissed;
 
+    /**
+     * Quantifies the coverage quality of the graph
+     * @param graph the graph to quantify coverage quality for
+     */
     private CoverageStatistics(Graph<ColoredNode, DefaultEdge> graph) {
         /* Instantiate temporary values */
         int tempNodesCovered = 0;

@@ -18,6 +18,11 @@ public class JarMetadata {
     private final ClassHierarchyInspector inspector = new ClassHierarchyInspector();
     private final Set<String> bridgeMethods = new HashSet<>();
 
+    /**
+     * Wrapper class used for reflection on class hierarchies
+     * @param cl the {@link ClassLoader} containing all provided jars
+     * @param reflections the {@link Reflections} using the {@link cl} classloader
+     */
     public JarMetadata(URLClassLoader cl, Reflections reflections) {
         this.cl = cl;
         this.reflections = reflections;

@@ -27,6 +27,12 @@ import java.util.jar.JarFile;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
+/**
+ * Provides graph utilities such as:
+ * - Building a graph ({@link GraphUtils#buildGraph(Map)})
+ * - Finding the reachability in a graph ({@link GraphUtils#reachability(Graph, String, Optional)})
+ * - Finding the ancestry in a graph ({@link GraphUtils#ancestry(Graph, String, int)})
+ */
 public class GraphUtils {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GraphUtils.class);

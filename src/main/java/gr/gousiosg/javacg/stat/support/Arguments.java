@@ -35,6 +35,10 @@ public class Arguments {
     private Optional<Integer> maybeDepth = Optional.empty();
     private Optional<Integer> maybeAncestry = Optional.empty();
 
+    /**
+     * Parse command line args into variables
+     * @param args the command line args
+     */
     public Arguments (String[] args) {
         LOGGER.info("Parsing command line arguments...");
 
