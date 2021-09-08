@@ -5,13 +5,17 @@ import java.util.Set;
 
 public class IgnoredConstants {
 
-    /* Do not expand method calls with these names */
+    /**
+     * Do not expand method calls with these names
+     */
     public static final Set<String> IGNORED_METHOD_NAMES = Set.of(
             "<init>",
             "<clinit>"
     );
 
-    /* Do not look into jar entries with these prefixes */
+    /**
+     *  Do not look into jar entries with these prefixes
+     */
     public static final Set<String> IGNORED_CALLING_PACKAGES = Set.of(
             "java.",
             "javax.",

@@ -27,6 +27,10 @@ public class JacocoCoverage {
 
     private Map<String, Report.Package.Class.Method> methodCoverage = new HashMap<>();
 
+    /**
+     * Create a {@link JacocoCoverage} object
+     * @param maybeFilepath the JaCoCo coverage XML file to parse
+     */
     public JacocoCoverage(Optional<String> maybeFilepath) throws IOException, ParserConfigurationException, JAXBException, SAXException {
 
         if (maybeFilepath.isPresent()) {

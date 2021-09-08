@@ -17,6 +17,14 @@ public class JacocoCoverageParser {
     private static final String XML_LOAD_EXTERNAL_DTD = "http://apache.org/xml/features/nonvalidating/load-external-dtd";
     private static final String SAX_VALIDATION = "http://xml.org/sax/features/validation";
 
+    /**
+     * Parse a JaCoCO XML file
+     *
+     * @param filepath the path to the xml file
+     * @return A {@link gr.gousiosg.javacg.stat.support.coverage.Report}
+     * (These classes are automatically generated and placed in the folder:
+     * target/classes/gr/gousiosg/javacg/stat/support/coverage)
+     */
     public static Report getReport(String filepath) throws JAXBException, IOException, SAXException, ParserConfigurationException {
         JAXBContext jc = JAXBContext.newInstance(Report.class);
 

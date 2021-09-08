@@ -49,6 +49,7 @@ import java.util.Optional;
  * into a single call graph.
  *
  * @author Georgios Gousios <gousiosg@gmail.com>
+ * @author Will Cygan <wcygan3232@gmail.com>
  */
 public class JCallGraph {
 
