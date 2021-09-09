@@ -1,6 +1,7 @@
 import subprocess  # https://docs.python.org/3/library/subprocess.html
 import os  # https://docs.python.org/3/library/os.html
 import re  # https://docs.python.org/3/library/re.html
+import yaml  # https://pyyaml.org/wiki/PyYAMLDocumentation
 from shutil import which  # https://docs.python.org/3/library/shutil.html#shutil.which
 from pathlib import Path  # https://docs.python.org/3/library/pathlib.html
 
@@ -73,40 +74,28 @@ def get_cloned_directory(url, cwd):
     return path
 
 
-def get_build_system():
+def verify_build_system_install(cfg):
     """
     Determines which build system to use for the project
     :return: a string representing the build command (e.g., `gradle` or `mvn`)
     """
 
-    print("Please specify the project's build tool")
-    print("    1: Maven (Default)")
-    print("    2: Gradle")
-    user_input = prompt_and_strip_input("Please specify the number representing your project's build tool: ")
+    system = cfg["build-system"]
 
-    system = "mvn"
-    system_types = {
-        "1": "mvn",
-        "2": "gradle"
-    }
-
-    if user_input in system_types:
-        system = system_types[user_input]
-    else:
-        print("Defaulting to Maven...")
+    # overwrite with the maven command `mvn`
+    if system == "maven":
+        system = "mvn"
 
     require_program(system)
-    return system
 
 
-def get_project_url():
+def get_project_url(cfg):
     """
-    Prompts the user for a url to the repository they'd like to clone
+    Fetches the repository url from the config
     :return: the url specified by the user
     """
 
-    print("Please specify the repository to clone, e.g., git@github.com:wcygan/java-callgraph.git")
-    url = prompt_and_strip_input("The repository to clone: ")
+    url = cfg["repository-url"]
     if url is None or url == "" or not url.endswith(".git"):
         panic("Please provide a valid git url!", -1)
     return url
@@ -119,25 +108,62 @@ def clone_url(url):
     :return: the directory it was cloned to
     """
 
-    require_program("git")
-    subprocess.call(["git", "clone", url])
-    return get_cloned_directory(url, Path(os.getcwd()))
+    target_dir = Path(os.getcwd() + "/" + extract_project_name(url))
+
+    if not target_dir.exists():
+        require_program("git")
+        subprocess.call(["git", "clone", url])
+
+    return target_dir
 
 
-def execute_build_system(program, program_dir):
+def build_java_callgraph(root_dir):
+    """
+    Builds java-callgraph
+    :param root_dir: The root directory of java-callgraph
+    :return:
+    """
+
+    cwd = os.getcwd()
+    os.chdir(root_dir)
+    subprocess.call(["mvn", "install"])
+    os.chdir(cwd)
+
+
+def build_target_project(cfg, directory):
     """
     Executes the build system
-    :param program_dir:
-    :param program: the build system to execute
+    :param directory: the directory to execute the build command in
+    :param cfg: the run configuration
     """
 
-    os.chdir(program_dir)
+    cwd = os.getcwd()
+    cmd = cfg["build-command"]
+    os.chdir(directory)
+    subprocess.call([x for x in cmd.split()])
+    os.chdir(cwd)
 
-    require_program(program)
-    if program == "gradle":
-        subprocess.call(["gradle", "build"])
-    elif program == "mvn":
-        subprocess.call(["mvn", "install"])
+
+def run_java_cg(root_dir, target_dir, cfg):
+    javacg_jar = "{}{}".format(root_dir, cfg["javacg-jar-location"])
+    target_jar = "{}{}".format(target_dir, cfg["target-jar-location"])
+    cmd = "java -jar {} -j {}".format(javacg_jar, target_jar)
+
+    if "coverage-location" in cfg:
+        cmd += " -c {}{}".format(target_dir, cfg["coverage-location"])
+
+    if "entrypoint" in cfg:
+        cmd += " -e {}".format(cfg["entrypoint"])
+
+    if "depth" in cfg:
+        cmd += " -d {}".format(cfg["depth"])
+
+    if "output-name" in cfg:
+        cmd += " -o {}".format(cfg["output-name"])
+
+    os.chdir(Path("{}{}".format(root_dir, "/artifacts")))
+    print("Running `{}`".format(cmd))
+    subprocess.call([x for x in cmd.split()])
 
 
 if __name__ == '__main__':
@@ -148,20 +174,23 @@ if __name__ == '__main__':
     4. Build / Install the project (e.g., `mvn install`)
     """
 
-    # TODO: What assumptions can we make about what directory this is called from?
+    with open('config.yaml') as f:
+        config = yaml.load(f, Loader=yaml.FullLoader)
 
-    # Fetch directories
-    current_directory = Path(os.getcwd())
-    parent_directory = current_directory.parent
+    javacg_directory = config["javacg-directory"]
+    if not Path(javacg_directory + "/target").exists():
+        build_java_callgraph(javacg_directory)
 
-    # 1. Prompt for a project's repository to clone
-    repository_url = get_project_url()
+    # 1. Fetch the project's repository url
+    repository_url = get_project_url(config)
 
-    # 2. Identify the build system
-    build_system = get_build_system()
+    # 2. Verify the build system is installed
+    verify_build_system_install(config)
 
     # 3. Clone the project & fetch the directory it resides in
-    cloned_project_directory = clone_url(repository_url)
+    target_directory = clone_url(repository_url)
 
     # 4. Enter the project's directory & execute the build system
-    execute_build_system(build_system, cloned_project_directory)
+    build_target_project(config, target_directory)
+
+    run_java_cg(javacg_directory, target_directory, config)
