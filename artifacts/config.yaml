@@ -1,0 +1,18 @@
+---
+# Build & Install:
+repository-url: "git@github.com:wcygan/java-callgraph-driver.git"
+build-system: "maven"
+build-command: "mvn install"
+
+# Where is Java-Callgraph installed?
+javacg-directory: "/Users/wcygan/School/cs398/java-callgraph/"
+javacg-jar-location: "target/javacg-0.1-SNAPSHOT-jar-with-dependencies.jar"
+
+# Java-Callgraph options:
+target-jar-location: "/target/java-callgraph-driver-1.0-SNAPSHOT.jar"
+coverage-location: "/target/site/jacoco/jacoco.xml"
+entrypoint: "\"edu.uic.cs398.Main.main([Ljava/lang/String;)V\""
+depth: "10"
+output-name: "example"
+
+
