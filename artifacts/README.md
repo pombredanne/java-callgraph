@@ -32,3 +32,11 @@ depth: "5"
 output-name: "example"
 ancestry: "2"
 ```
+
+Once we have the required fields specified, we can run execute the run script like so:
+
+```shell
+python3 run.py
+```
+
+Please note that this script depends on [PyYAML](https://pypi.org/project/pyaml/) which can be installed with pip: `pip install pyaml`.
