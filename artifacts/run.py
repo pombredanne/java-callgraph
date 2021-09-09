@@ -158,6 +158,7 @@ if __name__ == '__main__':
     2. Ask for the project's build system (e.g., maven)
     3. Clone the project (e.g., `git clone <project_url>`
     4. Build / Install the project (e.g., `mvn install`)
+    5. Execute java-callgraph against the target project
     """
 
     with open('config.yaml') as f:
