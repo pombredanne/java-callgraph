@@ -31,6 +31,16 @@ def require_program(program):
         panic("{} is not installed! Please install it and try again...".format(program), -1)
 
 
+def prompt_and_strip_input(prompt):
+    """
+    Strips whitespace from the user's input
+    :param prompt: the prompt to display to the user
+    :return: the users input without trailing or following whitespace
+    """
+
+    return input(prompt).strip()
+
+
 def extract_project_name(url):
     """
     Extracts the name of the project from a git url
@@ -63,7 +73,7 @@ def get_cloned_directory(url, cwd):
     return path
 
 
-def get_builder():
+def get_build_system():
     """
     Determines which build system to use for the project
     :return: a string representing the build command (e.g., `gradle` or `mvn`)
@@ -72,21 +82,21 @@ def get_builder():
     print("Please specify the project's build tool")
     print("    1: Maven (Default)")
     print("    2: Gradle")
-    user_input = input("Please specify the number representing your project's build tool: ")
+    user_input = prompt_and_strip_input("Please specify the number representing your project's build tool: ")
 
-    build_system = "mvn"
-    builder_types = {
+    system = "mvn"
+    system_types = {
         "1": "mvn",
         "2": "gradle"
     }
 
-    if user_input in builder_types:
-        build_system = builder_types[user_input]
+    if user_input in system_types:
+        system = system_types[user_input]
     else:
         print("Defaulting to Maven...")
 
-    require_program(build_system)
-    return build_system
+    require_program(system)
+    return system
 
 
 def get_project_url():
@@ -96,7 +106,7 @@ def get_project_url():
     """
 
     print("Please specify the repository to clone, e.g., git@github.com:wcygan/java-callgraph.git")
-    url = input("The repository to clone: ")
+    url = prompt_and_strip_input("The repository to clone: ")
     if url is None or url == "" or not url.endswith(".git"):
         panic("Please provide a valid git url!", -1)
     return url
@@ -109,42 +119,49 @@ def clone_url(url):
     :return: the directory it was cloned to
     """
 
-    cwd = Path(os.getcwd())
+    require_program("git")
     subprocess.call(["git", "clone", url])
-    return get_cloned_directory(url, cwd)
+    return get_cloned_directory(url, Path(os.getcwd()))
 
 
-def execute_build_system(program):
+def execute_build_system(program, program_dir):
     """
     Executes the build system
+    :param program_dir:
     :param program: the build system to execute
     """
 
-    panic("Not yet implemented!", 0)
-    # TODO: Make this work :)
-    # require_program(program)
-    # if program == "gradle":
-    #     subprocess.call([program, "build"])
-    # elif program == "mvn":
-    #     subprocess.call([program, "install"])
+    os.chdir(program_dir)
+
+    require_program(program)
+    if program == "gradle":
+        subprocess.call(["gradle", "build"])
+    elif program == "mvn":
+        subprocess.call(["mvn", "install"])
 
 
 if __name__ == '__main__':
+    """
+    1. Fetch the url of a project to clone (e.g., git@github.com:wcygan/java-callgraph.git)
+    2. Ask for the project's build system (e.g., maven)
+    3. Clone the project (e.g., `git clone <project_url>`
+    4. Build / Install the project (e.g., `mvn install`)
+    """
+
     # TODO: What assumptions can we make about what directory this is called from?
 
     # Fetch directories
     current_directory = Path(os.getcwd())
     parent_directory = current_directory.parent
 
-    # Prompt for a project's repository to clone
+    # 1. Prompt for a project's repository to clone
     repository_url = get_project_url()
 
-    # Identify the build system
-    builder = get_builder()
+    # 2. Identify the build system
+    build_system = get_build_system()
 
-    # Clone the project & fetch the directory it resides in
+    # 3. Clone the project & fetch the directory it resides in
     cloned_project_directory = clone_url(repository_url)
 
-    # Enter the project's directory & execute the build system
-    os.chdir(cloned_project_directory)
-    execute_build_system(builder)
+    # 4. Enter the project's directory & execute the build system
+    execute_build_system(build_system, cloned_project_directory)
