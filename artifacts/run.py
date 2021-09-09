@@ -32,16 +32,6 @@ def require_program(program):
         panic("{} is not installed! Please install it and try again...".format(program), -1)
 
 
-def prompt_and_strip_input(prompt):
-    """
-    Strips whitespace from the user's input
-    :param prompt: the prompt to display to the user
-    :return: the users input without trailing or following whitespace
-    """
-
-    return input(prompt).strip()
-
-
 def extract_project_name(url):
     """
     Extracts the name of the project from a git url
@@ -58,20 +48,6 @@ def extract_project_name(url):
     if result is None:
         panic("Didn't find a project name inside of {}".format(url), -1)
     return result.group(1)
-
-
-def get_cloned_directory(url, cwd):
-    """
-    Finds the directory which was created by `git clone`
-    :param url: the url of the repository that was cloned
-    :param cwd: the directory that the clone was executed in
-    :return: the directory which was created by cloning the url
-    """
-
-    path = cwd.joinpath(Path(extract_project_name(url)))
-    if path is None:
-        panic("Unable to find the directory that {} was cloned to".format(url), -1)
-    return path
 
 
 def verify_build_system_install(cfg):
@@ -145,12 +121,19 @@ def build_target_project(cfg, directory):
 
 
 def run_java_cg(root_dir, target_dir, cfg):
-    javacg_jar = "{}{}".format(root_dir, cfg["javacg-jar-location"])
-    target_jar = "{}{}".format(target_dir, cfg["target-jar-location"])
+    """
+    Executes java-callgraph against the target project
+    :param root_dir: the directory that java-callgraph resides in
+    :param target_dir: the directory that the target project resides in
+    :param cfg: the run configuration
+    """
+
+    javacg_jar = Path("{}{}".format(root_dir, "/target/javacg-0.1-SNAPSHOT-jar-with-dependencies.jar"))
+    target_jar = Path("{}{}".format(target_dir, cfg["target-jar-location"]))
     cmd = "java -jar {} -j {}".format(javacg_jar, target_jar)
 
     if "coverage-location" in cfg:
-        cmd += " -c {}{}".format(target_dir, cfg["coverage-location"])
+        cmd += " -c {}".format(Path("{}{}".format(target_dir, cfg["coverage-location"])))
 
     if "entrypoint" in cfg:
         cmd += " -e {}".format(cfg["entrypoint"])
@@ -160,6 +143,9 @@ def run_java_cg(root_dir, target_dir, cfg):
 
     if "output-name" in cfg:
         cmd += " -o {}".format(cfg["output-name"])
+
+    if "ancestry" in cfg:
+        cmd += " -a {}".format(cfg["ancestry"])
 
     os.chdir(Path("{}{}".format(root_dir, "/artifacts")))
     print("Running `{}`".format(cmd))
@@ -177,8 +163,8 @@ if __name__ == '__main__':
     with open('config.yaml') as f:
         config = yaml.load(f, Loader=yaml.FullLoader)
 
-    javacg_directory = config["javacg-directory"]
-    if not Path(javacg_directory + "/target").exists():
+    javacg_directory = Path(os.getcwd()).parent
+    if not Path("{}{}".format(javacg_directory, "/target")).exists():
         build_java_callgraph(javacg_directory)
 
     # 1. Fetch the project's repository url
@@ -193,4 +179,5 @@ if __name__ == '__main__':
     # 4. Enter the project's directory & execute the build system
     build_target_project(config, target_directory)
 
+    # 5. Execute java-callgraph against the target project
     run_java_cg(javacg_directory, target_directory, config)
