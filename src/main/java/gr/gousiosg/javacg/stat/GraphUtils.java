@@ -237,7 +237,7 @@ public class GraphUtils {
         }
 
         /* Setup infrastructure for analysis */
-        URLClassLoader cl = URLClassLoader.newInstance(urls.toArray(new URL[0]), ClassLoader.getSystemClassLoader());
+        URLClassLoader cl = URLClassLoader.newInstance(urls.toArray(new URL[0]), GraphUtils.class.getClassLoader());
         Reflections reflections = new Reflections(cl, new SubTypesScanner(false));
         JarMetadata jarMetadata = new JarMetadata(cl, reflections);
 
