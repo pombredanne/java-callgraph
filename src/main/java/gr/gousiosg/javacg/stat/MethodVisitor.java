@@ -171,7 +171,7 @@ public class MethodVisitor extends EmptyVisitor {
             }
 
             if (maybeCallingMethod.get().isBridge()) {
-                jarMetadata.addBridgeMethod(receiverSignature);
+                jarMetadata.addBridgeMethod(callerSignature);
             } else {
                 /* Expand to all possible receiver class types */
                 expand(maybeReceiverType.get(), receiverMethodName, receiverArgumentTypes, receiverReturnType, callerSignature);
