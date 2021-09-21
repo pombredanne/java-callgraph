@@ -35,6 +35,9 @@ public class IgnoredConstants {
             "org.antlr",
             "org.jheaps",
             "org.jgrapht",
-            "com.linkedin"
+            "com.linkedin",
+            "it.unimi",
+            "freemarker.",
+            "com.martiansoftware"
     );
 }

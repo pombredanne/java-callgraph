@@ -8,11 +8,12 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.*;
 
+import static gr.gousiosg.javacg.stat.GraphUtils.NODE_DELIMITER;
+
 public class Arguments {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Arguments.class);
 
-    private static final String WRAPPER = "\"";
     private static final String XML_SUFFIX = ".xml";
     private static final String JAR_SUFFIX = ".jar";
     private static final String JAR_INPUT = "j";
@@ -70,12 +71,12 @@ public class Arguments {
             if (cmd.hasOption(ENTRYPOINT_INPUT)) {
                 String ep = cmd.getOptionValue(ENTRYPOINT_INPUT);
 
-                if (!ep.startsWith(WRAPPER)) {
-                    ep = WRAPPER + ep;
+                if (!ep.startsWith(NODE_DELIMITER)) {
+                    ep = NODE_DELIMITER + ep;
                 }
 
-                if (!ep.endsWith(WRAPPER)) {
-                    ep = ep + WRAPPER;
+                if (!ep.endsWith(NODE_DELIMITER)) {
+                    ep = ep + NODE_DELIMITER;
                 }
 
                 LOGGER.info("Entry Point: " + ep);
