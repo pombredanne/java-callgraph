@@ -39,6 +39,8 @@ import org.slf4j.LoggerFactory;
 
 import java.lang.reflect.Method;
 import java.util.*;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static gr.gousiosg.javacg.stat.support.IgnoredConstants.IGNORED_METHOD_NAMES;
 
@@ -180,22 +182,35 @@ public class MethodVisitor extends EmptyVisitor {
 
     }
 
+    private Map<Class<?>, Set<String>> expansions = new HashMap<>();
+
     private void expand(Class<?> receiverType, String receiverMethodName, Type[] receiverArgumentTypes, Type receiverReturnType, String callerSignature) {
+        if (Object.class.equals(receiverType))
+            return;
+
         ClassHierarchyInspector inspector = jarMetadata.getInspector();
-        LOGGER.info("\tExpanding to subtypes of " + receiverType.getName());
-        jarMetadata.getReflections().getSubTypesOf(receiverType)
-                .stream()
-                .map(subtype ->
-                        inspector.getTopLevelSignature(
-                                subtype,
-                                MethodSignatureUtil.namedMethodSignature(receiverMethodName, receiverArgumentTypes, receiverReturnType)
-                        )
-                )
-                .filter(Optional::isPresent)
-                .map(Optional::get)
-                .map(MethodSignatureUtil::fullyQualifiedMethodSignature)
-                /* Record expanded method call */
-                .forEach(toSubtypeSignature -> methodCalls.add(createEdge(callerSignature, toSubtypeSignature)));
+
+        Set<String> exps = expansions.get(receiverType);
+        if (exps == null) {
+            LOGGER.info("\tExpanding to subtypes of " + receiverType.getName());
+            exps = jarMetadata.getReflections().getSubTypesOf(receiverType)
+                    .stream()
+                    .map(subtype ->
+                            inspector.getTopLevelSignature(
+                                    subtype,
+                                    MethodSignatureUtil.namedMethodSignature(receiverMethodName, receiverArgumentTypes, receiverReturnType)
+                            )
+                    )
+                    .flatMap(Optional::stream) // Remove empty optionals
+                    .map(MethodSignatureUtil::fullyQualifiedMethodSignature)
+                    .collect(Collectors.toSet());
+
+            expansions.put(receiverType, exps);
+        }
+
+        /* Record expanded method call */
+        exps.stream().forEach(toSubtypeSignature -> methodCalls.add(createEdge(callerSignature, toSubtypeSignature)));
+
 
     }
 
