@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.*;
 
-import static gr.gousiosg.javacg.stat.GraphUtils.NODE_DELIMITER;
+import static gr.gousiosg.javacg.stat.graph.Utilities.NODE_DELIMITER;
 
 public class Arguments {
 

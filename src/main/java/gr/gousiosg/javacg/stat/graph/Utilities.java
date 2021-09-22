@@ -1,6 +1,8 @@
-package gr.gousiosg.javacg.stat;
+package gr.gousiosg.javacg.stat.graph;
 
 import gr.gousiosg.javacg.dyn.Pair;
+import gr.gousiosg.javacg.stat.ClassVisitor;
+import gr.gousiosg.javacg.stat.JCallGraph;
 import gr.gousiosg.javacg.stat.support.IgnoredConstants;
 import gr.gousiosg.javacg.stat.support.JarMetadata;
 import gr.gousiosg.javacg.stat.coverage.ColoredNode;
@@ -30,13 +32,13 @@ import java.util.stream.StreamSupport;
 
 /**
  * Provides graph utilities such as:
- * - Building a graph ({@link GraphUtils#buildGraph(Map)})
- * - Finding the reachability in a graph ({@link GraphUtils#reachability(Graph, String, Optional)})
- * - Finding the ancestry in a graph ({@link GraphUtils#ancestry(Graph, String, int)})
+ * - Building a graph ({@link Utilities#buildGraph(Map)})
+ * - Finding the reachability in a graph ({@link Utilities#reachability(Graph, String, Optional)})
+ * - Finding the ancestry in a graph ({@link Utilities#ancestry(Graph, String, int)})
  */
-public class GraphUtils {
+public class Utilities {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(GraphUtils.class);
+    private static final Logger LOGGER = LoggerFactory.getLogger(Utilities.class);
 
     private static final String RANK_DIRECTION = "rankdir";
     private static final String LEFT_TO_RIGHT = "LR";
@@ -47,87 +49,6 @@ public class GraphUtils {
     private static final String FILLCOLOR = "fillcolor";
     private static final String FILLED = "filled";
     public static final String NODE_DELIMITER = "\"";
-
-    public static Graph<ColoredNode, DefaultEdge> reachability(Graph<String, DefaultEdge> graph, String entrypoint, Optional<Integer> maybeMaximumDepth) {
-
-        if (!graph.containsVertex(entrypoint)) {
-            LOGGER.error("---> " + entrypoint + "<---");
-            LOGGER.error("The graph doesn't contain the vertex specified as the entry point!");
-            throw new InputMismatchException("graph doesn't contain vertex " + entrypoint);
-        }
-
-        if (maybeMaximumDepth.isPresent() && (maybeMaximumDepth.get() < 0)) {
-            LOGGER.error("Depth " + maybeMaximumDepth.get() + " must be greater than 0!");
-            System.exit(1);
-        }
-
-        LOGGER.info("Starting reachability at entry point: " + entrypoint);
-        maybeMaximumDepth.ifPresent(d -> LOGGER.info("Traversing to depth " + d));
-
-        Graph<ColoredNode, DefaultEdge> subgraph = new DefaultDirectedGraph<>(DefaultEdge.class);
-        int currentDepth = 0;
-
-        Deque<String> reachable = new ArrayDeque<>();
-        reachable.push(entrypoint);
-
-        Map<String, ColoredNode> subgraphNodes = new HashMap<>();
-        Set<String> seenBefore = new HashSet<>();
-        Set<String> nextLevel = new HashSet<>();
-
-        while (!reachable.isEmpty()) {
-
-            /* Stop once we've surpassed maximum depth */
-            if (maybeMaximumDepth.isPresent() && (maybeMaximumDepth.get() < currentDepth)) {
-                break;
-            }
-
-            while (!reachable.isEmpty()) {
-                /* Visit reachable node */
-                String source = reachable.pop();
-                ColoredNode sourceNode = subgraphNodes.containsKey(source) ? subgraphNodes.get(source) : new ColoredNode(source);
-
-                /* Keep track of who we've visited */
-                seenBefore.add(source);
-                if (!subgraphNodes.containsKey(source)) {
-                    subgraph.addVertex(sourceNode);
-                    subgraphNodes.put(source, sourceNode);
-                }
-
-                /* Check if we can add deeper edges or not */
-                if (maybeMaximumDepth.isPresent() && (maybeMaximumDepth.get() == currentDepth)) {
-                    break;
-                }
-
-                graph.edgesOf(source).forEach(edge -> {
-                    String target = graph.getEdgeTarget(edge);
-                    ColoredNode targetNode = subgraphNodes.containsKey(target) ? subgraphNodes.get(target) : new ColoredNode(target);
-
-                    if (!subgraphNodes.containsKey(target)) {
-                        subgraphNodes.put(target, targetNode);
-                        subgraph.addVertex(targetNode);
-                    }
-
-                    if (graph.containsEdge(source, target) && !subgraph.containsEdge(sourceNode, targetNode)) {
-                        subgraph.addEdge(sourceNode, targetNode);
-                    }
-
-                    /* Have we visited this vertex before? */
-                    if (!seenBefore.contains(target)) {
-                        nextLevel.add(target);
-                        seenBefore.add(target);
-                    }
-
-                });
-            }
-
-            currentDepth++;
-            reachable.addAll(nextLevel);
-            nextLevel.clear();
-        }
-
-        subgraphNodes.get(entrypoint).markEntryPoint();
-        return subgraph;
-    }
 
     public static Graph<ColoredNode, DefaultEdge> ancestry(Graph<String, DefaultEdge> graph, String entrypoint, int ancestryDepth) {
 
@@ -242,7 +163,7 @@ public class GraphUtils {
         }
 
         /* Setup infrastructure for analysis */
-        URLClassLoader cl = URLClassLoader.newInstance(urls.toArray(new URL[0]), GraphUtils.class.getClassLoader());
+        URLClassLoader cl = URLClassLoader.newInstance(urls.toArray(new URL[0]), Utilities.class.getClassLoader());
         Reflections reflections = new Reflections(cl, new SubTypesScanner(false));
         JarMetadata jarMetadata = new JarMetadata(cl, reflections);
 

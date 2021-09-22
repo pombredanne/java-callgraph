@@ -1,6 +1,6 @@
 package gr.gousiosg.javacg.stat.coverage;
 
-import gr.gousiosg.javacg.stat.GraphUtils;
+import gr.gousiosg.javacg.stat.graph.Utilities;
 import gr.gousiosg.javacg.stat.support.MethodSignatureUtil;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
@@ -56,7 +56,7 @@ public class JacocoCoverage {
                             clazz.getName(),
                             method.getName(),
                             method.getDesc());
-                        methodCoverage.putIfAbsent(GraphUtils.formatNode(qualifiedName), method);
+                        methodCoverage.putIfAbsent(Utilities.formatNode(qualifiedName), method);
                     });
                 }
             }

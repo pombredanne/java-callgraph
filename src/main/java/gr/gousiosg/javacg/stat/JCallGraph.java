@@ -28,6 +28,8 @@
 
 package gr.gousiosg.javacg.stat;
 
+import gr.gousiosg.javacg.stat.graph.Reachability;
+import gr.gousiosg.javacg.stat.graph.Utilities;
 import gr.gousiosg.javacg.stat.support.Arguments;
 import gr.gousiosg.javacg.stat.coverage.ColoredNode;
 import gr.gousiosg.javacg.stat.coverage.CoverageStatistics;
@@ -67,12 +69,12 @@ public class JCallGraph {
         try {
             LOGGER.info("Starting java-cg!");
             Arguments arguments = new Arguments(args);
-            Graph<String, DefaultEdge> graph = GraphUtils.staticCallgraph(arguments.getJars());
+            Graph<String, DefaultEdge> graph = Utilities.staticCallgraph(arguments.getJars());
             JacocoCoverage jacocoCoverage = new JacocoCoverage(arguments.maybeCoverage());
 
             /* Should we store the graph in a file? */
             if (arguments.maybeOutput().isPresent()) {
-                GraphUtils.writeGraph(graph, GraphUtils.defaultExporter(), arguments.maybeOutput().map(JCallGraph::asDot));
+                Utilities.writeGraph(graph, Utilities.defaultExporter(), arguments.maybeOutput().map(JCallGraph::asDot));
             }
 
             /* Should we compute reachability from the entry point? */
@@ -98,7 +100,7 @@ public class JCallGraph {
 
     public static void inspectReachability(Graph<String, DefaultEdge> graph, Arguments arguments, JacocoCoverage jacocoCoverage, String entryPoint) {
         /* Fetch reachability */
-        Graph<ColoredNode, DefaultEdge> reachability = GraphUtils.reachability(graph, entryPoint, arguments.maybeDepth());
+        Graph<ColoredNode, DefaultEdge> reachability = Reachability.compute(graph, entryPoint, arguments.maybeDepth());
 
         /* Apply coverage */
         jacocoCoverage.applyCoverage(reachability);
@@ -119,7 +121,7 @@ public class JCallGraph {
 
         /* Store reachability in file? */
         if (outputName.isPresent()) {
-            GraphUtils.writeGraph(reachability, GraphUtils.coloredExporter(), outputName.map(JCallGraph::asDot));
+            Utilities.writeGraph(reachability, Utilities.coloredExporter(), outputName.map(JCallGraph::asDot));
         }
 
         /* Analyze reachability coverage? */
@@ -129,13 +131,13 @@ public class JCallGraph {
     }
 
     public static void inspectAncestry(Graph<String, DefaultEdge> graph, Arguments arguments, JacocoCoverage jacocoCoverage, String entryPoint, int ancestryDepth) {
-        Graph<ColoredNode, DefaultEdge> ancestry = GraphUtils.ancestry(graph, entryPoint, ancestryDepth);
+        Graph<ColoredNode, DefaultEdge> ancestry = Utilities.ancestry(graph, entryPoint, ancestryDepth);
         jacocoCoverage.applyCoverage(ancestry);
 
         /* Should we store the ancestry in a file? */
         if (arguments.maybeOutput().isPresent()) {
             String subgraphOutputName = arguments.maybeOutput().get() + DELIMITER + ANCESTRY + DELIMITER + ancestryDepth;
-            GraphUtils.writeGraph(ancestry, GraphUtils.coloredExporter(), Optional.of(asDot(subgraphOutputName)));
+            Utilities.writeGraph(ancestry, Utilities.coloredExporter(), Optional.of(asDot(subgraphOutputName)));
         }
     }
 
