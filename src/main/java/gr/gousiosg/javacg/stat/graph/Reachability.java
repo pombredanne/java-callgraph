@@ -9,19 +9,22 @@ import org.slf4j.LoggerFactory;
 
 import java.util.*;
 
-
 public class Reachability {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Reachability.class);
 
   /**
-   * Computes the reachability subgraph from a parent graph, entrypoint, and an optional depth to search
+   * Computes the reachability subgraph from a parent graph, entrypoint, and an optional depth to
+   * search
+   *
    * @param graph the parent {@link Graph}
    * @param entrypoint the root node of the reachability subgraph
-   * @param maybeMaximumDepth the depth to traverse (e.g., all nodes reachable within N steps from the root)
+   * @param maybeMaximumDepth the depth to traverse (e.g., all nodes reachable within N steps from
+   *     the root)
    * @return a subgraph containing all reachable nodes as described
    */
-  public static Graph<ColoredNode, DefaultEdge> compute(Graph<String, DefaultEdge> graph, String entrypoint, Optional<Integer> maybeMaximumDepth) {
+  public static Graph<ColoredNode, DefaultEdge> compute(
+      Graph<String, DefaultEdge> graph, String entrypoint, Optional<Integer> maybeMaximumDepth) {
 
     if (!graph.containsVertex(entrypoint)) {
       LOGGER.error("---> " + entrypoint + "<---");
@@ -57,7 +60,8 @@ public class Reachability {
       while (!reachable.isEmpty()) {
         /* Visit reachable node */
         String source = reachable.pop();
-        ColoredNode sourceNode = subgraphNodes.containsKey(source) ? subgraphNodes.get(source) : new ColoredNode(source);
+        ColoredNode sourceNode =
+            subgraphNodes.containsKey(source) ? subgraphNodes.get(source) : new ColoredNode(source);
 
         /* Keep track of who we've visited */
         seenBefore.add(source);
@@ -71,26 +75,32 @@ public class Reachability {
           break;
         }
 
-        graph.edgesOf(source).forEach(edge -> {
-          String target = graph.getEdgeTarget(edge);
-          ColoredNode targetNode = subgraphNodes.containsKey(target) ? subgraphNodes.get(target) : new ColoredNode(target);
+        graph
+            .edgesOf(source)
+            .forEach(
+                edge -> {
+                  String target = graph.getEdgeTarget(edge);
+                  ColoredNode targetNode =
+                      subgraphNodes.containsKey(target)
+                          ? subgraphNodes.get(target)
+                          : new ColoredNode(target);
 
-          if (!subgraphNodes.containsKey(target)) {
-            subgraphNodes.put(target, targetNode);
-            subgraph.addVertex(targetNode);
-          }
+                  if (!subgraphNodes.containsKey(target)) {
+                    subgraphNodes.put(target, targetNode);
+                    subgraph.addVertex(targetNode);
+                  }
 
-          if (graph.containsEdge(source, target) && !subgraph.containsEdge(sourceNode, targetNode)) {
-            subgraph.addEdge(sourceNode, targetNode);
-          }
+                  if (graph.containsEdge(source, target)
+                      && !subgraph.containsEdge(sourceNode, targetNode)) {
+                    subgraph.addEdge(sourceNode, targetNode);
+                  }
 
-          /* Have we visited this vertex before? */
-          if (!seenBefore.contains(target)) {
-            nextLevel.add(target);
-            seenBefore.add(target);
-          }
-
-        });
+                  /* Have we visited this vertex before? */
+                  if (!seenBefore.contains(target)) {
+                    nextLevel.add(target);
+                    seenBefore.add(target);
+                  }
+                });
       }
 
       currentDepth++;
