@@ -22,6 +22,7 @@ import java.net.URL;
 import java.net.URLClassLoader;
 import java.util.*;
 import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.stream.Stream;
@@ -37,6 +38,10 @@ public class GraphUtils {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(GraphUtils.class);
 
+    private static final String RANK_DIRECTION = "rankdir";
+    private static final String LEFT_TO_RIGHT = "LR";
+    private static final String RANK_VERTICAL_SEPARATION = "ranksep";
+    private static final Double VERTICAL_SEPARATION_VALUE = 1.5;
     private static final String LABEL = "label";
     private static final String STYLE = "style";
     private static final String FILLCOLOR = "fillcolor";
@@ -377,6 +382,7 @@ public class GraphUtils {
 
     public static DOTExporter<String , DefaultEdge> defaultExporter() {
         DOTExporter<String , DefaultEdge> exporter = new DOTExporter<>(id -> id);
+        exporter.setGraphAttributeProvider(defaultGraphAttributes());
         exporter.setVertexAttributeProvider((v) -> {
             Map<String, Attribute> map = new LinkedHashMap<>();
             map.put(LABEL, DefaultAttribute.createAttribute(v));
@@ -387,6 +393,7 @@ public class GraphUtils {
 
     public static DOTExporter<ColoredNode, DefaultEdge> coloredExporter() {
         DOTExporter<ColoredNode , DefaultEdge> exporter = new DOTExporter<>(ColoredNode::getLabel);
+        exporter.setGraphAttributeProvider(defaultGraphAttributes());
         exporter.setVertexAttributeProvider((v) -> {
             Map<String, Attribute> map = new LinkedHashMap<>();
             map.put(LABEL, DefaultAttribute.createAttribute(v.getLabel()));
@@ -397,4 +404,12 @@ public class GraphUtils {
         return exporter;
     }
 
+    private static Supplier<Map<String, Attribute>> defaultGraphAttributes() {
+        return () -> {
+            Map<String, Attribute> map = new LinkedHashMap<>();
+            map.put(RANK_VERTICAL_SEPARATION, DefaultAttribute.createAttribute(VERTICAL_SEPARATION_VALUE));
+            map.put(RANK_DIRECTION, DefaultAttribute.createAttribute(LEFT_TO_RIGHT));
+            return map;
+        };
+    }
 }
