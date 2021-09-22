@@ -1,4 +1,4 @@
-package gr.gousiosg.javacg.stat.support.coverage;
+package gr.gousiosg.javacg.stat.coverage;
 
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
@@ -21,7 +21,7 @@ public class JacocoCoverageParser {
      * Parse a JaCoCO XML file
      *
      * @param filepath the path to the xml file
-     * @return A {@link gr.gousiosg.javacg.stat.support.coverage.Report}
+     * @return A {@link gr.gousiosg.javacg.stat.coverage.Report}
      * (These classes are automatically generated and placed in the folder:
      * target/classes/gr/gousiosg/javacg/stat/support/coverage)
      */

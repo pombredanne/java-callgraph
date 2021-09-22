@@ -1,10 +1,9 @@
-package gr.gousiosg.javacg.stat.support.coverage;
+package gr.gousiosg.javacg.stat.coverage;
 
 import gr.gousiosg.javacg.stat.GraphUtils;
 import gr.gousiosg.javacg.stat.support.MethodSignatureUtil;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
-import org.objectweb.asm.Type;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;

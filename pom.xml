@@ -118,7 +118,7 @@
           <sources>
             <source>src/main/resources/jacoco-schema.xsd</source>
           </sources>
-          <packageName>gr.gousiosg.javacg.stat.support.coverage</packageName>
+          <packageName>gr.gousiosg.javacg.stat.coverage</packageName>
         </configuration>
       </plugin>
 

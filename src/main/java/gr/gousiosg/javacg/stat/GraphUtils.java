@@ -3,7 +3,7 @@ package gr.gousiosg.javacg.stat;
 import gr.gousiosg.javacg.dyn.Pair;
 import gr.gousiosg.javacg.stat.support.IgnoredConstants;
 import gr.gousiosg.javacg.stat.support.JarMetadata;
-import gr.gousiosg.javacg.stat.support.coverage.ColoredNode;
+import gr.gousiosg.javacg.stat.coverage.ColoredNode;
 import org.apache.bcel.classfile.ClassParser;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultDirectedGraph;

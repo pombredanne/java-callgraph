@@ -29,9 +29,9 @@
 package gr.gousiosg.javacg.stat;
 
 import gr.gousiosg.javacg.stat.support.Arguments;
-import gr.gousiosg.javacg.stat.support.coverage.ColoredNode;
-import gr.gousiosg.javacg.stat.support.coverage.CoverageStatistics;
-import gr.gousiosg.javacg.stat.support.coverage.JacocoCoverage;
+import gr.gousiosg.javacg.stat.coverage.ColoredNode;
+import gr.gousiosg.javacg.stat.coverage.CoverageStatistics;
+import gr.gousiosg.javacg.stat.coverage.JacocoCoverage;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;

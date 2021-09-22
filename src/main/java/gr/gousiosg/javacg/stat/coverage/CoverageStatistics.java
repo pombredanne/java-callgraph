@@ -1,4 +1,4 @@
-package gr.gousiosg.javacg.stat.support.coverage;
+package gr.gousiosg.javacg.stat.coverage;
 
 import gr.gousiosg.javacg.stat.JCallGraph;
 import org.jgrapht.Graph;
