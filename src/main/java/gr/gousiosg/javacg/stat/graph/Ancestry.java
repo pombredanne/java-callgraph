@@ -13,6 +13,15 @@ public class Ancestry {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Ancestry.class);
 
+  /**
+   * Computes the ancestry of a given entrypoint. This notion is similar to reachability in that we
+   * perform a breadth-first search of all *parent* nodes starting from the entrypoint.
+   *
+   * @param graph the graph to inspect
+   * @param entrypoint the starting point in the graph
+   * @param ancestryDepth how many levels breadth-first search should inspect
+   * @return the ancestry {@link Graph}
+   */
   public static Graph<ColoredNode, DefaultEdge> compute(
       Graph<String, DefaultEdge> graph, String entrypoint, int ancestryDepth) {
 
@@ -45,15 +54,15 @@ public class Ancestry {
         break;
       }
 
-      /* Loop over all nodes that we haven't yet seen yet and are reachable at depth "currentDepth" */
+      /* Loop over all nodes that we haven't seen yet and are reachable at depth "currentDepth" */
       while (!parentsToInspect.isEmpty()) {
 
-        /* Fetch next node */
+        /* Fetch the next node */
         String child = parentsToInspect.pop();
         ColoredNode childNode =
             nodeMap.containsKey(child) ? nodeMap.get(child) : new ColoredNode(child);
 
-        /* Keep track of who we've seen before */
+        /* Keep track of the nodes that we've seen before */
         seenBefore.add(child);
         if (!nodeMap.containsKey(child)) {
           ancestry.addVertex(childNode);
@@ -84,6 +93,8 @@ public class Ancestry {
       }
 
       currentDepth++;
+
+      /* we will inspect all of these nodes in the next iteration of the search */
       parentsToInspect.addAll(nextLevel);
       nextLevel.clear();
     }

@@ -29,6 +29,14 @@ public class Utilities {
     return NODE_DELIMITER + node + NODE_DELIMITER;
   }
 
+  /**
+   * Writes a graph to a file `name.dot`
+   *
+   * @param graph the graph
+   * @param exporter the exporter that will write the graph to a file
+   * @param maybeOutputName the name to use
+   * @param <T> the type of the elements in the graph
+   */
   public static <T> void writeGraph(
       Graph<T, DefaultEdge> graph,
       DOTExporter<T, DefaultEdge> exporter,

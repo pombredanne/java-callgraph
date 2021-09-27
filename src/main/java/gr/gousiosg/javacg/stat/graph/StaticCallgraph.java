@@ -30,6 +30,13 @@ public class StaticCallgraph {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(StaticCallgraph.class);
 
+  /**
+   * Builds a static callgraph from the provided jars
+   *
+   * @param jars the jars to inspect
+   * @return a {@link Graph} representing the static callgraph of the combined jars
+   * @throws InputMismatchException
+   */
   public static Graph<String, DefaultEdge> build(List<Pair<String, File>> jars)
       throws InputMismatchException {
     LOGGER.info("Beginning callgraph analysis...");
@@ -60,6 +67,7 @@ public class StaticCallgraph {
     /* Store method calls (caller -> receiver) */
     Map<String, Set<String>> calls = new HashMap<>();
 
+    /* iterate over all provided jars */
     for (Pair<String, File> pair : jars) {
       String jarPath = pair.first;
       File file = pair.second;
@@ -78,27 +86,7 @@ public class StaticCallgraph {
             };
 
         /* Analyze each jar entry to find callgraph */
-        entries
-            .flatMap(
-                e -> {
-                  if (e.isDirectory() || !e.getName().endsWith(".class")) return Stream.of();
-
-                  /* Ignore specified JARs */
-                  if (shouldIgnoreEntry(e.getName().replace("/", "."))) {
-                    return Stream.of();
-                  } else {
-                    LOGGER.info("Inspecting " + e.getName());
-                  }
-
-                  ClassParser cp = new ClassParser(jarPath, e.getName());
-                  return getClassVisitor.apply(cp).start().methodCalls().stream();
-                })
-            .forEach(
-                p -> {
-                  /* Create edges between nodes */
-                  calls.putIfAbsent((p.first), new HashSet<>());
-                  calls.get(p.first).add(p.second);
-                });
+        inspectJarEntries(entries, jarPath, getClassVisitor, calls);
 
       } catch (IOException e) {
         LOGGER.error("Error when analyzing JAR \"" + jarPath + "\": + e.getMessage()");
@@ -110,65 +98,30 @@ public class StaticCallgraph {
     Graph<String, DefaultEdge> graph = buildGraph(calls);
 
     /* Prune bridge methods from graph */
-    jarMetadata
-        .getBridgeMethods()
-        .forEach(
-            bridgeMethod -> {
-
-              /* Fetch the bridge method and make sure it has exactly one outgoing edge */
-              String bridgeNode = formatNode(bridgeMethod);
-              Optional<DefaultEdge> maybeEdge =
-                  graph.outgoingEdgesOf(bridgeNode).stream().findFirst();
-
-              if (graph.outDegreeOf(bridgeNode) != 1 || maybeEdge.isEmpty()) {
-
-                graph.outgoingEdgesOf(bridgeNode).stream()
-                    .forEach(
-                        e -> {
-                          LOGGER.error(
-                              "\t" + graph.getEdgeSource(e) + " -> " + graph.getEdgeTarget(e));
-                        });
-                LOGGER.error(
-                    "Found a bridge method that doesn't have exactly 1 outgoing edge: "
-                        + bridgeMethod
-                        + " : "
-                        + graph.outDegreeOf(bridgeNode));
-                System.exit(1);
-              }
-
-              /* Fetch the bridge method's target */
-              String bridgeTarget = graph.getEdgeTarget(maybeEdge.get());
-
-              /* Redirect all edges from the bridge method to its target */
-              graph
-                  .incomingEdgesOf(bridgeNode)
-                  .forEach(
-                      edge -> {
-                        String sourceNode = graph.getEdgeSource(edge);
-                        graph.addEdge(sourceNode, bridgeTarget);
-                      });
-
-              /* Remove the bridge method from the graph */
-              graph.removeVertex(bridgeNode);
-            });
+    Pruning.pruneBridgeMethods(graph, jarMetadata);
 
     return graph;
   }
 
+  /**
+   * Takes all (source, destination) method call pairs and stitches them together to create a graph
+   *
+   * @param methodCalls the method calls
+   * @return a {@link Graph}
+   * @throws InputMismatchException
+   */
   private static Graph<String, DefaultEdge> buildGraph(Map<String, Set<String>> methodCalls)
       throws InputMismatchException {
     if (methodCalls.keySet().isEmpty()) {
       throw new InputMismatchException("There is no call graph to look at!");
     }
 
-    /* initialize the graph */
     Graph<String, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
-
-    /* fill the graph with vertices and edges */
     methodCalls
         .keySet()
         .forEach(
             source -> {
+              /* create source vertex */
               String sourceNode = formatNode(source);
               putIfAbsent(graph, sourceNode);
 
@@ -176,12 +129,54 @@ public class StaticCallgraph {
                   .get(source)
                   .forEach(
                       destination -> {
+                        /* create destination vertex */
                         String destinationNode = formatNode(destination);
                         putIfAbsent(graph, destinationNode);
+
+                        /* connect every (source, destination) pair with an edge */
                         graph.addEdge(sourceNode, destinationNode);
                       });
             });
 
     return graph;
+  }
+
+  /**
+   * Finds all (source, destination) method call pairs within a jar
+   *
+   * @param entries the entries of the jar
+   * @param jarPath the path to the jar
+   * @param getClassVisitor a {@link ClassVisitor}
+   * @param calls the data structure containing all (source, destination) method call pairs
+   */
+  private static void inspectJarEntries(
+      Stream<JarEntry> entries,
+      String jarPath,
+      Function<ClassParser, ClassVisitor> getClassVisitor,
+      Map<String, Set<String>> calls) {
+
+    /* Analyze each jar entry to find callgraph */
+    entries
+        .flatMap(
+            e -> {
+              /* Only inspect directories and `*.class` files */
+              if (e.isDirectory() || !e.getName().endsWith(".class")) return Stream.of();
+
+              /* Ignore specified JARs */
+              if (shouldIgnoreEntry(e.getName().replace("/", "."))) {
+                return Stream.of();
+              } else {
+                LOGGER.info("Inspecting " + e.getName());
+              }
+
+              ClassParser cp = new ClassParser(jarPath, e.getName());
+              return getClassVisitor.apply(cp).start().methodCalls().stream();
+            })
+        .forEach(
+            p -> {
+              /* Create edges between nodes */
+              calls.putIfAbsent((p.first), new HashSet<>());
+              calls.get(p.first).add(p.second);
+            });
   }
 }
