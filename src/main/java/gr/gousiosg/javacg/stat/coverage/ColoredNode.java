@@ -65,8 +65,10 @@ public class ColoredNode {
         this.color = MEDIUM_DARK_GREEN;
       } else if (lineRatio > 0.25) {
         this.color = MEDIUM_GREEN;
-      } else {
+      } else if (lineRatio > 0.02) {
         this.color = LIGHT_GREEN;
+      } else {
+        this.color = FIREBRICK;
       }
     }
   }
@@ -108,6 +110,6 @@ public class ColoredNode {
   }
 
   private float lineRatio() {
-    return (float) linesCovered / (linesCovered + linesMissed);
+    return (float) linesCovered / ((float) linesCovered + (float) linesMissed);
   }
 }
