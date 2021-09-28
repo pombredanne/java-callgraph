@@ -42,6 +42,7 @@ public class StaticCallgraph {
       List<Pair<String, File>> jars, JacocoCoverage coverage) throws InputMismatchException {
     LOGGER.info("Beginning callgraph analysis...");
 
+    // 1. SETTING UP FOR GRAPH INSPECTION
     /* Load JAR URLs */
     List<URL> urls = new ArrayList<>();
     try {
@@ -68,6 +69,7 @@ public class StaticCallgraph {
     /* Store method calls (caller -> receiver) */
     Map<String, Set<String>> calls = new HashMap<>();
 
+    // 2. GRAPH INSPECTION
     /* iterate over all provided jars */
     for (Pair<String, File> pair : jars) {
       String jarPath = pair.first;
@@ -98,6 +100,7 @@ public class StaticCallgraph {
     /* Convert calls into a graph */
     Graph<String, DefaultEdge> graph = buildGraph(calls);
 
+    // 3. GRAPH POSTPROCESSING
     /* Prune bridge methods from graph */
     Pruning.pruneBridgeMethods(graph, jarMetadata);
 
