@@ -11,11 +11,10 @@ public class MethodSignatureUtilTest {
   private static final String JACOCO_CLASS_NAME = "edu/uic/cs398/Book/BookFactory";
   private static final String JACOCO_METHOD_NAME = "getBook";
   private static final String JACOCO_METHOD_DESCRIPTOR = "(I)Ledu/uic/cs398/Book/Book;";
-  private static final String EXPECTED_JACOCO_CONVERSION = "edu.uic.cs398.Book.BookFactory.getBook(I)Ledu/uic/cs398/Book/Book;";
+  private static final String EXPECTED_JACOCO_CONVERSION =
+      "edu.uic.cs398.Book.BookFactory.getBook(I)Ledu/uic/cs398/Book/Book;";
 
-  /**
-   * These should all be equivalent
-   */
+  /** These should all be equivalent */
   @Test
   public void testFullyQualifiedMethodNameEquivalence() {
     // Get class and method
@@ -30,24 +29,27 @@ public class MethodSignatureUtilTest {
     Type methodReturnType = Type.getReturnType(signature);
 
     // test it once
-    String actual = MethodSignatureUtil.fullyQualifiedMethodSignature(classname, methodName, methodArgumentTypes, methodReturnType);
-    String expected = "gr.gousiosg.javacg.stat.support.HierarchyHelper.B.b(ILjava/lang/String;)Ljava/lang/String;";
+    String actual =
+        MethodSignatureUtil.fullyQualifiedMethodSignature(
+            classname, methodName, methodArgumentTypes, methodReturnType);
+    String expected =
+        "gr.gousiosg.javacg.stat.support.HierarchyHelper.B.b(ILjava/lang/String;)Ljava/lang/String;";
     Assert.assertEquals(expected, actual);
 
     // test against another variant
     String another = MethodSignatureUtil.fullyQualifiedMethodSignature(clazz, method);
     Assert.assertEquals(another, actual);
 
-    another = MethodSignatureUtil.fullyQualifiedMethodSignature(classname, methodName, MethodSignatureUtil.methodDescriptor(method));
+    another =
+        MethodSignatureUtil.fullyQualifiedMethodSignature(
+            classname, methodName, MethodSignatureUtil.methodDescriptor(method));
     Assert.assertEquals(another, actual);
 
     another = MethodSignatureUtil.fullyQualifiedMethodSignature(method);
     Assert.assertEquals(another, actual);
   }
 
-  /**
-   * These should all be equivalent
-   */
+  /** These should all be equivalent */
   @Test
   public void testMethodDescriptorEquivalence() {
     // Get class and method
@@ -64,7 +66,6 @@ public class MethodSignatureUtilTest {
     String regularDescriptor = "(ILjava/lang/String;)Ljava/lang/String;";
     String namedDescriptor = "b" + regularDescriptor;
 
-
     // test regular descriptors
     String actual = MethodSignatureUtil.methodDescriptor(method);
     Assert.assertEquals(regularDescriptor, actual);
@@ -76,7 +77,8 @@ public class MethodSignatureUtilTest {
     actual = MethodSignatureUtil.namedMethodSignature(method);
     Assert.assertEquals(namedDescriptor, actual);
 
-    actual = MethodSignatureUtil.namedMethodSignature(methodName, methodArgumentTypes, methodReturnType);
+    actual =
+        MethodSignatureUtil.namedMethodSignature(methodName, methodArgumentTypes, methodReturnType);
     Assert.assertEquals(namedDescriptor, actual);
   }
 
@@ -88,14 +90,12 @@ public class MethodSignatureUtilTest {
   public void testClassAndMethodToFullyQualifiedMethodSignature() {
     Method m = HierarchyHelper.B.class.getDeclaredMethods()[0];
     String actual = MethodSignatureUtil.fullyQualifiedMethodSignature(HierarchyHelper.B.class, m);
-    String expected = "gr.gousiosg.javacg.stat.support.HierarchyHelper.B.b(ILjava/lang/String;)Ljava/lang/String;";
+    String expected =
+        "gr.gousiosg.javacg.stat.support.HierarchyHelper.B.b(ILjava/lang/String;)Ljava/lang/String;";
     Assert.assertEquals(expected, actual);
   }
 
-  /**
-   * A method signature is properly resolved, e.g.:
-   * `b(ILjava/lang/String;)Ljava/lang/String;`
-   */
+  /** A method signature is properly resolved, e.g.: `b(ILjava/lang/String;)Ljava/lang/String;` */
   @Test
   public void testMethodToMethodSignature() {
     Method m = HierarchyHelper.B.class.getDeclaredMethods()[0];
@@ -104,10 +104,7 @@ public class MethodSignatureUtilTest {
     Assert.assertEquals(expected, actual);
   }
 
-  /**
-   * A method name is properly resolved, e.g.:
-   * `b`
-   */
+  /** A method name is properly resolved, e.g.: `b` */
   @Test
   public void testMethodToMethodName() {
     Method m = HierarchyHelper.B.class.getDeclaredMethods()[0];
@@ -116,10 +113,7 @@ public class MethodSignatureUtilTest {
     Assert.assertEquals(expected, actual);
   }
 
-  /**
-   * A method descriptor is properly resolved, e.g.:
-   * `(ILjava/lang/String;)Ljava/lang/String;`
-   */
+  /** A method descriptor is properly resolved, e.g.: `(ILjava/lang/String;)Ljava/lang/String;` */
   @Test
   public void testMethodToMethodDescriptor() {
     Method m = HierarchyHelper.B.class.getDeclaredMethods()[0];
@@ -129,8 +123,8 @@ public class MethodSignatureUtilTest {
   }
 
   /**
-   * Before: gr.gousiosg.javacg.stat.support.HierarchyHelper$B
-   * After:  gr.gousiosg.javacg.stat.support.HierarchyHelper.B
+   * Before: gr.gousiosg.javacg.stat.support.HierarchyHelper$B After:
+   * gr.gousiosg.javacg.stat.support.HierarchyHelper.B
    */
   @Test
   public void testSanitizeClassName() {
@@ -140,10 +134,7 @@ public class MethodSignatureUtilTest {
     Assert.assertFalse(name.contains("/"));
   }
 
-  /**
-   * Before:     edu/uic/cs398/Book/BookFactory
-   * After:      edu.uic.cs398.Book.BookFactory
-   */
+  /** Before: edu/uic/cs398/Book/BookFactory After: edu.uic.cs398.Book.BookFactory */
   @Test
   public void testSanitizeJacocoClassName() {
     String expected = "edu.uic.cs398.Book.BookFactory";
@@ -153,18 +144,16 @@ public class MethodSignatureUtilTest {
     Assert.assertEquals(expected, name);
   }
 
-  /**
-   * The data from jacoco's XML report is converted properly
-   */
+  /** The data from jacoco's XML report is converted properly */
   @Test
   public void testClassNameAndMethodNameAndMethodDescriptor() {
-    String actual = MethodSignatureUtil.fullyQualifiedMethodSignature(JACOCO_CLASS_NAME, JACOCO_METHOD_NAME, JACOCO_METHOD_DESCRIPTOR);
+    String actual =
+        MethodSignatureUtil.fullyQualifiedMethodSignature(
+            JACOCO_CLASS_NAME, JACOCO_METHOD_NAME, JACOCO_METHOD_DESCRIPTOR);
     Assert.assertEquals(EXPECTED_JACOCO_CONVERSION, actual);
   }
 
-  /**
-   * The `.`-joined components of the combined string should match the expected full string
-   */
+  /** The `.`-joined components of the combined string should match the expected full string */
   @Test
   public void testSplitAndJoin() {
     Class<?> clazz = HierarchyHelper.B.class;

@@ -25,10 +25,6 @@ public class Utilities {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Utilities.class);
 
-  public static String formatNode(String node) {
-    return NODE_DELIMITER + node + NODE_DELIMITER;
-  }
-
   /**
    * Writes a graph to a file `name.dot`
    *
@@ -59,15 +55,26 @@ public class Utilities {
     }
   }
 
+  /**
+   * Formats a vertex to be valid in the dot language
+   *
+   * @param vertex
+   * @return the formatted vertex
+   */
+  private static String dotFormat(String vertex) {
+    return DOT_NODE_DELIMITER + vertex + DOT_NODE_DELIMITER;
+  }
+
   public static DOTExporter<String, DefaultEdge> defaultExporter() {
     DOTExporter<String, DefaultEdge> exporter = new DOTExporter<>(id -> id);
     exporter.setGraphAttributeProvider(defaultGraphAttributes());
     exporter.setVertexAttributeProvider(
         (v) -> {
           Map<String, Attribute> map = new LinkedHashMap<>();
-          map.put(LABEL, DefaultAttribute.createAttribute(v));
+          map.put(LABEL, DefaultAttribute.createAttribute(dotFormat(v)));
           return map;
         });
+    exporter.setVertexIdProvider(Utilities::dotFormat);
     return exporter;
   }
 
@@ -77,11 +84,12 @@ public class Utilities {
     exporter.setVertexAttributeProvider(
         (v) -> {
           Map<String, Attribute> map = new LinkedHashMap<>();
-          map.put(LABEL, DefaultAttribute.createAttribute(v.getLabel()));
+          map.put(LABEL, DefaultAttribute.createAttribute(dotFormat(v.getLabel())));
           map.put(STYLE, DefaultAttribute.createAttribute(FILLED));
           map.put(FILLCOLOR, DefaultAttribute.createAttribute(v.getColor()));
           return map;
         });
+    exporter.setVertexIdProvider(v -> dotFormat(v.getLabel()));
     return exporter;
   }
 

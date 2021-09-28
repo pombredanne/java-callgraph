@@ -57,9 +57,8 @@ import java.util.Optional;
  */
 public class JCallGraph {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(JCallGraph.class);
-
   public static final String OUTPUT_DIRECTORY = "./output/";
+  private static final Logger LOGGER = LoggerFactory.getLogger(JCallGraph.class);
   private static final String REACHABILITY = "reachability";
   private static final String COVERAGE = "coverage";
   private static final String ANCESTRY = "ancestry";
@@ -71,8 +70,9 @@ public class JCallGraph {
     try {
       LOGGER.info("Starting java-cg!");
       Arguments arguments = new Arguments(args);
-      Graph<String, DefaultEdge> graph = StaticCallgraph.build(arguments.getJars());
+
       JacocoCoverage jacocoCoverage = new JacocoCoverage(arguments.maybeCoverage());
+      Graph<String, DefaultEdge> graph = StaticCallgraph.build(arguments.getJars(), jacocoCoverage);
 
       /* Should we store the graph in a file? */
       if (arguments.maybeOutput().isPresent()) {

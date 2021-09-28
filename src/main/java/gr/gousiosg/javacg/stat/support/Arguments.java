@@ -8,8 +8,6 @@ import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.util.*;
 
-import static gr.gousiosg.javacg.stat.graph.Constants.NODE_DELIMITER;
-
 public class Arguments {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(Arguments.class);
@@ -53,12 +51,12 @@ public class Arguments {
     try {
       cmd = parser.parse(options, args);
 
-      /* Parse JARs  */
+      /* Parse JARs */
       if (cmd.hasOption(JAR_INPUT)) {
         jarPaths.addAll(Arrays.asList(cmd.getOptionValues(JAR_INPUT)));
       }
 
-      /* Parse coverage file  */
+      /* Parse coverage file */
       if (cmd.hasOption(COVERAGE_INPUT)) {
         String coverageFile = cmd.getOptionValue(COVERAGE_INPUT);
         if (!coverageFile.endsWith(XML_SUFFIX)) {
@@ -71,17 +69,7 @@ public class Arguments {
       /* Parse entry point */
       if (cmd.hasOption(ENTRYPOINT_INPUT)) {
         String ep = cmd.getOptionValue(ENTRYPOINT_INPUT);
-
-        if (!ep.startsWith(NODE_DELIMITER)) {
-          ep = NODE_DELIMITER + ep;
-        }
-
-        if (!ep.endsWith(NODE_DELIMITER)) {
-          ep = ep + NODE_DELIMITER;
-        }
-
         LOGGER.info("Entry Point: " + ep);
-
         this.maybeEntryPoint = Optional.of(ep);
       }
 

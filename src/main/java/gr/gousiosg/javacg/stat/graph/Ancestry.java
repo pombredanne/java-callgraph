@@ -54,7 +54,10 @@ public class Ancestry {
         break;
       }
 
-      /* Loop over all nodes that we haven't seen yet and are reachable at depth "currentDepth" */
+      /*
+       * Loop over all nodes that we haven't seen yet and are reachable at depth
+       * "currentDepth"
+       */
       while (!parentsToInspect.isEmpty()) {
 
         /* Fetch the next node */

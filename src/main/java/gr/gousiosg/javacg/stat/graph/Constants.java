@@ -1,6 +1,7 @@
 package gr.gousiosg.javacg.stat.graph;
 
 public class Constants {
+  protected static final String DOT_NODE_DELIMITER = "\"";
   protected static final String RANK_DIRECTION = "rankdir";
   protected static final String LEFT_TO_RIGHT = "LR";
   protected static final String RANK_VERTICAL_SEPARATION = "ranksep";
@@ -9,5 +10,4 @@ public class Constants {
   protected static final String STYLE = "style";
   protected static final String FILLCOLOR = "fillcolor";
   protected static final String FILLED = "filled";
-  public static final String NODE_DELIMITER = "\"";
 }

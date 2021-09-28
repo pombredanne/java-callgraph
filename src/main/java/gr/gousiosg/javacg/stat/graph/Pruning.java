@@ -1,14 +1,14 @@
 package gr.gousiosg.javacg.stat.graph;
 
+import gr.gousiosg.javacg.stat.coverage.JacocoCoverage;
 import gr.gousiosg.javacg.stat.support.JarMetadata;
+import org.apache.bcel.generic.Type;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
-
-import static gr.gousiosg.javacg.stat.graph.Utilities.formatNode;
 
 public class Pruning {
   private static final Logger LOGGER = LoggerFactory.getLogger(Pruning.class);
@@ -17,17 +17,15 @@ public class Pruning {
    * Remove all bridge / synthetic methods that were created during type erasure See
    * https://docs.oracle.com/javase/tutorial/java/generics/bridgeMethods.html for more information.
    *
-   * @param graph
-   * @param metadata
+   * @param graph the graph
+   * @param metadata the metadata of the graph
    */
   public static void pruneBridgeMethods(Graph<String, DefaultEdge> graph, JarMetadata metadata) {
     metadata
         .getBridgeMethods()
         .forEach(
-            bridgeMethod -> {
-
+            bridgeNode -> {
               /* Fetch the bridge method and make sure it has exactly one outgoing edge */
-              String bridgeNode = formatNode(bridgeMethod);
               Optional<DefaultEdge> maybeEdge =
                   graph.outgoingEdgesOf(bridgeNode).stream().findFirst();
 
@@ -35,7 +33,7 @@ public class Pruning {
                 /* announce the violator */
                 LOGGER.error(
                     "Found a bridge method that doesn't have exactly 1 outgoing edge: "
-                        + bridgeMethod
+                        + bridgeNode
                         + " : "
                         + graph.outDegreeOf(bridgeNode));
                 /* announce the violator's connections */
@@ -64,5 +62,35 @@ public class Pruning {
               /* Remove the bridge method from the graph */
               graph.removeVertex(bridgeNode);
             });
+  }
+
+  /**
+   * Remove all unused dynamic method calls that are present in the graph
+   *
+   * <p>This technique helps us reduce the over-approximation incurred by method expansion.
+   *
+   * <p>Our criteria for pruning a call is: 1. It isn't covered by jacoco (see {@link
+   * gr.gousiosg.javacg.stat.coverage.JacocoCoverage}), 2. It didn't initiate a dynamic expansion,
+   * and 3. It was a result of dynamic expansion (e.g., it was created here: {@link
+   * gr.gousiosg.javacg.stat.MethodVisitor#expand(Class, String, Type[], Type, String)}
+   *
+   * @param graph the graph
+   * @param metadata the metadata of the graph
+   */
+  public static void pruneDynamicMethods(
+      Graph<String, DefaultEdge> graph, JarMetadata metadata, JacocoCoverage coverage) {
+    metadata.getDynamicMethods().stream()
+        .filter(
+            dynamicMethod ->
+                /*
+                 Filter out of the stream if:
+                   1. Jacoco didn't find coverage
+                   AND
+                   2. The method wasn't encountered from a static context
+                      (e.g., it wasn't present in the text of the program)
+                */
+                !coverage.containsMethod(dynamicMethod)
+                    && !metadata.staticMethodsContains(dynamicMethod))
+        .forEach(graph::removeVertex);
   }
 }

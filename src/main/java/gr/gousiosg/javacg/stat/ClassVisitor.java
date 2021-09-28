@@ -37,62 +37,56 @@ import org.apache.bcel.generic.MethodGen;
 import java.util.HashSet;
 import java.util.Set;
 
-/**
- * The simplest of class visitors, invokes the method visitor class for each
- * method found.
- */
+/** The simplest of class visitors, invokes the method visitor class for each method found. */
 public class ClassVisitor extends EmptyVisitor {
 
-    private JavaClass clazz;
-    private ConstantPoolGen constants;
-    private String classReferenceFormat;
-    private final DynamicCallManager DCManager = new DynamicCallManager();
+  private final DynamicCallManager DCManager = new DynamicCallManager();
+  private final JarMetadata jarMetadata;
+  private JavaClass clazz;
+  private ConstantPoolGen constants;
+  private String classReferenceFormat;
+  private Set<Pair<String, String>> methodCalls = new HashSet<>();
 
-    private Set<Pair<String, String>> methodCalls = new HashSet<>();
-    private final JarMetadata jarMetadata;
+  public ClassVisitor(JavaClass jc, JarMetadata jarMetadata) {
+    clazz = jc;
+    constants = new ConstantPoolGen(clazz.getConstantPool());
+    this.jarMetadata = jarMetadata;
+    classReferenceFormat = "C:" + clazz.getClassName() + " %s";
+  }
 
-    public ClassVisitor(JavaClass jc, JarMetadata jarMetadata) {
-        clazz = jc;
-        constants = new ConstantPoolGen(clazz.getConstantPool());
-        this.jarMetadata = jarMetadata;
-        classReferenceFormat = "C:" + clazz.getClassName() + " %s";
+  public void visitJavaClass(JavaClass jc) {
+    jc.getConstantPool().accept(this);
+    Method[] methods = jc.getMethods();
+    for (int i = 0; i < methods.length; i++) {
+      Method method = methods[i];
+      DCManager.retrieveCalls(method, jc);
+      DCManager.linkCalls(method);
+      method.accept(this);
     }
+  }
 
-    public void visitJavaClass(JavaClass jc) {
-        jc.getConstantPool().accept(this);
-        Method[] methods = jc.getMethods();
-        for (int i = 0; i < methods.length; i++) {
-            Method method = methods[i];
-            DCManager.retrieveCalls(method, jc);
-            DCManager.linkCalls(method);
-            method.accept(this);
-        }
+  public void visitConstantPool(ConstantPool constantPool) {
+    for (int i = 0; i < constantPool.getLength(); i++) {
+      Constant constant = constantPool.getConstant(i);
+      if (constant == null) continue;
+      if (constant.getTag() == 7) {
+        String referencedClass = constantPool.constantToString(constant);
+      }
     }
+  }
 
-    public void visitConstantPool(ConstantPool constantPool) {
-        for (int i = 0; i < constantPool.getLength(); i++) {
-            Constant constant = constantPool.getConstant(i);
-            if (constant == null)
-                continue;
-            if (constant.getTag() == 7) {
-                String referencedClass = 
-                    constantPool.constantToString(constant);
-            }
-        }
-    }
+  public void visitMethod(Method method) {
+    MethodGen mg = new MethodGen(method, clazz.getClassName(), constants);
+    MethodVisitor visitor = new MethodVisitor(mg, clazz, jarMetadata);
+    methodCalls.addAll(visitor.start());
+  }
 
-    public void visitMethod(Method method) {
-        MethodGen mg = new MethodGen(method, clazz.getClassName(), constants);
-        MethodVisitor visitor = new MethodVisitor(mg, clazz, jarMetadata);
-        methodCalls.addAll(visitor.start());
-    }
+  public ClassVisitor start() {
+    visitJavaClass(clazz);
+    return this;
+  }
 
-    public ClassVisitor start() {
-        visitJavaClass(clazz);
-        return this;
-    }
-
-    public Set<Pair<String, String>> methodCalls() {
-        return this.methodCalls;
-    }
+  public Set<Pair<String, String>> methodCalls() {
+    return this.methodCalls;
+  }
 }

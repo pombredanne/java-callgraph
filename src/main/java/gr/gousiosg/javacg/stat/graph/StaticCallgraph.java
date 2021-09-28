@@ -2,6 +2,7 @@ package gr.gousiosg.javacg.stat.graph;
 
 import gr.gousiosg.javacg.dyn.Pair;
 import gr.gousiosg.javacg.stat.ClassVisitor;
+import gr.gousiosg.javacg.stat.coverage.JacocoCoverage;
 import gr.gousiosg.javacg.stat.support.JarMetadata;
 import org.apache.bcel.classfile.ClassParser;
 import org.jgrapht.Graph;
@@ -37,8 +38,8 @@ public class StaticCallgraph {
    * @return a {@link Graph} representing the static callgraph of the combined jars
    * @throws InputMismatchException
    */
-  public static Graph<String, DefaultEdge> build(List<Pair<String, File>> jars)
-      throws InputMismatchException {
+  public static Graph<String, DefaultEdge> build(
+      List<Pair<String, File>> jars, JacocoCoverage coverage) throws InputMismatchException {
     LOGGER.info("Beginning callgraph analysis...");
 
     /* Load JAR URLs */
@@ -100,6 +101,9 @@ public class StaticCallgraph {
     /* Prune bridge methods from graph */
     Pruning.pruneBridgeMethods(graph, jarMetadata);
 
+    /* Prune dynamic calls from graph */
+    Pruning.pruneDynamicMethods(graph, jarMetadata, coverage);
+
     return graph;
   }
 
@@ -122,19 +126,17 @@ public class StaticCallgraph {
         .forEach(
             source -> {
               /* create source vertex */
-              String sourceNode = formatNode(source);
-              putIfAbsent(graph, sourceNode);
+              putIfAbsent(graph, source);
 
               methodCalls
                   .get(source)
                   .forEach(
                       destination -> {
                         /* create destination vertex */
-                        String destinationNode = formatNode(destination);
-                        putIfAbsent(graph, destinationNode);
+                        putIfAbsent(graph, destination);
 
                         /* connect every (source, destination) pair with an edge */
-                        graph.addEdge(sourceNode, destinationNode);
+                        graph.addEdge(source, destination);
                       });
             });
 

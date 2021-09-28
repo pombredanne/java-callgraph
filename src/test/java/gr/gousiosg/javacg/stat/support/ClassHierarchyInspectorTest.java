@@ -16,13 +16,13 @@ public class ClassHierarchyInspectorTest {
     inspector = new ClassHierarchyInspector();
   }
 
-  /**
-   *  B inherits "a" from A
-   */
+  /** B inherits "a" from A */
   @Test
   public void itFetchesTheTopLevelMethod() {
     Method a = HierarchyHelper.A.class.getDeclaredMethods()[0];
-    Optional<Method> maybeMethod = inspector.getTopLevelSignature(HierarchyHelper.B.class, MethodSignatureUtil.namedMethodSignature(a));
+    Optional<Method> maybeMethod =
+        inspector.getTopLevelSignature(
+            HierarchyHelper.B.class, MethodSignatureUtil.namedMethodSignature(a));
     Assert.assertTrue(maybeMethod.isPresent());
     Assert.assertEquals(a, maybeMethod.get());
   }
@@ -31,7 +31,9 @@ public class ClassHierarchyInspectorTest {
   public void itDetectsOverriddenMethodsPartOne() {
     // with its own named method signature
     Method overridden = HierarchyHelper.C.class.getDeclaredMethods()[0];
-    Optional<Method> maybeMethod = inspector.getTopLevelSignature(HierarchyHelper.C.class, MethodSignatureUtil.namedMethodSignature(overridden));
+    Optional<Method> maybeMethod =
+        inspector.getTopLevelSignature(
+            HierarchyHelper.C.class, MethodSignatureUtil.namedMethodSignature(overridden));
     Assert.assertTrue(maybeMethod.isPresent());
     Assert.assertEquals(overridden, maybeMethod.get());
   }
@@ -41,7 +43,9 @@ public class ClassHierarchyInspectorTest {
     // with the parent classes' named method signatures
     Method overridden = HierarchyHelper.C.class.getDeclaredMethods()[0];
     Method original = HierarchyHelper.A.class.getDeclaredMethods()[0];
-    Optional<Method> maybeMethod = inspector.getTopLevelSignature(HierarchyHelper.C.class, MethodSignatureUtil.namedMethodSignature(original));
+    Optional<Method> maybeMethod =
+        inspector.getTopLevelSignature(
+            HierarchyHelper.C.class, MethodSignatureUtil.namedMethodSignature(original));
     Assert.assertTrue(maybeMethod.isPresent());
     Assert.assertEquals(overridden, maybeMethod.get());
   }
