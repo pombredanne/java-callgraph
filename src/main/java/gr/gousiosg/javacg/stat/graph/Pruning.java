@@ -81,16 +81,14 @@ public class Pruning {
       Graph<String, DefaultEdge> graph, JarMetadata metadata, JacocoCoverage coverage) {
     metadata.getDynamicMethods().stream()
         .filter(
-            dynamicMethod ->
-                /*
-                 Filter out of the stream if:
-                   1. Jacoco didn't find coverage
-                   AND
-                   2. The method wasn't encountered from a static context
-                      (e.g., it wasn't present in the text of the program)
-                */
-                !coverage.containsMethod(dynamicMethod)
-                    && !metadata.staticMethodsContains(dynamicMethod))
+            dynamicMethod -> {
+              // TODO: make the jacoco requirement more strict:
+              //           1. it must exist in jacoco
+              //           2. it must have a non-zero amount of coverage
+              boolean isMissingFromJacoco = !coverage.containsMethod(dynamicMethod);
+              boolean isNotStatic = !metadata.staticMethodsContains(dynamicMethod);
+              return isMissingFromJacoco && isNotStatic;
+            })
         .forEach(graph::removeVertex);
   }
 }
