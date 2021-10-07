@@ -101,10 +101,8 @@ public class StaticCallgraph {
     Graph<String, DefaultEdge> graph = buildGraph(calls);
 
     // 3. GRAPH POSTPROCESSING
-    /* Prune bridge methods from graph */
+    Pruning.markConcreteBridgeTargets(graph, jarMetadata);
     Pruning.pruneBridgeMethods(graph, jarMetadata);
-
-    /* Prune concrete calls from graph */
     Pruning.pruneConcreteMethods(graph, jarMetadata, coverage);
 
     return graph;

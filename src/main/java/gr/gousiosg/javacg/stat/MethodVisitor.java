@@ -203,10 +203,19 @@ public class MethodVisitor extends EmptyVisitor {
     return new Pair<>(from, to);
   }
 
+  private void recordLineNumber(Node receiver) {
+    if (currentLineNumber < 0) {
+      LOGGER.error(currentLineNumber + " cannot be negative!");
+      System.exit(1);
+    }
+
+    throw new Error("TODO: record { class + line -> receiverSignature } in JarMetadata");
+  }
+
   /**
    * Contains information relating to a method of a class
    *
-   * For internal use in {@link MethodVisitor} only, this is NOT a graph vertex.
+   * <p>For internal use in {@link MethodVisitor} only, this is NOT a graph vertex.
    */
   private static class Node {
     String clazz;

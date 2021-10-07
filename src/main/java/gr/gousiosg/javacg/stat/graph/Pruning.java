@@ -8,6 +8,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
+import java.util.Set;
 
 public class Pruning {
   private static final Logger LOGGER = LoggerFactory.getLogger(Pruning.class);
@@ -76,5 +77,23 @@ public class Pruning {
     metadata.getConcreteMethods().stream()
         .filter(concreteMethod -> !coverage.hasNonzeroCoverage(concreteMethod))
         .forEach(graph::removeVertex);
+  }
+
+  /**
+   * Mark the target node of every concrete bridge method as concrete
+   *
+   * <p>If a bridge is concrete, then the bridge target should also be concrete
+   *
+   * @param graph the graph
+   * @param metadata the metadata of the graph
+   */
+  public static void markConcreteBridgeTargets(
+      Graph<String, DefaultEdge> graph, JarMetadata metadata) {
+    metadata.getBridgeMethods().stream()
+        .filter(metadata::containsConcreteMethod)
+        .map(graph::outgoingEdgesOf)
+        .flatMap(Set::stream)
+        .map(graph::getEdgeTarget)
+        .forEach(metadata::addConcreteMethod);
   }
 }
