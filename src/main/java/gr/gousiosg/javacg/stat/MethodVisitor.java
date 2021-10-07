@@ -58,10 +58,9 @@ public class MethodVisitor extends EmptyVisitor {
   private MethodGen mg;
   private ConstantPoolGen cp;
   private String format;
-  // methodCalls helps us build the (caller -> receiver) call graph
-  // TODO: maybe methodCalls should go in {@link JarMetadata}?
   private Set<Pair<String, String>> methodCalls = new HashSet<>();
   private Map<Class<?>, Set<String>> expansions = new HashMap<>();
+  private int currentLineNumber = -1;
 
   public MethodVisitor(MethodGen m, JavaClass jc, JarMetadata jarMetadata) {
     this.jarMetadata = jarMetadata;
@@ -88,7 +87,11 @@ public class MethodVisitor extends EmptyVisitor {
     for (InstructionHandle ih = mg.getInstructionList().getStart(); ih != null; ih = ih.getNext()) {
       Instruction i = ih.getInstruction();
 
-      if (!visitInstruction(i)) i.accept(this);
+      if (!visitInstruction(i)) {
+        int currentBytecodeOffset = ih.getPosition();
+        currentLineNumber = mg.getLineNumberTable(cp).getSourceLine(currentBytecodeOffset);
+        i.accept(this);
+      }
     }
     return methodCalls;
   }
