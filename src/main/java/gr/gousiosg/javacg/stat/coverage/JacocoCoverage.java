@@ -95,4 +95,32 @@ public class JacocoCoverage {
   public boolean containsMethod(String methodSignature) {
     return methodCoverage.containsKey(methodSignature);
   }
+
+  public boolean hasNonzeroCoverage(String methodSignature) {
+    if (!containsMethod(methodSignature)) {
+      return false;
+    }
+
+    Report.Package.Class.Method method = methodCoverage.get(methodSignature);
+
+    for (Report.Package.Class.Method.Counter counter : method.getCounter()) {
+      switch (counter.getType()) {
+        case JacocoCoverage.METHOD_TYPE:
+        case JacocoCoverage.LINE_TYPE:
+        case JacocoCoverage.BRANCH_TYPE:
+          {
+            if (hasNonzeroCoverage(counter)) {
+              return true;
+            }
+          }
+        default:
+      }
+    }
+
+    return false;
+  }
+
+  private boolean hasNonzeroCoverage(Report.Package.Class.Method.Counter counter) {
+    return counter.getCovered() > 0;
+  }
 }

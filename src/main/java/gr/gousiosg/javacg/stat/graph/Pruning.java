@@ -2,7 +2,6 @@ package gr.gousiosg.javacg.stat.graph;
 
 import gr.gousiosg.javacg.stat.coverage.JacocoCoverage;
 import gr.gousiosg.javacg.stat.support.JarMetadata;
-import org.apache.bcel.generic.Type;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
@@ -65,30 +64,17 @@ public class Pruning {
   }
 
   /**
-   * Remove all unused dynamic method calls that are present in the graph
+   * Remove all unused concrete method calls that are present in the graph
    *
    * <p>This technique helps us reduce the over-approximation incurred by method expansion.
-   *
-   * <p>Our criteria for pruning a call is: 1. It isn't covered by jacoco (see {@link
-   * gr.gousiosg.javacg.stat.coverage.JacocoCoverage}), 2. It didn't initiate a dynamic expansion,
-   * and 3. It was a result of dynamic expansion (e.g., it was created here: {@link
-   * gr.gousiosg.javacg.stat.MethodVisitor#expand(Class, String, Type[], Type, String)}
    *
    * @param graph the graph
    * @param metadata the metadata of the graph
    */
-  public static void pruneDynamicMethods(
+  public static void pruneConcreteMethods(
       Graph<String, DefaultEdge> graph, JarMetadata metadata, JacocoCoverage coverage) {
-    metadata.getDynamicMethods().stream()
-        .filter(
-            dynamicMethod -> {
-              // TODO: make the jacoco requirement more strict:
-              //           1. it must exist in jacoco
-              //           2. it must have a non-zero amount of coverage
-              boolean isMissingFromJacoco = !coverage.containsMethod(dynamicMethod);
-              boolean isNotStatic = !metadata.staticMethodsContains(dynamicMethod);
-              return isMissingFromJacoco && isNotStatic;
-            })
+    metadata.getConcreteMethods().stream()
+        .filter(concreteMethod -> !coverage.hasNonzeroCoverage(concreteMethod))
         .forEach(graph::removeVertex);
   }
 }

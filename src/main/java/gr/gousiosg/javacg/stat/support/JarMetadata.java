@@ -25,13 +25,13 @@ public class JarMetadata {
    * Methods that are created during {@link gr.gousiosg.javacg.stat.MethodVisitor#expand(Class,
    * String, Type[], Type, String)}
    */
-  private final Set<String> dynamicMethods = new HashSet<>();
+  private final Set<String> concreteMethods = new HashSet<>();
 
   /**
    * Methods result in a call to {@link gr.gousiosg.javacg.stat.MethodVisitor#expand(Class, String,
    * Type[], Type, String)}
    */
-  private final Set<String> staticMethods = new HashSet<>();
+  private final Set<String> virtualMethods = new HashSet<>();
 
   /**
    * Wrapper class used for reflection on class hierarchies
@@ -67,30 +67,30 @@ public class JarMetadata {
   }
 
   public void addDynamicMethod(String methodSignature) {
-    dynamicMethods.add(methodSignature);
+    concreteMethods.add(methodSignature);
   }
 
-  public void addStaticMethod(String methodSignature) {
-    staticMethods.add(methodSignature);
+  public void addVirtualMethod(String methodSignature) {
+    virtualMethods.add(methodSignature);
   }
 
-  public boolean dynamicMethodsContains(String methodSignature) {
-    return dynamicMethods.contains(methodSignature);
+  public boolean containsConcreteMethod(String methodSignature) {
+    return concreteMethods.contains(methodSignature);
   }
 
-  public boolean staticMethodsContains(String methodSignature) {
-    return staticMethods.contains(methodSignature);
+  public boolean containsVirtualMethod(String methodSignature) {
+    return virtualMethods.contains(methodSignature);
   }
 
   public Set<String> getBridgeMethods() {
     return new HashSet<>(bridgeMethods);
   }
 
-  public Set<String> getDynamicMethods() {
-    return new HashSet<>(dynamicMethods);
+  public Set<String> getConcreteMethods() {
+    return new HashSet<>(concreteMethods);
   }
 
-  public Set<String> getStaticMethods() {
-    return new HashSet<>(staticMethods);
+  public Set<String> getVirtualMethods() {
+    return new HashSet<>(virtualMethods);
   }
 }

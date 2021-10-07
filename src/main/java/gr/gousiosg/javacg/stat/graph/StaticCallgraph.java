@@ -104,8 +104,8 @@ public class StaticCallgraph {
     /* Prune bridge methods from graph */
     Pruning.pruneBridgeMethods(graph, jarMetadata);
 
-    /* Prune dynamic calls from graph */
-    Pruning.pruneDynamicMethods(graph, jarMetadata, coverage);
+    /* Prune concrete calls from graph */
+    Pruning.pruneConcreteMethods(graph, jarMetadata, coverage);
 
     return graph;
   }
