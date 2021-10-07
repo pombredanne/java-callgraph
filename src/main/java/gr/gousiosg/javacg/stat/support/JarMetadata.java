@@ -66,7 +66,7 @@ public class JarMetadata {
     bridgeMethods.add(methodSignature);
   }
 
-  public void addDynamicMethod(String methodSignature) {
+  public void addConcreteMethod(String methodSignature) {
     concreteMethods.add(methodSignature);
   }
 

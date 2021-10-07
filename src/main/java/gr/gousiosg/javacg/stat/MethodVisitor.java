@@ -59,7 +59,7 @@ public class MethodVisitor extends EmptyVisitor {
   private ConstantPoolGen cp;
   private String format;
   private Set<Pair<String, String>> methodCalls = new HashSet<>();
-  private Map<Class<?>, Set<String>> expansions = new HashMap<>();
+  private Map<Class<?>, Map<String, Set<String>>> expansions = new HashMap<>();
   private int currentLineNumber = -1;
 
   public MethodVisitor(MethodGen m, JavaClass jc, JarMetadata jarMetadata) {
@@ -129,37 +129,19 @@ public class MethodVisitor extends EmptyVisitor {
   }
 
   private void visit(InvokeInstruction i, Boolean shouldExpand) {
-    /* caller method info */
-    String callerClassType = visitedClass.getClassName();
-    String callerMethodName = mg.getName();
-    Type[] callerArgumentTypes = mg.getArgumentTypes();
-    Type callerReturnType = mg.getReturnType();
-    String callerSignature =
-        MethodSignatureUtil.fullyQualifiedMethodSignature(
-            callerClassType, callerMethodName, callerArgumentTypes, callerReturnType);
+    Node caller = new Node(mg, visitedClass);
+    Node receiver = new Node(i, cp, format);
+    methodCalls.add(createEdge(caller.signature, receiver.signature));
 
-    /* receiver method info */
-    String receiverClassType = String.format(format, i.getReferenceType(cp));
-    String receiverMethodName = i.getMethodName(cp);
-    Type[] receiverArgumentTypes = i.getArgumentTypes(cp);
-    Type receiverReturnType = i.getReturnType(cp);
-    String receiverSignature =
-        MethodSignatureUtil.fullyQualifiedMethodSignature(
-            receiverClassType, receiverMethodName, receiverArgumentTypes, receiverReturnType);
+    if (shouldExpand && !IGNORED_METHOD_NAMES.contains(receiver.method)) {
+      Optional<Class<?>> maybeReceiverType = jarMetadata.getClass(receiver.clazz);
+      Optional<Class<?>> maybeCallerType = jarMetadata.getClass(caller.clazz);
 
-    /* Record initial method call */
-    methodCalls.add(createEdge(callerSignature, receiverSignature));
-
-    if (shouldExpand && !IGNORED_METHOD_NAMES.contains(receiverMethodName)) {
-      Optional<Class<?>> maybeReceiverType = jarMetadata.getClass(receiverClassType);
       if (maybeReceiverType.isEmpty()) {
-        LOGGER.error("Couldn't find Receiver class: " + receiverClassType);
+        LOGGER.error("Couldn't find Receiver class: " + receiver.clazz);
         return;
-      }
-
-      Optional<Class<?>> maybeCallerType = jarMetadata.getClass(callerClassType);
-      if (maybeCallerType.isEmpty()) {
-        LOGGER.error("Couldn't find Caller class: " + callerClassType);
+      } else if (maybeCallerType.isEmpty()) {
+        LOGGER.error("Couldn't find Caller class: " + caller.clazz);
         return;
       }
 
@@ -169,39 +151,29 @@ public class MethodVisitor extends EmptyVisitor {
               .getTopLevelSignature(
                   maybeCallerType.get(),
                   MethodSignatureUtil.namedMethodSignature(
-                      callerMethodName, callerArgumentTypes, callerReturnType));
+                      caller.method, caller.argumentTypes, caller.returnType));
 
       if (maybeCallingMethod.isEmpty()) {
-        LOGGER.error("Couldn't find top level signature for " + callerSignature);
+        LOGGER.error("Couldn't find top level signature for " + caller.signature);
         return;
       }
 
       if (maybeCallingMethod.get().isBridge()) {
-        jarMetadata.addBridgeMethod(callerSignature);
+        jarMetadata.addBridgeMethod(caller.signature);
       } else {
-        /* Expand to all possible receiver class types */
-        jarMetadata.addVirtualMethod(receiverSignature);
-        expand(
-            maybeReceiverType.get(),
-            receiverMethodName,
-            receiverArgumentTypes,
-            receiverReturnType,
-            callerSignature);
+        jarMetadata.addVirtualMethod(receiver.signature);
+        expand(caller, receiver, maybeReceiverType.get());
       }
     }
   }
 
-  private void expand(
-      Class<?> receiverType,
-      String receiverMethodName,
-      Type[] receiverArgumentTypes,
-      Type receiverReturnType,
-      String callerSignature) {
+  private void expand(Node caller, Node receiver, Class<?> receiverType) {
     if (Object.class.equals(receiverType)) return;
 
     ClassHierarchyInspector inspector = jarMetadata.getInspector();
+    expansions.putIfAbsent(receiverType, new HashMap<>());
 
-    Set<String> exps = expansions.get(receiverType);
+    Set<String> exps = expansions.get(receiverType).get(receiver.method);
     if (exps == null) {
       LOGGER.info("\tExpanding to subtypes of " + receiverType.getName());
       exps =
@@ -211,23 +183,56 @@ public class MethodVisitor extends EmptyVisitor {
                       inspector.getTopLevelSignature(
                           subtype,
                           MethodSignatureUtil.namedMethodSignature(
-                              receiverMethodName, receiverArgumentTypes, receiverReturnType)))
+                              receiver.method, receiver.argumentTypes, receiver.returnType)))
               .flatMap(Optional::stream) // Remove empty optionals
               .map(MethodSignatureUtil::fullyQualifiedMethodSignature)
               .collect(Collectors.toSet());
 
-      expansions.put(receiverType, exps);
+      expansions.get(receiverType).put(receiver.method, exps);
     }
 
     /* Record expanded method call */
     exps.forEach(
-        subtypeCallerSignature -> {
-          methodCalls.add(createEdge(callerSignature, subtypeCallerSignature));
-          jarMetadata.addDynamicMethod(subtypeCallerSignature);
+        expansionSignature -> {
+          methodCalls.add(createEdge(caller.signature, expansionSignature));
+          jarMetadata.addConcreteMethod(expansionSignature);
         });
   }
 
   public Pair<String, String> createEdge(String from, String to) {
     return new Pair<>(from, to);
+  }
+
+  /**
+   * Contains information relating to a method of a class
+   *
+   * For internal use in {@link MethodVisitor} only, this is NOT a graph vertex.
+   */
+  private static class Node {
+    String clazz;
+    String method;
+    Type[] argumentTypes;
+    Type returnType;
+    String signature;
+
+    private Node(MethodGen mg, JavaClass visitedClass) {
+      this.clazz = visitedClass.getClassName();
+      this.method = mg.getName();
+      this.argumentTypes = mg.getArgumentTypes();
+      this.returnType = mg.getReturnType();
+      this.signature =
+          MethodSignatureUtil.fullyQualifiedMethodSignature(
+              clazz, method, argumentTypes, returnType);
+    }
+
+    private Node(InvokeInstruction i, ConstantPoolGen cp, String format) {
+      this.clazz = String.format(format, i.getReferenceType(cp));
+      this.method = i.getMethodName(cp);
+      this.argumentTypes = i.getArgumentTypes(cp);
+      this.returnType = i.getReturnType(cp);
+      this.signature =
+          MethodSignatureUtil.fullyQualifiedMethodSignature(
+              clazz, method, argumentTypes, returnType);
+    }
   }
 }
