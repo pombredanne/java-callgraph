@@ -74,27 +74,9 @@ public class JCallGraph {
       JacocoCoverage jacocoCoverage = new JacocoCoverage(arguments.maybeCoverage());
       Graph<String, DefaultEdge> graph = StaticCallgraph.build(arguments.getJars(), jacocoCoverage);
 
-      /* Should we store the graph in a file? */
-      if (arguments.maybeOutput().isPresent()) {
-        Utilities.writeGraph(
-            graph, Utilities.defaultExporter(), arguments.maybeOutput().map(JCallGraph::asDot));
-      }
-
-      /* Should we compute reachability from the entry point? */
-      if (arguments.maybeEntryPoint().isPresent()) {
-        inspectReachability(graph, arguments, jacocoCoverage, arguments.maybeEntryPoint().get());
-      }
-
-      /* Should we compute ancestry from the entry point? */
-      if (arguments.maybeAncestry().isPresent()) {
-        inspectAncestry(
-            graph,
-            arguments,
-            jacocoCoverage,
-            arguments.maybeEntryPoint().get(),
-            arguments.maybeAncestry().get());
-      }
-
+      maybeWriteGraph(graph, arguments);
+      maybeInspectReachability(graph, arguments, jacocoCoverage);
+      maybeInspectAncestry(graph, arguments, jacocoCoverage);
     } catch (InputMismatchException e) {
       LOGGER.error("Unable to load callgraph: " + e.getMessage());
       System.exit(1);
@@ -106,14 +88,31 @@ public class JCallGraph {
     LOGGER.info("java-cg is finished! Enjoy!");
   }
 
-  public static void inspectReachability(
-      Graph<String, DefaultEdge> graph,
-      Arguments arguments,
-      JacocoCoverage jacocoCoverage,
-      String entryPoint) {
+  /**
+   * @param graph
+   * @param arguments
+   */
+  private static void maybeWriteGraph(Graph<String, DefaultEdge> graph, Arguments arguments) {
+    if (arguments.maybeOutput().isPresent()) {
+      Utilities.writeGraph(
+          graph, Utilities.defaultExporter(), arguments.maybeOutput().map(JCallGraph::asDot));
+    }
+  }
+
+  /**
+   * @param graph
+   * @param arguments
+   * @param jacocoCoverage
+   */
+  private static void maybeInspectReachability(
+      Graph<String, DefaultEdge> graph, Arguments arguments, JacocoCoverage jacocoCoverage) {
+    if (arguments.maybeEntryPoint().isEmpty()) {
+      return;
+    }
+
     /* Fetch reachability */
     Graph<ColoredNode, DefaultEdge> reachability =
-        Reachability.compute(graph, entryPoint, arguments.maybeDepth());
+        Reachability.compute(graph, arguments.maybeEntryPoint().get(), arguments.maybeDepth());
 
     /* Apply coverage */
     jacocoCoverage.applyCoverage(reachability);
@@ -148,19 +147,29 @@ public class JCallGraph {
     }
   }
 
-  public static void inspectAncestry(
-      Graph<String, DefaultEdge> graph,
-      Arguments arguments,
-      JacocoCoverage jacocoCoverage,
-      String entryPoint,
-      int ancestryDepth) {
-    Graph<ColoredNode, DefaultEdge> ancestry = Ancestry.compute(graph, entryPoint, ancestryDepth);
+  /**
+   * @param graph
+   * @param arguments
+   * @param jacocoCoverage
+   */
+  private static void maybeInspectAncestry(
+      Graph<String, DefaultEdge> graph, Arguments arguments, JacocoCoverage jacocoCoverage) {
+    if (arguments.maybeAncestry().isEmpty() || arguments.maybeEntryPoint().isEmpty()) {
+      return;
+    }
+
+    Graph<ColoredNode, DefaultEdge> ancestry =
+        Ancestry.compute(graph, arguments.maybeEntryPoint().get(), arguments.maybeAncestry().get());
     jacocoCoverage.applyCoverage(ancestry);
 
     /* Should we store the ancestry in a file? */
     if (arguments.maybeOutput().isPresent()) {
       String subgraphOutputName =
-          arguments.maybeOutput().get() + DELIMITER + ANCESTRY + DELIMITER + ancestryDepth;
+          arguments.maybeOutput().get()
+              + DELIMITER
+              + ANCESTRY
+              + DELIMITER
+              + arguments.maybeAncestry().get();
       Utilities.writeGraph(
           ancestry, Utilities.coloredExporter(), Optional.of(asDot(subgraphOutputName)));
     }
