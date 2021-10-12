@@ -134,9 +134,11 @@ public class MethodVisitor extends EmptyVisitor {
     methodCalls.add(createEdge(caller.signature, receiver.signature));
 
     // save the line number and method call
-    String key = filenameAndLineNumber(visitedClass.getSourceFileName(), currentLineNumber);
-    jarMetadata.impliedMethodCalls.putIfAbsent(key, new HashSet<>());
-    jarMetadata.impliedMethodCalls.get(key).add(receiver.signature);
+    jarMetadata.impliedMethodCalls.putIfAbsent(receiver.signature, new HashSet<>());
+    jarMetadata
+        .impliedMethodCalls
+        .get(receiver.signature)
+        .add(filenameAndLineNumber(visitedClass.getSourceFileName(), currentLineNumber));
 
     // decide if we should look at a potential expansion
     if (shouldExpand && !IGNORED_METHOD_NAMES.contains(receiver.method)) {

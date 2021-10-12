@@ -35,7 +35,7 @@ public class JarMetadata {
    * Keeps track of the line numbers at which a method call occurs. This is combined with Jacoco
    * line number coverage.
    *
-   * <p>(File:LineNumber -> Set(MethodSignature))
+   * <p>(MethodSignature -> Set(File:LineNumber))
    */
   public final Map<String, Set<String>> impliedMethodCalls = new HashMap<>();
 
