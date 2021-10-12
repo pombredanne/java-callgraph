@@ -33,7 +33,6 @@ import gr.gousiosg.javacg.stat.coverage.CoverageStatistics;
 import gr.gousiosg.javacg.stat.coverage.JacocoCoverage;
 import gr.gousiosg.javacg.stat.graph.*;
 import gr.gousiosg.javacg.stat.support.Arguments;
-import gr.gousiosg.javacg.stat.support.JarMetadata;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
@@ -91,10 +90,6 @@ public class JCallGraph {
     }
 
     LOGGER.info("java-cg is finished! Enjoy!");
-  }
-
-  private static void pruneGraph(Graph<String, DefaultEdge> graph, JarMetadata metadata, JacocoCoverage coverage) {
-
   }
 
   private static void maybeWriteGraph(Graph<String, DefaultEdge> graph, Arguments arguments) {
