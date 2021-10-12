@@ -14,13 +14,25 @@ public class Pruning {
   private static final Logger LOGGER = LoggerFactory.getLogger(Pruning.class);
 
   /**
+   * Wrapper method to call {@link Pruning} methods
+   *
+   * @param callgraph the graph
+   * @param coverage the coverage
+   */
+  public static void prune(StaticCallgraph callgraph, JacocoCoverage coverage) {
+    markConcreteBridgeTargets(callgraph.graph, callgraph.metadata);
+    pruneBridgeMethods(callgraph.graph, callgraph.metadata);
+    pruneConcreteMethods(callgraph.graph, callgraph.metadata, coverage);
+  }
+
+  /**
    * Remove all bridge / synthetic methods that were created during type erasure See
    * https://docs.oracle.com/javase/tutorial/java/generics/bridgeMethods.html for more information.
    *
    * @param graph the graph
    * @param metadata the metadata of the graph
    */
-  public static void pruneBridgeMethods(Graph<String, DefaultEdge> graph, JarMetadata metadata) {
+  private static void pruneBridgeMethods(Graph<String, DefaultEdge> graph, JarMetadata metadata) {
     metadata
         .getBridgeMethods()
         .forEach(
@@ -72,7 +84,7 @@ public class Pruning {
    * @param graph the graph
    * @param metadata the metadata of the graph
    */
-  public static void pruneConcreteMethods(
+  private static void pruneConcreteMethods(
       Graph<String, DefaultEdge> graph, JarMetadata metadata, JacocoCoverage coverage) {
     metadata.getConcreteMethods().stream()
         .filter(concreteMethod -> !coverage.hasNonzeroCoverage(concreteMethod))
@@ -87,7 +99,7 @@ public class Pruning {
    * @param graph the graph
    * @param metadata the metadata of the graph
    */
-  public static void markConcreteBridgeTargets(
+  private static void markConcreteBridgeTargets(
       Graph<String, DefaultEdge> graph, JarMetadata metadata) {
     metadata.getBridgeMethods().stream()
         .filter(metadata::containsConcreteMethod)

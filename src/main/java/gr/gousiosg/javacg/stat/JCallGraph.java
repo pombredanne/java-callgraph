@@ -31,11 +31,9 @@ package gr.gousiosg.javacg.stat;
 import gr.gousiosg.javacg.stat.coverage.ColoredNode;
 import gr.gousiosg.javacg.stat.coverage.CoverageStatistics;
 import gr.gousiosg.javacg.stat.coverage.JacocoCoverage;
-import gr.gousiosg.javacg.stat.graph.Ancestry;
-import gr.gousiosg.javacg.stat.graph.Reachability;
-import gr.gousiosg.javacg.stat.graph.StaticCallgraph;
-import gr.gousiosg.javacg.stat.graph.Utilities;
+import gr.gousiosg.javacg.stat.graph.*;
 import gr.gousiosg.javacg.stat.support.Arguments;
+import gr.gousiosg.javacg.stat.support.JarMetadata;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
@@ -71,12 +69,19 @@ public class JCallGraph {
       LOGGER.info("Starting java-cg!");
       Arguments arguments = new Arguments(args);
 
-      JacocoCoverage jacocoCoverage = new JacocoCoverage(arguments.maybeCoverage());
-      Graph<String, DefaultEdge> graph = StaticCallgraph.build(arguments.getJars(), jacocoCoverage);
+      // 1. Build the graph
+      StaticCallgraph callgraph = StaticCallgraph.build(arguments.getJars());
 
-      maybeWriteGraph(graph, arguments);
-      maybeInspectReachability(graph, arguments, jacocoCoverage);
-      maybeInspectAncestry(graph, arguments, jacocoCoverage);
+      // 2. Get coverage
+      JacocoCoverage jacocoCoverage = new JacocoCoverage(arguments.maybeCoverage());
+
+      // 3. Prune the graph with coverage
+      Pruning.prune(callgraph, jacocoCoverage);
+
+      // 4. Operate on the graph and write it to output
+      maybeWriteGraph(callgraph.graph, arguments);
+      maybeInspectReachability(callgraph.graph, arguments, jacocoCoverage);
+      maybeInspectAncestry(callgraph.graph, arguments, jacocoCoverage);
     } catch (InputMismatchException e) {
       LOGGER.error("Unable to load callgraph: " + e.getMessage());
       System.exit(1);
@@ -88,10 +93,10 @@ public class JCallGraph {
     LOGGER.info("java-cg is finished! Enjoy!");
   }
 
-  /**
-   * @param graph
-   * @param arguments
-   */
+  private static void pruneGraph(Graph<String, DefaultEdge> graph, JarMetadata metadata, JacocoCoverage coverage) {
+
+  }
+
   private static void maybeWriteGraph(Graph<String, DefaultEdge> graph, Arguments arguments) {
     if (arguments.maybeOutput().isPresent()) {
       Utilities.writeGraph(
@@ -99,11 +104,6 @@ public class JCallGraph {
     }
   }
 
-  /**
-   * @param graph
-   * @param arguments
-   * @param jacocoCoverage
-   */
   private static void maybeInspectReachability(
       Graph<String, DefaultEdge> graph, Arguments arguments, JacocoCoverage jacocoCoverage) {
     if (arguments.maybeEntryPoint().isEmpty()) {
@@ -147,11 +147,6 @@ public class JCallGraph {
     }
   }
 
-  /**
-   * @param graph
-   * @param arguments
-   * @param jacocoCoverage
-   */
   private static void maybeInspectAncestry(
       Graph<String, DefaultEdge> graph, Arguments arguments, JacocoCoverage jacocoCoverage) {
     if (arguments.maybeAncestry().isEmpty() || arguments.maybeEntryPoint().isEmpty()) {

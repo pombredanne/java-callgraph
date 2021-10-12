@@ -2,7 +2,6 @@ package gr.gousiosg.javacg.stat.graph;
 
 import gr.gousiosg.javacg.dyn.Pair;
 import gr.gousiosg.javacg.stat.ClassVisitor;
-import gr.gousiosg.javacg.stat.coverage.JacocoCoverage;
 import gr.gousiosg.javacg.stat.support.JarMetadata;
 import org.apache.bcel.classfile.ClassParser;
 import org.jgrapht.Graph;
@@ -31,6 +30,14 @@ public class StaticCallgraph {
 
   private static final Logger LOGGER = LoggerFactory.getLogger(StaticCallgraph.class);
 
+  public JarMetadata metadata;
+  public Graph<String, DefaultEdge> graph;
+
+  private StaticCallgraph(Graph<String, DefaultEdge> graph, JarMetadata jarMetadata) {
+    this.graph = graph;
+    this.metadata = jarMetadata;
+  }
+
   /**
    * Builds a static callgraph from the provided jars
    *
@@ -38,8 +45,7 @@ public class StaticCallgraph {
    * @return a {@link Graph} representing the static callgraph of the combined jars
    * @throws InputMismatchException
    */
-  public static Graph<String, DefaultEdge> build(
-      List<Pair<String, File>> jars, JacocoCoverage coverage) throws InputMismatchException {
+  public static StaticCallgraph build(List<Pair<String, File>> jars) throws InputMismatchException {
     LOGGER.info("Beginning callgraph analysis...");
 
     // 1. SETTING UP FOR GRAPH INSPECTION
@@ -99,13 +105,7 @@ public class StaticCallgraph {
 
     /* Convert calls into a graph */
     Graph<String, DefaultEdge> graph = buildGraph(calls);
-
-    // 3. GRAPH POSTPROCESSING
-    Pruning.markConcreteBridgeTargets(graph, jarMetadata);
-    Pruning.pruneBridgeMethods(graph, jarMetadata);
-    Pruning.pruneConcreteMethods(graph, jarMetadata, coverage);
-
-    return graph;
+    return new StaticCallgraph(graph, jarMetadata);
   }
 
   /**
