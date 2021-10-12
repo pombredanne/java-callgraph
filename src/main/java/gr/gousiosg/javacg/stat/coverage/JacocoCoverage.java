@@ -1,5 +1,6 @@
 package gr.gousiosg.javacg.stat.coverage;
 
+import gr.gousiosg.javacg.stat.support.JarMetadata;
 import gr.gousiosg.javacg.stat.support.MethodSignatureUtil;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
@@ -23,7 +24,7 @@ public class JacocoCoverage {
   private boolean hasCoverage = false;
 
   private Map<String, Report.Package.Class.Method> methodCoverage = new HashMap<>();
-
+  private Set<String> coveredLines = new HashSet<>();
   /**
    * Create a {@link JacocoCoverage} object
    *
@@ -40,26 +41,41 @@ public class JacocoCoverage {
       for (Report.Package pkg : report.getPackage()) {
 
         /* Iterate over all classes in a package */
-        for (Report.Package.Class clazz : pkg.getClazz()) {
+        pkg.getClazz()
+            .forEach(
+                clazz -> {
+                  /* Find all methods in a class */
+                  List<Report.Package.Class.Method> methods =
+                      clazz.getContent().stream()
+                          .filter(s -> s instanceof JAXBElement)
+                          .map(s -> (JAXBElement<?>) s)
+                          .filter(je -> je.getValue() instanceof Report.Package.Class.Method)
+                          .map(je -> (Report.Package.Class.Method) je.getValue())
+                          .collect(Collectors.toList());
 
-          /* Find all methods in a class */
-          List<Report.Package.Class.Method> methods =
-              clazz.getContent().stream()
-                  .filter(s -> s instanceof JAXBElement)
-                  .map(s -> (JAXBElement<?>) s)
-                  .filter(je -> je.getValue() instanceof Report.Package.Class.Method)
-                  .map(je -> (Report.Package.Class.Method) je.getValue())
-                  .collect(Collectors.toList());
+                  /* Store "covered" methods in methodCoverage */
+                  methods.forEach(
+                      method -> {
+                        String qualifiedName =
+                            MethodSignatureUtil.fullyQualifiedMethodSignature(
+                                clazz.getName(), method.getName(), method.getDesc());
+                        methodCoverage.putIfAbsent(qualifiedName, method);
+                      });
+                });
 
-          /* Store "covered" methods in methodCoverage */
-          methods.forEach(
-              method -> {
-                String qualifiedName =
-                    MethodSignatureUtil.fullyQualifiedMethodSignature(
-                        clazz.getName(), method.getName(), method.getDesc());
-                methodCoverage.putIfAbsent(qualifiedName, method);
-              });
-        }
+        /* Iterate over all source files in a package */
+        pkg.getSourcefile()
+            .forEach(
+                rawSrcFile ->
+                    rawSrcFile.getContent().stream()
+                        .filter(s -> s instanceof JAXBElement)
+                        .map(s -> (JAXBElement<?>) s)
+                        .filter(je -> je.getValue() instanceof Report.Package.Sourcefile.Line)
+                        .map(je -> (Report.Package.Sourcefile.Line) je.getValue())
+                        .forEach(
+                            line ->
+                                coveredLines.add(
+                                    String.format("%s:%d", rawSrcFile.getName(), line.nr))));
       }
 
       /* Indicate that coverage has been applied */
@@ -71,19 +87,36 @@ public class JacocoCoverage {
     return nodes.stream().collect(Collectors.toMap(ColoredNode::getLabel, node -> node));
   }
 
-  public void applyCoverage(Graph<ColoredNode, DefaultEdge> graph) {
+  public void applyCoverage(Graph<ColoredNode, DefaultEdge> graph, JarMetadata metadata) {
     LOGGER.info("Applying coverage!");
     Map<String, ColoredNode> nodeMap = nodeMap(graph.vertexSet());
     nodeMap
         .keySet()
         .forEach(
-            node -> {
-              if (methodCoverage.containsKey(node)) {
-                Report.Package.Class.Method m = methodCoverage.get(node);
-                nodeMap.get(node).mark(m);
+            method -> {
+              if (methodCoverage.containsKey(method)) {
+                Report.Package.Class.Method m = methodCoverage.get(method);
+                nodeMap.get(method).mark(m);
               } else {
-                LOGGER.warn("Couldn't find coverage for " + node);
-                nodeMap.get(node).markMissing();
+                // didn't find it in methodCoverage? let's see if there is implied coverage...
+
+                Set<String> impliedCalls = metadata.impliedMethodCalls.get(method);
+                if (impliedCalls == null) {
+                  LOGGER.warn("Couldn't find coverage for " + method);
+                  nodeMap.get(method).markMissing();
+                  return;
+                }
+
+                boolean impliedCoverage =
+                    impliedCalls.stream()
+                        .anyMatch(fileAndLine -> coveredLines.contains(fileAndLine));
+
+                if (impliedCoverage) {
+                  nodeMap.get(method).markImpliedCoverage();
+                } else {
+                  LOGGER.warn("Couldn't find coverage for " + method);
+                  nodeMap.get(method).markMissing();
+                }
               }
             });
   }

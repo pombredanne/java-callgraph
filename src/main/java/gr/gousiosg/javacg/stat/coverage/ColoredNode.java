@@ -3,6 +3,7 @@ package gr.gousiosg.javacg.stat.coverage;
 public class ColoredNode {
 
   /* Colors */
+  private static final String IMPLIED_COVERAGE_COLOR = "skyblue";
   private static final String LIGHT_GREEN = "greenyellow";
   private static final String MEDIUM_GREEN = "green1";
   private static final String MEDIUM_DARK_GREEN = "green3";
@@ -71,6 +72,11 @@ public class ColoredNode {
         this.color = FIREBRICK;
       }
     }
+  }
+
+  public void markImpliedCoverage() {
+    this.covered = true;
+    this.color = IMPLIED_COVERAGE_COLOR;
   }
 
   public void markMissing() {
