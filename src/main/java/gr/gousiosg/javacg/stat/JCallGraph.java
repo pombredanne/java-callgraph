@@ -79,8 +79,8 @@ public class JCallGraph {
 
       // 4. Operate on the graph and write it to output
       maybeWriteGraph(callgraph.graph, arguments);
-      maybeInspectReachability(callgraph.graph, arguments, jacocoCoverage);
-      maybeInspectAncestry(callgraph.graph, arguments, jacocoCoverage);
+      maybeInspectReachability(callgraph, arguments, jacocoCoverage);
+      maybeInspectAncestry(callgraph, arguments, jacocoCoverage);
     } catch (InputMismatchException e) {
       LOGGER.error("Unable to load callgraph: " + e.getMessage());
       System.exit(1);
@@ -100,17 +100,18 @@ public class JCallGraph {
   }
 
   private static void maybeInspectReachability(
-      Graph<String, DefaultEdge> graph, Arguments arguments, JacocoCoverage jacocoCoverage) {
+      StaticCallgraph callgraph, Arguments arguments, JacocoCoverage jacocoCoverage) {
     if (arguments.maybeEntryPoint().isEmpty()) {
       return;
     }
 
     /* Fetch reachability */
     Graph<ColoredNode, DefaultEdge> reachability =
-        Reachability.compute(graph, arguments.maybeEntryPoint().get(), arguments.maybeDepth());
+        Reachability.compute(
+            callgraph.graph, arguments.maybeEntryPoint().get(), arguments.maybeDepth());
 
     /* Apply coverage */
-    jacocoCoverage.applyCoverage(reachability);
+    jacocoCoverage.applyCoverage(reachability, callgraph.metadata);
 
     /* Should we write the graph to a file? */
     Optional<String> outputName =
@@ -143,14 +144,15 @@ public class JCallGraph {
   }
 
   private static void maybeInspectAncestry(
-      Graph<String, DefaultEdge> graph, Arguments arguments, JacocoCoverage jacocoCoverage) {
+      StaticCallgraph callgraph, Arguments arguments, JacocoCoverage jacocoCoverage) {
     if (arguments.maybeAncestry().isEmpty() || arguments.maybeEntryPoint().isEmpty()) {
       return;
     }
 
     Graph<ColoredNode, DefaultEdge> ancestry =
-        Ancestry.compute(graph, arguments.maybeEntryPoint().get(), arguments.maybeAncestry().get());
-    jacocoCoverage.applyCoverage(ancestry);
+        Ancestry.compute(
+            callgraph.graph, arguments.maybeEntryPoint().get(), arguments.maybeAncestry().get());
+    jacocoCoverage.applyCoverage(ancestry, callgraph.metadata);
 
     /* Should we store the ancestry in a file? */
     if (arguments.maybeOutput().isPresent()) {
