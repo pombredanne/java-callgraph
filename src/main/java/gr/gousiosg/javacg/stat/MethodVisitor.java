@@ -133,7 +133,15 @@ public class MethodVisitor extends EmptyVisitor {
     Node receiver = new Node(i, cp, format);
     methodCalls.add(createEdge(caller.signature, receiver.signature));
 
+    // save the line number and method call
+    String key = filenameAndLineNumber(visitedClass.getSourceFileName(), currentLineNumber);
+    jarMetadata.impliedMethodCalls.putIfAbsent(key, new HashSet<>());
+    jarMetadata.impliedMethodCalls.get(key).add(receiver.signature);
+
+    // decide if we should look at a potential expansion
     if (shouldExpand && !IGNORED_METHOD_NAMES.contains(receiver.method)) {
+
+      // get the class types
       Optional<Class<?>> maybeReceiverType = jarMetadata.getClass(receiver.clazz);
       Optional<Class<?>> maybeCallerType = jarMetadata.getClass(caller.clazz);
 
@@ -145,6 +153,7 @@ public class MethodVisitor extends EmptyVisitor {
         return;
       }
 
+      // find the method that initiated a call to another method
       Optional<Method> maybeCallingMethod =
           jarMetadata
               .getInspector()
@@ -159,8 +168,10 @@ public class MethodVisitor extends EmptyVisitor {
       }
 
       if (maybeCallingMethod.get().isBridge()) {
+        // skip the expansion if it's a bridge method
         jarMetadata.addBridgeMethod(caller.signature);
       } else {
+        // record the virtual method and expand it to subtypes
         jarMetadata.addVirtualMethod(receiver.signature);
         expand(caller, receiver, maybeReceiverType.get());
       }
@@ -243,5 +254,9 @@ public class MethodVisitor extends EmptyVisitor {
           MethodSignatureUtil.fullyQualifiedMethodSignature(
               clazz, method, argumentTypes, returnType);
     }
+  }
+
+  private String filenameAndLineNumber(String filename, int lineNumber) {
+    return String.format("%s:%d", filename, lineNumber);
   }
 }

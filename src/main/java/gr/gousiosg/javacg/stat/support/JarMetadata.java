@@ -6,9 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.net.URLClassLoader;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 
 public class JarMetadata {
 
@@ -32,6 +30,14 @@ public class JarMetadata {
    * Type[], Type, String)}
    */
   private final Set<String> virtualMethods = new HashSet<>();
+
+  /**
+   * Keeps track of the line numbers at which a method call occurs. This is combined with Jacoco
+   * line number coverage.
+   *
+   * <p>(File:LineNumber -> Set(MethodSignature))
+   */
+  public final Map<String, Set<String>> impliedMethodCalls = new HashMap<>();
 
   /**
    * Wrapper class used for reflection on class hierarchies
