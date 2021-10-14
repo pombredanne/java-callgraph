@@ -5,7 +5,6 @@ import gr.gousiosg.javacg.stat.ClassVisitor;
 import gr.gousiosg.javacg.stat.support.JarMetadata;
 import org.apache.bcel.classfile.ClassParser;
 import org.jgrapht.Graph;
-import org.jgrapht.graph.DefaultDirectedGraph;
 import org.jgrapht.graph.DefaultEdge;
 import org.reflections.Reflections;
 import org.reflections.scanners.SubTypesScanner;
@@ -14,6 +13,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.Serializable;
 import java.io.UncheckedIOException;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -26,15 +26,15 @@ import java.util.stream.Stream;
 
 import static gr.gousiosg.javacg.stat.graph.Utilities.*;
 
-public class StaticCallgraph {
+public class StaticCallgraph implements Serializable {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(StaticCallgraph.class);
+  private static transient final Logger LOGGER = LoggerFactory.getLogger(StaticCallgraph.class);
 
   public JarMetadata metadata;
-  public Graph<String, DefaultEdge> graph;
+  public SerializableDefaultDirectedGraph<String, DefaultEdge> graph;
 
   private StaticCallgraph(Graph<String, DefaultEdge> graph, JarMetadata jarMetadata) {
-    this.graph = graph;
+    this.graph = (SerializableDefaultDirectedGraph<String, DefaultEdge>) graph;
     this.metadata = jarMetadata;
   }
 
@@ -68,7 +68,7 @@ public class StaticCallgraph {
 
     /* Setup infrastructure for analysis */
     URLClassLoader cl =
-        URLClassLoader.newInstance(urls.toArray(new URL[0]), Utilities.class.getClassLoader());
+            URLClassLoader.newInstance(urls.toArray(new URL[0]), Utilities.class.getClassLoader());
     Reflections reflections = new Reflections(cl, new SubTypesScanner(false));
     JarMetadata jarMetadata = new JarMetadata(cl, reflections);
 
@@ -121,7 +121,7 @@ public class StaticCallgraph {
       throw new InputMismatchException("There is no call graph to look at!");
     }
 
-    Graph<String, DefaultEdge> graph = new DefaultDirectedGraph<>(DefaultEdge.class);
+    Graph<String, DefaultEdge> graph = new SerializableDefaultDirectedGraph<>(DefaultEdge.class);
     methodCalls
         .keySet()
         .forEach(

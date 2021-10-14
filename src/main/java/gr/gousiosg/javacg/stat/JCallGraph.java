@@ -41,7 +41,7 @@ import org.xml.sax.SAXException;
 
 import javax.xml.bind.JAXBException;
 import javax.xml.parsers.ParserConfigurationException;
-import java.io.IOException;
+import java.io.*;
 import java.util.InputMismatchException;
 import java.util.Optional;
 
@@ -51,6 +51,7 @@ import java.util.Optional;
  *
  * @author Georgios Gousios <gousiosg@gmail.com>
  * @author Will Cygan <wcygan3232@gmail.com>
+ * @author Alekh Meka <alekhmeka@gmail.com>
  */
 public class JCallGraph {
 
@@ -68,9 +69,17 @@ public class JCallGraph {
       LOGGER.info("Starting java-cg!");
       Arguments arguments = new Arguments(args);
 
-      // 1. Build the graph
-      StaticCallgraph callgraph = StaticCallgraph.build(arguments.getJars());
-
+      // 1. Deserialize existing file into StaticCallGraph object OR build the graph and serialize state into a file
+      StaticCallgraph callgraph = deserializeStaticCallGraph(new File("scg.txt"));
+//      StaticCallgraph callgraph = StaticCallgraph.build(arguments.getJars());
+//      try {
+//        serializeStaticCallGraph(callgraph, "scg.txt");
+//      }
+//      catch(IOException e){
+//        LOGGER.error("Obtained IOException during serialization!");
+//        LOGGER.error(e.getMessage());
+//        System.exit(1);
+//      }
       // 2. Get coverage
       JacocoCoverage jacocoCoverage = new JacocoCoverage(arguments.maybeCoverage());
 
@@ -86,6 +95,9 @@ public class JCallGraph {
       System.exit(1);
     } catch (ParserConfigurationException | SAXException | JAXBException | IOException e) {
       LOGGER.error("Error fetching Jacoco coverage");
+      System.exit(1);
+    } catch(ClassNotFoundException e){
+      LOGGER.error("Error creating class through deserialization!");
       System.exit(1);
     }
 
@@ -171,5 +183,29 @@ public class JCallGraph {
 
   private static String asCsv(String name) {
     return name.endsWith(CSV_SUFFIX) ? name : (name + CSV_SUFFIX);
+  }
+
+  //
+  // serializeStaticCallGraph creates a file that contains the bytecode data of the StaticCallgraph object
+  // Throws: IOException when the file cannot be written to disk
+  private static void serializeStaticCallGraph(StaticCallgraph callgraph, String filename) throws IOException{
+    FileOutputStream file = new FileOutputStream(filename);
+    ObjectOutputStream out = new ObjectOutputStream(file);
+    out.writeObject(callgraph);
+    out.close();
+    file.close();
+  }
+
+  //
+  // deserializeStaticCallGraph reads bytecode and creates a StaticCallgraph object to be returned
+  // Throws: IOException when file isn't found
+  // Throws: ClassNotFoundException when object cannot be read properly
+  private static StaticCallgraph deserializeStaticCallGraph(File filename) throws IOException, ClassNotFoundException{
+    FileInputStream file = new FileInputStream(filename);
+    ObjectInputStream ois = new ObjectInputStream(file);
+    StaticCallgraph scg = (StaticCallgraph)ois.readObject();
+    ois.close();
+    file.close();
+    return scg;
   }
 }
