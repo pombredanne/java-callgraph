@@ -33,6 +33,8 @@ import gr.gousiosg.javacg.stat.coverage.CoverageStatistics;
 import gr.gousiosg.javacg.stat.coverage.JacocoCoverage;
 import gr.gousiosg.javacg.stat.graph.*;
 import gr.gousiosg.javacg.stat.support.Arguments;
+import gr.gousiosg.javacg.stat.support.BuildArguments;
+import gr.gousiosg.javacg.stat.support.TestArguments;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
@@ -67,29 +69,32 @@ public class JCallGraph {
   public static void main(String[] args) {
     try {
       LOGGER.info("Starting java-cg!");
-      Arguments arguments = new Arguments(args);
-
-      // 1. Deserialize existing file into StaticCallGraph object OR build the graph and serialize state into a file
-      StaticCallgraph callgraph = deserializeStaticCallGraph(new File("scg.txt"));
-//      StaticCallgraph callgraph = StaticCallgraph.build(arguments.getJars());
-//      try {
-//        serializeStaticCallGraph(callgraph, "scg.txt");
-//      }
-//      catch(IOException e){
-//        LOGGER.error("Obtained IOException during serialization!");
-//        LOGGER.error(e.getMessage());
-//        System.exit(1);
-//      }
-      // 2. Get coverage
-      JacocoCoverage jacocoCoverage = new JacocoCoverage(arguments.maybeCoverage());
-
-      // 3. Prune the graph with coverage
-      Pruning.prune(callgraph, jacocoCoverage);
-
-      // 4. Operate on the graph and write it to output
-      maybeWriteGraph(callgraph.graph, arguments);
-      maybeInspectReachability(callgraph, arguments, jacocoCoverage);
-      maybeInspectAncestry(callgraph, arguments, jacocoCoverage);
+      switch(args[0]){
+        case "build": {
+          // Build and serialize a staticcallgraph object with jar files provided
+          BuildArguments arguments = new BuildArguments(args);
+          StaticCallgraph callgraph = StaticCallgraph.build(arguments.getJars());
+          maybeSerializeStaticCallGraph(callgraph, arguments);
+          break;
+        }
+        case "test": {
+          // 1. Deserialize callgraph
+          TestArguments arguments = new TestArguments(args);
+          StaticCallgraph callgraph = deserializeStaticCallGraph(arguments);
+          // 2. Get coverage
+          JacocoCoverage jacocoCoverage = new JacocoCoverage(arguments.maybeCoverage());
+          // 3. Prune the graph with coverage
+          Pruning.prune(callgraph, jacocoCoverage);
+          // 4. Operate on the graph and write it to output
+          maybeWriteGraph(callgraph.graph, arguments);
+          maybeInspectReachability(callgraph, arguments, jacocoCoverage);
+          maybeInspectAncestry(callgraph, arguments, jacocoCoverage);
+          break;
+        }
+        default:
+          LOGGER.error("Invalid argument provided!");
+          System.exit(1);
+      }
     } catch (InputMismatchException e) {
       LOGGER.error("Unable to load callgraph: " + e.getMessage());
       System.exit(1);
@@ -104,7 +109,7 @@ public class JCallGraph {
     LOGGER.info("java-cg is finished! Enjoy!");
   }
 
-  private static void maybeWriteGraph(Graph<String, DefaultEdge> graph, Arguments arguments) {
+  private static void maybeWriteGraph(Graph<String, DefaultEdge> graph, TestArguments arguments) {
     if (arguments.maybeOutput().isPresent()) {
       Utilities.writeGraph(
           graph, Utilities.defaultExporter(), arguments.maybeOutput().map(JCallGraph::asDot));
@@ -112,7 +117,7 @@ public class JCallGraph {
   }
 
   private static void maybeInspectReachability(
-      StaticCallgraph callgraph, Arguments arguments, JacocoCoverage jacocoCoverage) {
+      StaticCallgraph callgraph, TestArguments arguments, JacocoCoverage jacocoCoverage) {
     if (arguments.maybeEntryPoint().isEmpty()) {
       return;
     }
@@ -156,7 +161,7 @@ public class JCallGraph {
   }
 
   private static void maybeInspectAncestry(
-      StaticCallgraph callgraph, Arguments arguments, JacocoCoverage jacocoCoverage) {
+      StaticCallgraph callgraph, TestArguments arguments, JacocoCoverage jacocoCoverage) {
     if (arguments.maybeAncestry().isEmpty() || arguments.maybeEntryPoint().isEmpty()) {
       return;
     }
@@ -190,22 +195,26 @@ public class JCallGraph {
   //
   // serializeStaticCallGraph creates a file that contains the bytecode data of the StaticCallgraph object
   // Throws: IOException when the file cannot be written to disk
-  private static void serializeStaticCallGraph(StaticCallgraph callgraph, String filename) throws IOException{
-    FileOutputStream file = new FileOutputStream(filename);
-    ObjectOutputStream out = new ObjectOutputStream(file);
-    out.writeObject(callgraph);
-    out.close();
-    file.close();
+  private static void maybeSerializeStaticCallGraph(StaticCallgraph callgraph, BuildArguments arguments) throws IOException{
+    if(arguments.maybeOutput().isPresent()) {
+      File filename = new File(arguments.maybeOutput().get());
+      FileOutputStream file = new FileOutputStream(filename);
+      ObjectOutputStream out = new ObjectOutputStream(file);
+      out.writeObject(callgraph);
+      out.close();
+      file.close();
+    }
   }
 
   //
   // deserializeStaticCallGraph reads bytecode and creates a StaticCallgraph object to be returned
   // Throws: IOException when file isn't found
   // Throws: ClassNotFoundException when object cannot be read properly
-  private static StaticCallgraph deserializeStaticCallGraph(File filename) throws IOException, ClassNotFoundException{
+  private static StaticCallgraph deserializeStaticCallGraph(TestArguments arguments) throws IOException, ClassNotFoundException{
+    File filename = new File(arguments.getBytecodeFile());
     FileInputStream file = new FileInputStream(filename);
     ObjectInputStream ois = new ObjectInputStream(file);
-    StaticCallgraph scg = (StaticCallgraph)ois.readObject();
+    StaticCallgraph scg = (StaticCallgraph) ois.readObject();
     ois.close();
     file.close();
     return scg;
