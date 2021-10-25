@@ -99,6 +99,11 @@ public class JacocoCoverage {
         .keySet()
         .forEach(
             method -> {
+              if (metadata.testMethods.contains(method)) {
+                nodeMap.get(method).setExcluded(true);
+                return;
+              }
+
               if (methodCoverage.containsKey(method)) {
                 Report.Package.Class.Method m = methodCoverage.get(method);
                 nodeMap.get(method).mark(m);
