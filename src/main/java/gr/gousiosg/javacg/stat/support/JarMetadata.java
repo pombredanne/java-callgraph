@@ -17,6 +17,9 @@ public class JarMetadata implements Serializable {
   private transient final Reflections reflections;
   private transient final ClassHierarchyInspector inspector = new ClassHierarchyInspector();
 
+  /** Methods that are found in the jar for a program's tests */
+  private final Set<String> testMethods = new HashSet<>();
+
   /** Methods that are generated from the type erasure process */
   private final Set<String> bridgeMethods = new HashSet<>();
 
