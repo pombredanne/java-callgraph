@@ -2,6 +2,7 @@ package gr.gousiosg.javacg.stat.graph;
 
 import gr.gousiosg.javacg.dyn.Pair;
 import gr.gousiosg.javacg.stat.ClassVisitor;
+import gr.gousiosg.javacg.stat.support.BuildArguments;
 import gr.gousiosg.javacg.stat.support.JarMetadata;
 import org.apache.bcel.classfile.ClassParser;
 import org.jgrapht.Graph;
@@ -41,12 +42,13 @@ public class StaticCallgraph implements Serializable {
   /**
    * Builds a static callgraph from the provided jars
    *
-   * @param jars the jars to inspect
+   * @param buildArguments the arguments to build the graph with
    * @return a {@link Graph} representing the static callgraph of the combined jars
    * @throws InputMismatchException
    */
-  public static StaticCallgraph build(List<Pair<String, File>> jars) throws InputMismatchException {
+  public static StaticCallgraph build(BuildArguments buildArguments) throws InputMismatchException {
     LOGGER.info("Beginning callgraph analysis...");
+    var jars = buildArguments.getJars();
 
     // 1. SETTING UP FOR GRAPH INSPECTION
     /* Load JAR URLs */
