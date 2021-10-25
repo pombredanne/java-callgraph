@@ -135,6 +135,10 @@ public class MethodVisitor extends EmptyVisitor {
     Node receiver = new Node(i, cp, format);
     methodCalls.add(createEdge(caller.signature, receiver.signature));
 
+    if (isTestMethod) {
+      jarMetadata.testMethods.add(caller.signature);
+    }
+
     // save the line number and method call
     jarMetadata.impliedMethodCalls.putIfAbsent(receiver.signature, new HashSet<>());
     jarMetadata
