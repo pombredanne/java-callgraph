@@ -5,16 +5,17 @@ import org.reflections.Reflections;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.Serializable;
 import java.net.URLClassLoader;
 import java.util.*;
 
-public class JarMetadata {
+public class JarMetadata implements Serializable {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(JarMetadata.class);
+  private static transient final Logger LOGGER = LoggerFactory.getLogger(JarMetadata.class);
 
-  private final URLClassLoader cl;
-  private final Reflections reflections;
-  private final ClassHierarchyInspector inspector = new ClassHierarchyInspector();
+  private transient final URLClassLoader cl;
+  private transient final Reflections reflections;
+  private transient final ClassHierarchyInspector inspector = new ClassHierarchyInspector();
 
   /** Methods that are generated from the type erasure process */
   private final Set<String> bridgeMethods = new HashSet<>();
