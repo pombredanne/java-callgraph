@@ -80,21 +80,16 @@ public class JCallGraph {
           break;
         }
         case "build": {
-          // Build and serialize a staticcallgraph object with jar files provided
           BuildArguments arguments = new BuildArguments(args);
-          StaticCallgraph callgraph = StaticCallgraph.build(arguments.getJars());
+          StaticCallgraph callgraph = StaticCallgraph.build(arguments);
           maybeSerializeStaticCallGraph(callgraph, arguments);
           break;
         }
         case "test": {
-          // 1. Deserialize callgraph
           TestArguments arguments = new TestArguments(args);
           StaticCallgraph callgraph = deserializeStaticCallGraph(arguments);
-          // 2. Get coverage
           JacocoCoverage jacocoCoverage = new JacocoCoverage(arguments.maybeCoverage());
-          // 3. Prune the graph with coverage
           Pruning.prune(callgraph, jacocoCoverage);
-          // 4. Operate on the graph and write it to output
           maybeWriteGraph(callgraph.graph, arguments);
           maybeInspectReachability(callgraph, arguments, jacocoCoverage);
           maybeInspectAncestry(callgraph, arguments, jacocoCoverage);
