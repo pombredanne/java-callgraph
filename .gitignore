@@ -16,3 +16,7 @@ bin/
 *.iml
 lib
 output/*
+
+# binary
+jcg
+out

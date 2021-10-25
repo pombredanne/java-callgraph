@@ -114,7 +114,7 @@ public class JCallGraph {
       LOGGER.error("Error obtaining valid yaml folder path");
       System.exit(1);
     } catch (ParserConfigurationException | SAXException | JAXBException | IOException e) {
-      LOGGER.error("Error fetching Jacoco coverage");
+      LOGGER.error(e.getMessage());
       System.exit(1);
     } catch(ClassNotFoundException e){
       LOGGER.error("Error creating class through deserialization");
