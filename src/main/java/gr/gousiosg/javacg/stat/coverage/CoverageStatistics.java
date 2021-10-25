@@ -16,13 +16,13 @@ public class CoverageStatistics {
   private static final Logger LOGGER = LoggerFactory.getLogger(CoverageStatistics.class);
   private static final String SEPARATOR = "#############################";
 
-  @Writeable private final long edgeCount;
-  @Writeable private final long nodesCovered;
-  @Writeable private final long nodeCount;
-  @Writeable private final int linesCovered;
-  @Writeable private final int linesMissed;
-  @Writeable private final int branchesCovered;
-  @Writeable private final int branchesMissed;
+  @Writeable private long edgeCount = 0;
+  @Writeable private long nodesCovered = 0;
+  @Writeable private long nodeCount = 0;
+  @Writeable private int linesCovered = 0;
+  @Writeable private int linesMissed = 0;
+  @Writeable private int branchesCovered = 0;
+  @Writeable private int branchesMissed = 0;
 
   /**
    * Quantifies the coverage quality of the graph
@@ -30,32 +30,22 @@ public class CoverageStatistics {
    * @param graph the graph to quantify coverage quality for
    */
   private CoverageStatistics(Graph<ColoredNode, DefaultEdge> graph) {
-    /* Instantiate temporary values */
-    int tempNodesCovered = 0;
-    int tempLinesCovered = 0;
-    int tempLinesMissed = 0;
-    int tempBranchesCovered = 0;
-    int tempBranchesMissed = 0;
-
-    /* Iterate over graph and gather values */
     for (ColoredNode node : graph.vertexSet()) {
-      tempLinesCovered += node.getLinesCovered();
-      tempLinesMissed += node.getLinesMissed();
-      tempBranchesCovered += node.getBranchesCovered();
-      tempBranchesMissed += node.getBranchesMissed();
+      if (node.isExcluded()) {
+        continue;
+      }
+
+      this.linesCovered += node.getLinesCovered();
+      this.linesMissed += node.getLinesMissed();
+      this.branchesCovered += node.getBranchesCovered();
+      this.branchesMissed += node.getBranchesMissed();
+      this.edgeCount += graph.outDegreeOf(node);
+      this.nodeCount++;
+
       if (node.covered()) {
-        tempNodesCovered += 1;
+        this.nodesCovered += 1;
       }
     }
-
-    /* Assign values */
-    this.linesCovered = tempLinesCovered;
-    this.linesMissed = tempLinesMissed;
-    this.branchesCovered = tempBranchesCovered;
-    this.branchesMissed = tempBranchesMissed;
-    this.nodesCovered = tempNodesCovered;
-    this.nodeCount = graph.vertexSet().size();
-    this.edgeCount = graph.edgeSet().size();
   }
 
   public static void analyze(Graph<ColoredNode, DefaultEdge> graph, Optional<String> outputName) {
