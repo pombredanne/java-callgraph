@@ -16,9 +16,12 @@ public class BuildArguments {
     private static final String JAR_INPUT_LONG = "jarPath";
     private static final String OUTPUT_NAME = "o";
     private static final String OUTPUT_NAME_LONG = "output";
+    private static final String TEST_JAR_INPUT = "t";
+    private static final String TEST_JAR_INPUT_LONG = "testJarPath";
 
     private final List<Pair<String, File>> jars = new ArrayList<>();
     private Optional<String> maybeOutput = Optional.empty();
+    private Optional<Pair<String, File>> maybeTestJar = Optional.empty();
     /**
      * Parse command line args into variables
      *
@@ -37,6 +40,15 @@ public class BuildArguments {
             if (cmd.hasOption(JAR_INPUT)) {
                 jarPaths.addAll(Arrays.asList(cmd.getOptionValues(JAR_INPUT)));
             }
+
+            /* Parse test JAR */
+            if (cmd.hasOption(TEST_JAR_INPUT)) {
+                String testJarPath = cmd.getOptionValue(TEST_JAR_INPUT);
+                Pair<String, File> testJarPair = pathAndJarFile(testJarPath);
+                jars.add(testJarPair);
+                maybeTestJar = Optional.of(testJarPair);
+            }
+
             /* Parse output name */
             if (cmd.hasOption(OUTPUT_NAME)) {
                 String name = cmd.getOptionValue(OUTPUT_NAME);
@@ -51,23 +63,7 @@ public class BuildArguments {
         }
         /* Transform jar paths into (path, file) pairs */
         jarPaths.stream()
-                .map(
-                        path -> {
-                            if (!path.endsWith(JAR_SUFFIX)) {
-                                LOGGER.error("---> " + path + " <---");
-                                LOGGER.error("Path should end in file of type .jar!");
-                                System.exit(1);
-                            }
-
-                            File file = new File(path);
-                            if (!file.exists()) {
-                                LOGGER.error("JAR Path " + path + " doesn't exist!");
-                                System.exit(1);
-                            }
-
-                            LOGGER.info("Found JAR: " + path);
-                            return new Pair<>(path, file);
-                        })
+                .map(this::pathAndJarFile)
                 .forEach(this.jars::add);
     }
 
@@ -83,6 +79,14 @@ public class BuildArguments {
                         .build());
 
         options.addOption(
+          Option.builder(TEST_JAR_INPUT)
+            .longOpt(TEST_JAR_INPUT_LONG)
+            .hasArg(true)
+            .desc("[OPTIONAL] specify a path to the test JAR for a project")
+            .required(false)
+            .build());
+
+        options.addOption(
                 Option.builder(OUTPUT_NAME)
                         .longOpt(OUTPUT_NAME_LONG)
                         .hasArg(true)
@@ -96,5 +100,32 @@ public class BuildArguments {
 
     public Optional<String> maybeOutput() {
         return maybeOutput;
+    }
+
+    // Make sure the path is a path to a jar file
+    private void validateJarSuffix(String jarPath) {
+        if (!jarPath.endsWith(JAR_SUFFIX)) {
+            LOGGER.error("---> " + jarPath + " <---");
+            LOGGER.error("Path should end in file of type .jar!");
+            System.exit(1);
+        }
+    }
+
+    // Get a jar file from a path
+    private File getJarFile(String jarPath) {
+        File file = new File(jarPath);
+        if (!file.exists()) {
+            LOGGER.error("JAR Path " + jarPath + " doesn't exist!");
+            System.exit(1);
+        }
+        LOGGER.info("Found JAR: " + jarPath);
+        return file;
+    }
+
+    // Return a (path, file) pair
+    private Pair<String, File> pathAndJarFile(String jarPath) {
+        validateJarSuffix(jarPath);
+        File file = getJarFile(jarPath);
+        return new Pair<>(jarPath, file);
     }
 }
