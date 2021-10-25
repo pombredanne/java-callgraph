@@ -46,11 +46,13 @@ public class ClassVisitor extends EmptyVisitor {
   private ConstantPoolGen constants;
   private String classReferenceFormat;
   private Set<Pair<String, String>> methodCalls = new HashSet<>();
+  private boolean isTestClass;
 
-  public ClassVisitor(JavaClass jc, JarMetadata jarMetadata) {
+  public ClassVisitor(JavaClass jc, JarMetadata jarMetadata, boolean isTestClass) {
     clazz = jc;
     constants = new ConstantPoolGen(clazz.getConstantPool());
     this.jarMetadata = jarMetadata;
+    this.isTestClass = isTestClass;
     classReferenceFormat = "C:" + clazz.getClassName() + " %s";
   }
 
@@ -77,7 +79,7 @@ public class ClassVisitor extends EmptyVisitor {
 
   public void visitMethod(Method method) {
     MethodGen mg = new MethodGen(method, clazz.getClassName(), constants);
-    MethodVisitor visitor = new MethodVisitor(mg, clazz, jarMetadata);
+    MethodVisitor visitor = new MethodVisitor(mg, clazz, jarMetadata, isTestClass);
     methodCalls.addAll(visitor.start());
   }
 
