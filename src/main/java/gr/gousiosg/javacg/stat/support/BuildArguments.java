@@ -21,6 +21,7 @@ public class BuildArguments {
 
     private final List<Pair<String, File>> jars = new ArrayList<>();
     private Optional<String> maybeOutput = Optional.empty();
+
     private Optional<Pair<String, File>> maybeTestJar = Optional.empty();
     /**
      * Parse command line args into variables
@@ -100,6 +101,10 @@ public class BuildArguments {
 
     public Optional<String> maybeOutput() {
         return maybeOutput;
+    }
+
+    public Optional<Pair<String, File>> getMaybeTestJar() {
+        return maybeTestJar;
     }
 
     // Make sure the path is a path to a jar file

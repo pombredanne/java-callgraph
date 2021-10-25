@@ -49,6 +49,7 @@ public class StaticCallgraph implements Serializable {
   public static StaticCallgraph build(BuildArguments buildArguments) throws InputMismatchException {
     LOGGER.info("Beginning callgraph analysis...");
     var jars = buildArguments.getJars();
+    var maybeTestJar = buildArguments.getMaybeTestJar();
 
     // 1. SETTING UP FOR GRAPH INSPECTION
     /* Load JAR URLs */
@@ -84,13 +85,15 @@ public class StaticCallgraph implements Serializable {
       File file = pair.second;
 
       try (JarFile jarFile = new JarFile(file)) {
+        boolean isTestJar = (maybeTestJar.isPresent() && jarPath.equals(maybeTestJar.get().first));
+
         LOGGER.info("Analyzing: " + jarFile.getName());
         Stream<JarEntry> entries = enumerationAsStream(jarFile.entries());
 
         Function<ClassParser, ClassVisitor> getClassVisitor =
             (ClassParser cp) -> {
               try {
-                return new ClassVisitor(cp.parse(), jarMetadata);
+                return new ClassVisitor(cp.parse(), jarMetadata, isTestJar);
               } catch (IOException e) {
                 throw new UncheckedIOException(e);
               }
