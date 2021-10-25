@@ -40,15 +40,6 @@ public class BuildArguments {
             /* Parse output name */
             if (cmd.hasOption(OUTPUT_NAME)) {
                 String name = cmd.getOptionValue(OUTPUT_NAME);
-
-                /* Validate output filename */
-                if (!name.matches("^[a-zA-Z0-9_]*$")) {
-                    LOGGER.error("---> " + name + " <---");
-                    LOGGER.error(
-                            "Please specify a valid name (letters, numbers, underscores) for the output. Do not include filetype!");
-                    System.exit(1);
-                }
-
                 this.maybeOutput = Optional.of(name);
             }
         } catch (ParseException pe) {
