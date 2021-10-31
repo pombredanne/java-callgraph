@@ -36,6 +36,7 @@ import gr.gousiosg.javacg.stat.support.Arguments;
 import gr.gousiosg.javacg.stat.support.BuildArguments;
 import gr.gousiosg.javacg.stat.support.RepoTool;
 import gr.gousiosg.javacg.stat.support.TestArguments;
+import org.eclipse.jgit.api.errors.GitAPIException;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
@@ -72,7 +73,10 @@ public class JCallGraph {
       LOGGER.info("Starting java-cg!");
       switch(args[0]){
         case "git":{
-          RepoTool rt = RepoTool.obtainTool(args[1]);
+          RepoTool rt = maybeObtainTool(args[1]);
+          rt.cloneRepo();
+          //rt.applyPatch();
+          //rt.buildJars();
           break;
         }
         case "build": {
@@ -103,13 +107,23 @@ public class JCallGraph {
     } catch (InputMismatchException e) {
       LOGGER.error("Unable to load callgraph: " + e.getMessage());
       System.exit(1);
+    } catch(FileNotFoundException e){
+      LOGGER.error("Error obtaining valid yaml folder path");
+      System.exit(1);
     } catch (ParserConfigurationException | SAXException | JAXBException | IOException e) {
       LOGGER.error("Error fetching Jacoco coverage");
       System.exit(1);
     } catch(ClassNotFoundException e){
-      LOGGER.error("Error creating class through deserialization!");
+      LOGGER.error("Error creating class through deserialization");
+      System.exit(1);
+    } catch (GitAPIException e) {
+      LOGGER.error("Error cloning repository");
       System.exit(1);
     }
+//     catch (InterruptedException e) {
+//      LOGGER.error("Interrupted during applying patches/building jars");
+//      System.exit(1);
+//    }
 
     LOGGER.info("java-cg is finished! Enjoy!");
   }
@@ -223,5 +237,12 @@ public class JCallGraph {
     ois.close();
     file.close();
     return scg;
+  }
+
+  private static RepoTool maybeObtainTool(String folderName) throws FileNotFoundException{
+    Optional<RepoTool> rt = RepoTool.obtainTool(folderName);
+    if(rt.isPresent())
+      return rt.get();
+    throw new FileNotFoundException("folderName path is incorrect! Please provide a valid folder");
   }
 }
