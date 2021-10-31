@@ -34,6 +34,7 @@ import gr.gousiosg.javacg.stat.coverage.JacocoCoverage;
 import gr.gousiosg.javacg.stat.graph.*;
 import gr.gousiosg.javacg.stat.support.Arguments;
 import gr.gousiosg.javacg.stat.support.BuildArguments;
+import gr.gousiosg.javacg.stat.support.RepoTool;
 import gr.gousiosg.javacg.stat.support.TestArguments;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
@@ -70,6 +71,10 @@ public class JCallGraph {
     try {
       LOGGER.info("Starting java-cg!");
       switch(args[0]){
+        case "git":{
+          RepoTool rt = RepoTool.obtainTool(args[1]);
+          break;
+        }
         case "build": {
           // Build and serialize a staticcallgraph object with jar files provided
           BuildArguments arguments = new BuildArguments(args);

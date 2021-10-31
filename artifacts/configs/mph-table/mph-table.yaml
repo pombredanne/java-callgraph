@@ -1,0 +1,4 @@
+name: mph-table
+URL: https://github.com/indeedeng/mph-table.git
+checkoutID: dbd5413df33bf8f0a995822eeefe94df50f3c5a7
+patchName: artifacts/configs/mph-table/mph-changes.patch
