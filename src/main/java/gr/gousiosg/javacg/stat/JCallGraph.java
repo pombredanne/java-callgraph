@@ -75,7 +75,7 @@ public class JCallGraph {
         case "git":{
           RepoTool rt = maybeObtainTool(args[1]);
           rt.cloneRepo();
-          //rt.applyPatch();
+          rt.applyPatch();
           //rt.buildJars();
           break;
         }
@@ -119,11 +119,10 @@ public class JCallGraph {
     } catch (GitAPIException e) {
       LOGGER.error("Error cloning repository");
       System.exit(1);
+    } catch (InterruptedException e) {
+      LOGGER.error("Interrupted during applying patches/building jars");
+      System.exit(1);
     }
-//     catch (InterruptedException e) {
-//      LOGGER.error("Interrupted during applying patches/building jars");
-//      System.exit(1);
-//    }
 
     LOGGER.info("java-cg is finished! Enjoy!");
   }
