@@ -32,11 +32,11 @@ import gr.gousiosg.javacg.stat.coverage.ColoredNode;
 import gr.gousiosg.javacg.stat.coverage.CoverageStatistics;
 import gr.gousiosg.javacg.stat.coverage.JacocoCoverage;
 import gr.gousiosg.javacg.stat.graph.*;
-import gr.gousiosg.javacg.stat.support.Arguments;
 import gr.gousiosg.javacg.stat.support.BuildArguments;
 import gr.gousiosg.javacg.stat.support.RepoTool;
 import gr.gousiosg.javacg.stat.support.TestArguments;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.errors.JGitInternalException;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
@@ -76,7 +76,7 @@ public class JCallGraph {
           RepoTool rt = maybeObtainTool(args[1]);
           rt.cloneRepo();
           rt.applyPatch();
-          //rt.buildJars();
+          rt.buildJars();
           break;
         }
         case "build": {
@@ -106,6 +106,9 @@ public class JCallGraph {
       }
     } catch (InputMismatchException e) {
       LOGGER.error("Unable to load callgraph: " + e.getMessage());
+      System.exit(1);
+    } catch(JGitInternalException e){
+      LOGGER.error("Cloned directory already exists!");
       System.exit(1);
     } catch(FileNotFoundException e){
       LOGGER.error("Error obtaining valid yaml folder path");
