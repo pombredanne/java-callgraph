@@ -21,6 +21,7 @@ public class RepoTool {
     private String URL;
     private String checkoutID;
     private String patchName;
+    private String output = "artifacts/output/";
     private Git git;
 
     private RepoTool(String name, String URL, String checkoutID, String patchName){
@@ -42,27 +43,26 @@ public class RepoTool {
 
     public void applyPatch() throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder();
-        if(isWindows()){
+        if(isWindows())
             pb.command("cmd.exe", "/c", "git", "apply", patchName, "--directory", name);
-        }
-        else{
-            pb.command("sh -c patch -p1 -d", name, "<", patchName);
-        }
-        pb.directory(new File(System.getProperty("user.dir")));
+        else
+            pb.command("bash", "-c", "patch -d " + name + " < " + patchName);
         Process process = pb.start();
         process.waitFor();
     }
 
     public void buildJars() throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder();
-        if(isWindows()){
+        if(isWindows())
             pb.command("cmd.exe", "/c", "mvn", "install", "-Dmaven.test.failure.ignore=true");
-        }
-        else{
-            pb.command("sh -c mvn install --Dmaven.test.failure.ignore=true");
-        }
-        pb.directory(new File(System.getProperty("user.dir") + "/" + name));
+        else
+            pb.command("bash", "-c", "mvn install -Dmaven.test.failure.ignore=true");
+        pb.directory(new File(this.name));
         Process process = pb.start();
+        BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        String line;
+        while((line = br.readLine()) != null)
+            LOGGER.info(line);
         process.waitFor();
     }
 
