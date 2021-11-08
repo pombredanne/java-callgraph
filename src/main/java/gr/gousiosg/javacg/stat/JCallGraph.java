@@ -32,11 +32,11 @@ import gr.gousiosg.javacg.stat.coverage.ColoredNode;
 import gr.gousiosg.javacg.stat.coverage.CoverageStatistics;
 import gr.gousiosg.javacg.stat.coverage.JacocoCoverage;
 import gr.gousiosg.javacg.stat.graph.*;
-import gr.gousiosg.javacg.stat.support.Arguments;
 import gr.gousiosg.javacg.stat.support.BuildArguments;
 import gr.gousiosg.javacg.stat.support.RepoTool;
 import gr.gousiosg.javacg.stat.support.TestArguments;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.api.errors.JGitInternalException;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
@@ -75,21 +75,27 @@ public class JCallGraph {
         case "git":{
           RepoTool rt = maybeObtainTool(args[1]);
           rt.cloneRepo();
-          //rt.applyPatch();
-          //rt.buildJars();
+          rt.applyPatch();
+          rt.buildJars();
+          rt.moveFiles();
           break;
         }
         case "build": {
+          // Build and serialize a staticcallgraph object with jar files provided
           BuildArguments arguments = new BuildArguments(args);
           StaticCallgraph callgraph = StaticCallgraph.build(arguments);
           maybeSerializeStaticCallGraph(callgraph, arguments);
           break;
         }
         case "test": {
+          // 1. Deserialize callgraph
           TestArguments arguments = new TestArguments(args);
           StaticCallgraph callgraph = deserializeStaticCallGraph(arguments);
+          // 2. Get coverage
           JacocoCoverage jacocoCoverage = new JacocoCoverage(arguments.maybeCoverage());
+          // 3. Prune the graph with coverage
           Pruning.prune(callgraph, jacocoCoverage);
+          // 4. Operate on the graph and write it to output
           maybeWriteGraph(callgraph.graph, arguments);
           maybeInspectReachability(callgraph, arguments, jacocoCoverage);
           maybeInspectAncestry(callgraph, arguments, jacocoCoverage);
@@ -102,11 +108,14 @@ public class JCallGraph {
     } catch (InputMismatchException e) {
       LOGGER.error("Unable to load callgraph: " + e.getMessage());
       System.exit(1);
+    } catch(JGitInternalException e){
+      LOGGER.error("Cloned directory already exists!");
+      System.exit(1);
     } catch(FileNotFoundException e){
-      LOGGER.error("Error obtaining valid yaml folder path");
+      LOGGER.error("Error obtaining valid yaml folder path: " + e.getMessage());
       System.exit(1);
     } catch (ParserConfigurationException | SAXException | JAXBException | IOException e) {
-      LOGGER.error(e.getMessage());
+      LOGGER.error("Error fetching Jacoco coverage: " + e.getMessage());
       System.exit(1);
     } catch(ClassNotFoundException e){
       LOGGER.error("Error creating class through deserialization");
@@ -114,11 +123,10 @@ public class JCallGraph {
     } catch (GitAPIException e) {
       LOGGER.error("Error cloning repository");
       System.exit(1);
+    } catch (InterruptedException e) {
+      LOGGER.error("Interrupted during applying patches/building jars");
+      System.exit(1);
     }
-//     catch (InterruptedException e) {
-//      LOGGER.error("Interrupted during applying patches/building jars");
-//      System.exit(1);
-//    }
 
     LOGGER.info("java-cg is finished! Enjoy!");
   }
@@ -222,7 +230,7 @@ public class JCallGraph {
 
   //
   // deserializeStaticCallGraph reads bytecode and creates a StaticCallgraph object to be returned
-  // Throws: IOException when file isn't found
+  // Throws: IOException when file cannot be read
   // Throws: ClassNotFoundException when object cannot be read properly
   private static StaticCallgraph deserializeStaticCallGraph(TestArguments arguments) throws IOException, ClassNotFoundException{
     File filename = new File(arguments.getBytecodeFile());
