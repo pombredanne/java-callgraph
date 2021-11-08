@@ -11,9 +11,11 @@ public class ColoredNode {
   private static final String FIREBRICK = "lightpink";
   private static final String ENTRYPOINT_COLOR = "lightgoldenrod";
   private static final String NO_COLOR = "ghostwhite";
+  private static final String TEST_NODE_COLOR = "plum";
 
   private final String label;
   private String color = NO_COLOR;
+  private boolean excluded = false;
   private boolean covered = false;
   private int linesCovered = 0;
   private int linesMissed = 0;
@@ -58,6 +60,10 @@ public class ColoredNode {
       }
     }
 
+    chooseColor();
+  }
+
+  private void chooseColor() {
     if (!this.color.equals(ENTRYPOINT_COLOR)) {
       float lineRatio = lineRatio();
       if (lineRatio > 0.75) {
@@ -97,6 +103,19 @@ public class ColoredNode {
     if (!(obj instanceof ColoredNode)) return false;
     ColoredNode node = (ColoredNode) obj;
     return node.label.equals(this.label);
+  }
+
+  public boolean isExcluded() {
+    return excluded;
+  }
+
+  public void setExcluded(boolean excluded) {
+    this.excluded = excluded;
+    if (excluded) {
+      this.color = TEST_NODE_COLOR;
+    } else {
+      chooseColor();
+    }
   }
 
   public int getLinesCovered() {

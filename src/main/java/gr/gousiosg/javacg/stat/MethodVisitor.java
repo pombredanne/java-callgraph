@@ -54,6 +54,7 @@ public class MethodVisitor extends EmptyVisitor {
   private static final Boolean EXPAND = true;
   private static final Boolean DONT_EXPAND = false;
   private final JarMetadata jarMetadata;
+  private boolean isTestMethod;
   JavaClass visitedClass;
   private MethodGen mg;
   private ConstantPoolGen cp;
@@ -62,8 +63,9 @@ public class MethodVisitor extends EmptyVisitor {
   private Map<Class<?>, Map<String, Set<String>>> expansions = new HashMap<>();
   private int currentLineNumber = -1;
 
-  public MethodVisitor(MethodGen m, JavaClass jc, JarMetadata jarMetadata) {
+  public MethodVisitor(MethodGen m, JavaClass jc, JarMetadata jarMetadata, boolean isTestMethod) {
     this.jarMetadata = jarMetadata;
+    this.isTestMethod = isTestMethod;
     visitedClass = jc;
     mg = m;
     cp = mg.getConstantPool();
@@ -132,6 +134,10 @@ public class MethodVisitor extends EmptyVisitor {
     Node caller = new Node(mg, visitedClass);
     Node receiver = new Node(i, cp, format);
     methodCalls.add(createEdge(caller.signature, receiver.signature));
+
+    if (isTestMethod) {
+      jarMetadata.testMethods.add(caller.signature);
+    }
 
     // save the line number and method call
     jarMetadata.impliedMethodCalls.putIfAbsent(receiver.signature, new HashSet<>());

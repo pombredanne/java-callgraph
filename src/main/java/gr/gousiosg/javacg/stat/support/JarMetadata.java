@@ -40,6 +40,9 @@ public class JarMetadata implements Serializable {
    */
   public final Map<String, Set<String>> impliedMethodCalls = new HashMap<>();
 
+  /** Methods that are found in the jar for a program's tests */
+  public final Set<String> testMethods = new HashSet<>();
+
   /**
    * Wrapper class used for reflection on class hierarchies
    *

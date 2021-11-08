@@ -2,6 +2,7 @@ package gr.gousiosg.javacg.stat.graph;
 
 import gr.gousiosg.javacg.dyn.Pair;
 import gr.gousiosg.javacg.stat.ClassVisitor;
+import gr.gousiosg.javacg.stat.support.BuildArguments;
 import gr.gousiosg.javacg.stat.support.JarMetadata;
 import org.apache.bcel.classfile.ClassParser;
 import org.jgrapht.Graph;
@@ -41,12 +42,14 @@ public class StaticCallgraph implements Serializable {
   /**
    * Builds a static callgraph from the provided jars
    *
-   * @param jars the jars to inspect
+   * @param buildArguments the arguments to build the graph with
    * @return a {@link Graph} representing the static callgraph of the combined jars
    * @throws InputMismatchException
    */
-  public static StaticCallgraph build(List<Pair<String, File>> jars) throws InputMismatchException {
+  public static StaticCallgraph build(BuildArguments buildArguments) throws InputMismatchException {
     LOGGER.info("Beginning callgraph analysis...");
+    var jars = buildArguments.getJars();
+    var maybeTestJar = buildArguments.getMaybeTestJar();
 
     // 1. SETTING UP FOR GRAPH INSPECTION
     /* Load JAR URLs */
@@ -82,13 +85,15 @@ public class StaticCallgraph implements Serializable {
       File file = pair.second;
 
       try (JarFile jarFile = new JarFile(file)) {
+        boolean isTestJar = (maybeTestJar.isPresent() && jarPath.equals(maybeTestJar.get().first));
+
         LOGGER.info("Analyzing: " + jarFile.getName());
         Stream<JarEntry> entries = enumerationAsStream(jarFile.entries());
 
         Function<ClassParser, ClassVisitor> getClassVisitor =
             (ClassParser cp) -> {
               try {
-                return new ClassVisitor(cp.parse(), jarMetadata);
+                return new ClassVisitor(cp.parse(), jarMetadata, isTestJar);
               } catch (IOException e) {
                 throw new UncheckedIOException(e);
               }

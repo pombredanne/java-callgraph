@@ -71,21 +71,16 @@ public class JCallGraph {
       LOGGER.info("Starting java-cg!");
       switch(args[0]){
         case "build": {
-          // Build and serialize a staticcallgraph object with jar files provided
           BuildArguments arguments = new BuildArguments(args);
-          StaticCallgraph callgraph = StaticCallgraph.build(arguments.getJars());
+          StaticCallgraph callgraph = StaticCallgraph.build(arguments);
           maybeSerializeStaticCallGraph(callgraph, arguments);
           break;
         }
         case "test": {
-          // 1. Deserialize callgraph
           TestArguments arguments = new TestArguments(args);
           StaticCallgraph callgraph = deserializeStaticCallGraph(arguments);
-          // 2. Get coverage
           JacocoCoverage jacocoCoverage = new JacocoCoverage(arguments.maybeCoverage());
-          // 3. Prune the graph with coverage
           Pruning.prune(callgraph, jacocoCoverage);
-          // 4. Operate on the graph and write it to output
           maybeWriteGraph(callgraph.graph, arguments);
           maybeInspectReachability(callgraph, arguments, jacocoCoverage);
           maybeInspectAncestry(callgraph, arguments, jacocoCoverage);
@@ -99,7 +94,7 @@ public class JCallGraph {
       LOGGER.error("Unable to load callgraph: " + e.getMessage());
       System.exit(1);
     } catch (ParserConfigurationException | SAXException | JAXBException | IOException e) {
-      LOGGER.error("Error fetching Jacoco coverage");
+      LOGGER.error(e.getMessage());
       System.exit(1);
     } catch(ClassNotFoundException e){
       LOGGER.error("Error creating class through deserialization!");
