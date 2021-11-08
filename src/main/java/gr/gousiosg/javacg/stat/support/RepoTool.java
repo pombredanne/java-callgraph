@@ -7,6 +7,10 @@ import org.yaml.snakeyaml.Yaml;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardCopyOption;
 import java.util.Map;
 import java.util.Optional;
 
@@ -60,6 +64,27 @@ public class RepoTool {
         pb.directory(new File(System.getProperty("user.dir") + "/" + name));
         Process process = pb.start();
         process.waitFor();
+    }
+
+    public void moveFiles() throws IOException{
+        Path jacoco = Files.move(
+                Paths.get(System.getProperty("user.dir") + "/" + this.name + "/target/site/jacoco/jacoco.xml"),
+                Paths.get(System.getProperty("user.dir") + "/artifacts/output/jacoco.xml"),
+                StandardCopyOption.REPLACE_EXISTING);
+        if(jacoco == null)
+            throw new IOException("Jacoco file not moved properly!");
+        Path jar = Files.move(
+                Paths.get(System.getProperty("user.dir") + "/" + this.name + "/target/" + this.name + "-1.0.6-SNAPSHOT.jar"),
+                Paths.get(System.getProperty("user.dir") + "/artifacts/output/" + this.name + "-1.0.6-SNAPSHOT.jar"),
+                StandardCopyOption.REPLACE_EXISTING);
+        if(jar == null)
+            throw new IOException("Jar not moved properly!");
+        Path testJar = Files.move(
+                Paths.get(System.getProperty("user.dir") + "/" + this.name + "/target/" + this.name + "-1.0.6-SNAPSHOT-tests.jar"),
+                Paths.get(System.getProperty("user.dir") + "/artifacts/output/" + this.name + "-1.0.6-SNAPSHOT-tests.jar"),
+                StandardCopyOption.REPLACE_EXISTING);
+        if(testJar == null)
+            throw new IOException("TestJar not moved properly!");
     }
 
     public static Optional<RepoTool> obtainTool(String folderName){ //Not implemented yet
