@@ -20,7 +20,7 @@ public class Pruning {
    * @param callgraph the graph
    * @param coverage the coverage
    */
-  public static void prune(StaticCallgraph callgraph, JacocoCoverage coverage, TestArguments testArguments) {
+  public static void pruneOriginalGraph(StaticCallgraph callgraph, JacocoCoverage coverage, TestArguments testArguments) {
     markConcreteBridgeTargets(callgraph.graph, callgraph.metadata);
     pruneBridgeMethods(callgraph.graph, callgraph.metadata);
     pruneConcreteMethods(callgraph.graph, callgraph.metadata, coverage);
@@ -151,5 +151,4 @@ public class Pruning {
 
     targetsToRemove.forEach(graph::removeVertex);
   }
-
 }
