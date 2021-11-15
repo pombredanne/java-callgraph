@@ -93,9 +93,8 @@ public class JCallGraph {
           StaticCallgraph callgraph = deserializeStaticCallGraph(arguments);
           // 2. Get coverage
           JacocoCoverage jacocoCoverage = new JacocoCoverage(arguments.maybeCoverage());
-          // 3. Prune the graph with coverage
-          Pruning.prune(callgraph, jacocoCoverage);
-          // 4. Operate on the graph and write it to output
+
+          Pruning.prune(callgraph, jacocoCoverage, arguments);
           maybeWriteGraph(callgraph.graph, arguments);
           maybeInspectReachability(callgraph, arguments, jacocoCoverage);
           maybeInspectAncestry(callgraph, arguments, jacocoCoverage);

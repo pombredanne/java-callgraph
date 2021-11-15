@@ -2,13 +2,14 @@ package gr.gousiosg.javacg.stat.graph;
 
 import gr.gousiosg.javacg.stat.coverage.JacocoCoverage;
 import gr.gousiosg.javacg.stat.support.JarMetadata;
+import gr.gousiosg.javacg.stat.support.TestArguments;
 import org.jgrapht.Graph;
 import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Pruning {
   private static final Logger LOGGER = LoggerFactory.getLogger(Pruning.class);
@@ -19,10 +20,11 @@ public class Pruning {
    * @param callgraph the graph
    * @param coverage the coverage
    */
-  public static void prune(StaticCallgraph callgraph, JacocoCoverage coverage) {
+  public static void prune(StaticCallgraph callgraph, JacocoCoverage coverage, TestArguments testArguments) {
     markConcreteBridgeTargets(callgraph.graph, callgraph.metadata);
     pruneBridgeMethods(callgraph.graph, callgraph.metadata);
     pruneConcreteMethods(callgraph.graph, callgraph.metadata, coverage);
+    pruneMethodsFromTests(callgraph.graph, callgraph.metadata, testArguments, coverage);
   }
 
   /**
@@ -108,4 +110,46 @@ public class Pruning {
         .map(graph::getEdgeTarget)
         .forEach(metadata::addConcreteMethod);
   }
+
+  /**
+   * Prunes methods that are only called by tests
+   *
+   * For example, a test method may call assertEquals. We should remove assertEquals from the graph.
+   *
+   * @param graph the graph
+   * @param metadata the metadata of the graph
+   */
+  private static void pruneMethodsFromTests(Graph<String, DefaultEdge> graph, JarMetadata metadata, TestArguments testArguments, JacocoCoverage coverage) {
+    var testTargetNodes = metadata.testMethods.stream()
+      .filter(graph::containsVertex)
+      .map(graph::outgoingEdgesOf)
+      .flatMap(Collection::stream)
+      .map(graph::getEdgeTarget)
+      .collect(Collectors.toSet());
+
+    var targetsToRemove = testTargetNodes.stream()
+      .filter(graph::containsVertex)
+      .filter(target -> {
+        if (coverage.containsMethod(target)) {
+          return false;
+        }
+
+        if (metadata.testMethods.contains(target)) {
+          return false;
+        }
+
+        for (var e : graph.incomingEdgesOf(target)) {
+          if (!metadata.testMethods.contains(graph.getEdgeSource(e))) {
+            return false;
+          }
+        }
+
+        return true;
+      })
+      .filter(target -> !metadata.testMethods.contains(target))
+      .collect(Collectors.toSet());
+
+    targetsToRemove.forEach(graph::removeVertex);
+  }
+
 }
