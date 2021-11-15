@@ -54,9 +54,9 @@ public class RepoTool {
     public void buildJars() throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder();
         if(isWindows())
-            pb.command("cmd.exe", "/c", "mvn", "install", "-Dmaven.test.failure.ignore=true");
+            pb.command("cmd.exe", "/c", "mvn", "install", "-DskipTests");
         else
-            pb.command("bash", "-c", "mvn install -Dmaven.test.failure.ignore=true");
+            pb.command("bash", "-c", "mvn install -DskipTests");
         pb.directory(new File(this.name));
         Process process = pb.start();
         BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -67,12 +67,12 @@ public class RepoTool {
     }
 
     public void moveFiles() throws IOException{
-        Path jacoco = Files.move(
-                Paths.get(System.getProperty("user.dir") + "/" + this.name + "/target/site/jacoco/jacoco.xml"),
-                Paths.get(System.getProperty("user.dir") + "/artifacts/output/jacoco.xml"),
-                StandardCopyOption.REPLACE_EXISTING);
-        if(jacoco == null)
-            throw new IOException("Jacoco file not moved properly!");
+//        Path jacoco = Files.move(
+//                Paths.get(System.getProperty("user.dir") + "/" + this.name + "/target/site/jacoco/jacoco.xml"),
+//                Paths.get(System.getProperty("user.dir") + "/artifacts/output/jacoco.xml"),
+//                StandardCopyOption.REPLACE_EXISTING);
+//        if(jacoco == null)
+//            throw new IOException("Jacoco file not moved properly!");
         Path jar = Files.move(
                 Paths.get(System.getProperty("user.dir") + "/" + this.name + "/target/" + this.name + "-1.0.6-SNAPSHOT.jar"),
                 Paths.get(System.getProperty("user.dir") + "/artifacts/output/" + this.name + "-1.0.6-SNAPSHOT.jar"),
