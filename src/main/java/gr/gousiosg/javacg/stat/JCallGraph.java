@@ -149,7 +149,9 @@ public class JCallGraph {
 
     /* Apply coverage */
     jacocoCoverage.applyCoverage(reachability, callgraph.metadata);
-    
+
+    Pruning.pruneReachabilityGraph(reachability, callgraph.metadata, jacocoCoverage, arguments);
+
     /* Should we write the graph to a file? */
     Optional<String> outputName =
         arguments.maybeOutput().isPresent()

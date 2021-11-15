@@ -1,5 +1,6 @@
 package gr.gousiosg.javacg.stat.graph;
 
+import gr.gousiosg.javacg.stat.coverage.ColoredNode;
 import gr.gousiosg.javacg.stat.coverage.JacocoCoverage;
 import gr.gousiosg.javacg.stat.support.JarMetadata;
 import gr.gousiosg.javacg.stat.support.TestArguments;
@@ -25,6 +26,10 @@ public class Pruning {
     pruneBridgeMethods(callgraph.graph, callgraph.metadata);
     pruneConcreteMethods(callgraph.graph, callgraph.metadata, coverage);
     pruneMethodsFromTests(callgraph.graph, callgraph.metadata, testArguments, coverage);
+  }
+
+  public static void pruneReachabilityGraph(Graph<ColoredNode, DefaultEdge> reachability, JarMetadata metadata, JacocoCoverage coverage, TestArguments testArguments) {
+
   }
 
   /**
