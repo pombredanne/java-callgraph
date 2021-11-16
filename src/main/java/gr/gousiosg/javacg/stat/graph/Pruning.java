@@ -10,9 +10,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static gr.gousiosg.javacg.stat.graph.Utilities.nodeMap;
 
 public class Pruning {
     private static final Logger LOGGER = LoggerFactory.getLogger(Pruning.class);
@@ -27,12 +30,11 @@ public class Pruning {
         markConcreteBridgeTargets(callgraph.graph, callgraph.metadata);
         pruneBridgeMethods(callgraph.graph, callgraph.metadata);
         pruneConcreteMethods(callgraph.graph, callgraph.metadata, coverage);
-        pruneMethodsFromTests(callgraph.graph, callgraph.metadata, testArguments, coverage);
+//        pruneMethodsFromTests(callgraph.graph, callgraph.metadata, testArguments, coverage);
     }
 
     public static void pruneReachabilityGraph(Graph<ColoredNode, DefaultEdge> reachability, JarMetadata metadata, JacocoCoverage coverage, TestArguments testArguments) {
-        pruneMethodsFromTestsThatAreReachable(reachability, metadata, testArguments, coverage);
-
+//        pruneMethodsFromTestsThatAreReachable(reachability, metadata, testArguments, coverage);
     }
 
     /**
@@ -167,7 +169,42 @@ public class Pruning {
      * @param metadata the metadata of the graph
      */
     private static void pruneMethodsFromTestsThatAreReachable(Graph<ColoredNode, DefaultEdge> graph, JarMetadata metadata, TestArguments testArguments, JacocoCoverage coverage) {
-        // TODO @WCYGAN: similar to the above, this will take the reachability graph and prune all nodes reachable ONLY from
-        //               test methods within the reachability graph
+        Map<String, ColoredNode> nodeMap = nodeMap(graph.vertexSet());
+
+        var testTargetNodes = metadata.testMethods.stream()
+                .filter(nodeMap::containsKey)
+                .map(target -> graph.outgoingEdgesOf(nodeMap.get(target)))
+                .flatMap(Collection::stream)
+                .map(graph::getEdgeTarget)
+                .collect(Collectors.toSet());
+
+        var targetsToRemove = testTargetNodes.stream()
+                .filter(graph::containsVertex)
+                .filter(targetNode -> {
+
+                    if (targetNode.covered()) {
+                        return false;
+                    }
+
+                    if (coverage.containsMethod(targetNode.getLabel())) {
+                        return false;
+                    }
+
+                    if (metadata.testMethods.contains(targetNode.getLabel())) {
+                        return false;
+                    }
+
+                    for (var e : graph.incomingEdgesOf(targetNode)) {
+                        if (!metadata.testMethods.contains(graph.getEdgeSource(e).getLabel())) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                })
+                .filter(targetNode -> !metadata.testMethods.contains(targetNode.getLabel()))
+                .collect(Collectors.toSet());
+
+        targetsToRemove.forEach(graph::removeVertex);
     }
 }
