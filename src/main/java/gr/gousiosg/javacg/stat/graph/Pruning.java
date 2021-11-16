@@ -30,11 +30,11 @@ public class Pruning {
         markConcreteBridgeTargets(callgraph.graph, callgraph.metadata);
         pruneBridgeMethods(callgraph.graph, callgraph.metadata);
         pruneConcreteMethods(callgraph.graph, callgraph.metadata, coverage);
-//        pruneMethodsFromTests(callgraph.graph, callgraph.metadata, testArguments, coverage);
+        pruneMethodsFromTests(callgraph.graph, callgraph.metadata, testArguments, coverage);
     }
 
     public static void pruneReachabilityGraph(Graph<ColoredNode, DefaultEdge> reachability, JarMetadata metadata, JacocoCoverage coverage, TestArguments testArguments) {
-//        pruneMethodsFromTestsThatAreReachable(reachability, metadata, testArguments, coverage);
+        pruneMethodsFromTestsThatAreReachable(reachability, metadata, testArguments, coverage);
     }
 
     /**
