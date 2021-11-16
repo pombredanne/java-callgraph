@@ -50,221 +50,221 @@ import static gr.gousiosg.javacg.stat.support.IgnoredConstants.IGNORED_METHOD_NA
  */
 public class MethodVisitor extends EmptyVisitor {
 
-  private static final Logger LOGGER = LoggerFactory.getLogger(MethodVisitor.class);
-  private static final Boolean EXPAND = true;
-  private static final Boolean DONT_EXPAND = false;
-  private final JarMetadata jarMetadata;
-  private boolean isTestMethod;
-  JavaClass visitedClass;
-  private MethodGen mg;
-  private ConstantPoolGen cp;
-  private String format;
-  private Set<Pair<String, String>> methodCalls = new HashSet<>();
-  private Map<Class<?>, Map<String, Set<String>>> expansions = new HashMap<>();
-  private int currentLineNumber = -1;
+    private static final Logger LOGGER = LoggerFactory.getLogger(MethodVisitor.class);
+    private static final Boolean EXPAND = true;
+    private static final Boolean DONT_EXPAND = false;
+    private final JarMetadata jarMetadata;
+    JavaClass visitedClass;
+    private boolean isTestMethod;
+    private MethodGen mg;
+    private ConstantPoolGen cp;
+    private String format;
+    private Set<Pair<String, String>> methodCalls = new HashSet<>();
+    private Map<Class<?>, Map<String, Set<String>>> expansions = new HashMap<>();
+    private int currentLineNumber = -1;
 
-  public MethodVisitor(MethodGen m, JavaClass jc, JarMetadata jarMetadata, boolean isTestMethod) {
-    this.jarMetadata = jarMetadata;
-    this.isTestMethod = isTestMethod;
-    visitedClass = jc;
-    mg = m;
-    cp = mg.getConstantPool();
-    format = "%s";
-  }
-
-  private String argumentList(Type[] arguments) {
-    StringBuilder sb = new StringBuilder();
-    for (int i = 0; i < arguments.length; i++) {
-      if (i != 0) {
-        sb.append(",");
-      }
-      sb.append(arguments[i].toString());
-    }
-    return sb.toString();
-  }
-
-  public Set<Pair<String, String>> start() {
-    if (mg.isAbstract() || mg.isNative()) return Collections.emptySet();
-
-    for (InstructionHandle ih = mg.getInstructionList().getStart(); ih != null; ih = ih.getNext()) {
-      Instruction i = ih.getInstruction();
-
-      if (!visitInstruction(i)) {
-        int currentBytecodeOffset = ih.getPosition();
-        currentLineNumber = mg.getLineNumberTable(cp).getSourceLine(currentBytecodeOffset);
-        i.accept(this);
-      }
-    }
-    return methodCalls;
-  }
-
-  private boolean visitInstruction(Instruction i) {
-    short opcode = i.getOpcode();
-    return ((InstructionConst.getInstruction(opcode) != null)
-        && !(i instanceof ConstantPushInstruction)
-        && !(i instanceof ReturnInstruction));
-  }
-
-  @Override
-  public void visitINVOKEVIRTUAL(INVOKEVIRTUAL i) {
-    visit(i, EXPAND);
-  }
-
-  @Override
-  public void visitINVOKEINTERFACE(INVOKEINTERFACE i) {
-    visit(i, EXPAND);
-  }
-
-  @Override
-  public void visitINVOKESPECIAL(INVOKESPECIAL i) {
-    visit(i, DONT_EXPAND);
-  }
-
-  @Override
-  public void visitINVOKESTATIC(INVOKESTATIC i) {
-    visit(i, DONT_EXPAND);
-  }
-
-  @Override
-  public void visitINVOKEDYNAMIC(INVOKEDYNAMIC i) {
-    visit(i, EXPAND);
-  }
-
-  private void visit(InvokeInstruction i, Boolean shouldExpand) {
-    Node caller = new Node(mg, visitedClass);
-    Node receiver = new Node(i, cp, format);
-    methodCalls.add(createEdge(caller.signature, receiver.signature));
-
-    if (isTestMethod) {
-      jarMetadata.testMethods.add(caller.signature);
+    public MethodVisitor(MethodGen m, JavaClass jc, JarMetadata jarMetadata, boolean isTestMethod) {
+        this.jarMetadata = jarMetadata;
+        this.isTestMethod = isTestMethod;
+        visitedClass = jc;
+        mg = m;
+        cp = mg.getConstantPool();
+        format = "%s";
     }
 
-    // save the line number and method call
-    jarMetadata.impliedMethodCalls.putIfAbsent(receiver.signature, new HashSet<>());
-    jarMetadata
-        .impliedMethodCalls
-        .get(receiver.signature)
-        .add(filenameAndLineNumber(visitedClass.getSourceFileName(), currentLineNumber));
-
-    // decide if we should look at a potential expansion
-    if (shouldExpand && !IGNORED_METHOD_NAMES.contains(receiver.method)) {
-
-      // get the class types
-      Optional<Class<?>> maybeReceiverType = jarMetadata.getClass(receiver.clazz);
-      Optional<Class<?>> maybeCallerType = jarMetadata.getClass(caller.clazz);
-
-      if (maybeReceiverType.isEmpty()) {
-        LOGGER.error("Couldn't find Receiver class: " + receiver.clazz);
-        return;
-      } else if (maybeCallerType.isEmpty()) {
-        LOGGER.error("Couldn't find Caller class: " + caller.clazz);
-        return;
-      }
-
-      // find the method that initiated a call to another method
-      Optional<Method> maybeCallingMethod =
-          jarMetadata
-              .getInspector()
-              .getTopLevelSignature(
-                  maybeCallerType.get(),
-                  MethodSignatureUtil.namedMethodSignature(
-                      caller.method, caller.argumentTypes, caller.returnType));
-
-      if (maybeCallingMethod.isEmpty()) {
-        LOGGER.error("Couldn't find top level signature for " + caller.signature);
-        return;
-      }
-
-      if (maybeCallingMethod.get().isBridge()) {
-        // skip the expansion if it's a bridge method
-        jarMetadata.addBridgeMethod(caller.signature);
-      } else {
-        // record the virtual method and expand it to subtypes
-        jarMetadata.addVirtualMethod(receiver.signature);
-        expand(caller, receiver, maybeReceiverType.get());
-      }
-    }
-  }
-
-  private void expand(Node caller, Node receiver, Class<?> receiverType) {
-    if (Object.class.equals(receiverType)) return;
-
-    ClassHierarchyInspector inspector = jarMetadata.getInspector();
-    expansions.putIfAbsent(receiverType, new HashMap<>());
-
-    Set<String> exps = expansions.get(receiverType).get(receiver.method);
-    if (exps == null) {
-      LOGGER.info("\tExpanding to subtypes of " + receiverType.getName());
-      exps =
-          jarMetadata.getReflections().getSubTypesOf(receiverType).stream()
-              .map(
-                  subtype ->
-                      inspector.getTopLevelSignature(
-                          subtype,
-                          MethodSignatureUtil.namedMethodSignature(
-                              receiver.method, receiver.argumentTypes, receiver.returnType)))
-              .flatMap(Optional::stream) // Remove empty optionals
-              .map(MethodSignatureUtil::fullyQualifiedMethodSignature)
-              .collect(Collectors.toSet());
-
-      expansions.get(receiverType).put(receiver.method, exps);
+    private String argumentList(Type[] arguments) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < arguments.length; i++) {
+            if (i != 0) {
+                sb.append(",");
+            }
+            sb.append(arguments[i].toString());
+        }
+        return sb.toString();
     }
 
-    /* Record expanded method call */
-    exps.forEach(
-        expansionSignature -> {
-          methodCalls.add(createEdge(caller.signature, expansionSignature));
-          jarMetadata.addConcreteMethod(expansionSignature);
-        });
-  }
+    public Set<Pair<String, String>> start() {
+        if (mg.isAbstract() || mg.isNative()) return Collections.emptySet();
 
-  public Pair<String, String> createEdge(String from, String to) {
-    return new Pair<>(from, to);
-  }
+        for (InstructionHandle ih = mg.getInstructionList().getStart(); ih != null; ih = ih.getNext()) {
+            Instruction i = ih.getInstruction();
 
-  private void recordLineNumber(Node receiver) {
-    if (currentLineNumber < 0) {
-      LOGGER.error(currentLineNumber + " cannot be negative!");
-      System.exit(1);
+            if (!visitInstruction(i)) {
+                int currentBytecodeOffset = ih.getPosition();
+                currentLineNumber = mg.getLineNumberTable(cp).getSourceLine(currentBytecodeOffset);
+                i.accept(this);
+            }
+        }
+        return methodCalls;
     }
 
-    throw new Error("TODO: record { class + line -> receiverSignature } in JarMetadata");
-  }
-
-  /**
-   * Contains information relating to a method of a class
-   *
-   * <p>For internal use in {@link MethodVisitor} only, this is NOT a graph vertex.
-   */
-  private static class Node {
-    String clazz;
-    String method;
-    Type[] argumentTypes;
-    Type returnType;
-    String signature;
-
-    private Node(MethodGen mg, JavaClass visitedClass) {
-      this.clazz = visitedClass.getClassName();
-      this.method = mg.getName();
-      this.argumentTypes = mg.getArgumentTypes();
-      this.returnType = mg.getReturnType();
-      this.signature =
-          MethodSignatureUtil.fullyQualifiedMethodSignature(
-              clazz, method, argumentTypes, returnType);
+    private boolean visitInstruction(Instruction i) {
+        short opcode = i.getOpcode();
+        return ((InstructionConst.getInstruction(opcode) != null)
+                && !(i instanceof ConstantPushInstruction)
+                && !(i instanceof ReturnInstruction));
     }
 
-    private Node(InvokeInstruction i, ConstantPoolGen cp, String format) {
-      this.clazz = String.format(format, i.getReferenceType(cp));
-      this.method = i.getMethodName(cp);
-      this.argumentTypes = i.getArgumentTypes(cp);
-      this.returnType = i.getReturnType(cp);
-      this.signature =
-          MethodSignatureUtil.fullyQualifiedMethodSignature(
-              clazz, method, argumentTypes, returnType);
+    @Override
+    public void visitINVOKEVIRTUAL(INVOKEVIRTUAL i) {
+        visit(i, EXPAND);
     }
-  }
 
-  private String filenameAndLineNumber(String filename, int lineNumber) {
-    return String.format("%s:%d", filename, lineNumber);
-  }
+    @Override
+    public void visitINVOKEINTERFACE(INVOKEINTERFACE i) {
+        visit(i, EXPAND);
+    }
+
+    @Override
+    public void visitINVOKESPECIAL(INVOKESPECIAL i) {
+        visit(i, DONT_EXPAND);
+    }
+
+    @Override
+    public void visitINVOKESTATIC(INVOKESTATIC i) {
+        visit(i, DONT_EXPAND);
+    }
+
+    @Override
+    public void visitINVOKEDYNAMIC(INVOKEDYNAMIC i) {
+        visit(i, EXPAND);
+    }
+
+    private void visit(InvokeInstruction i, Boolean shouldExpand) {
+        Node caller = new Node(mg, visitedClass);
+        Node receiver = new Node(i, cp, format);
+        methodCalls.add(createEdge(caller.signature, receiver.signature));
+
+        if (isTestMethod) {
+            jarMetadata.testMethods.add(caller.signature);
+        }
+
+        // save the line number and method call
+        jarMetadata.impliedMethodCalls.putIfAbsent(receiver.signature, new HashSet<>());
+        jarMetadata
+                .impliedMethodCalls
+                .get(receiver.signature)
+                .add(filenameAndLineNumber(visitedClass.getSourceFileName(), currentLineNumber));
+
+        // decide if we should look at a potential expansion
+        if (shouldExpand && !IGNORED_METHOD_NAMES.contains(receiver.method)) {
+
+            // get the class types
+            Optional<Class<?>> maybeReceiverType = jarMetadata.getClass(receiver.clazz);
+            Optional<Class<?>> maybeCallerType = jarMetadata.getClass(caller.clazz);
+
+            if (maybeReceiverType.isEmpty()) {
+                LOGGER.error("Couldn't find Receiver class: " + receiver.clazz);
+                return;
+            } else if (maybeCallerType.isEmpty()) {
+                LOGGER.error("Couldn't find Caller class: " + caller.clazz);
+                return;
+            }
+
+            // find the method that initiated a call to another method
+            Optional<Method> maybeCallingMethod =
+                    jarMetadata
+                            .getInspector()
+                            .getTopLevelSignature(
+                                    maybeCallerType.get(),
+                                    MethodSignatureUtil.namedMethodSignature(
+                                            caller.method, caller.argumentTypes, caller.returnType));
+
+            if (maybeCallingMethod.isEmpty()) {
+                LOGGER.error("Couldn't find top level signature for " + caller.signature);
+                return;
+            }
+
+            if (maybeCallingMethod.get().isBridge()) {
+                // skip the expansion if it's a bridge method
+                jarMetadata.addBridgeMethod(caller.signature);
+            } else {
+                // record the virtual method and expand it to subtypes
+                jarMetadata.addVirtualMethod(receiver.signature);
+                expand(caller, receiver, maybeReceiverType.get());
+            }
+        }
+    }
+
+    private void expand(Node caller, Node receiver, Class<?> receiverType) {
+        if (Object.class.equals(receiverType)) return;
+
+        ClassHierarchyInspector inspector = jarMetadata.getInspector();
+        expansions.putIfAbsent(receiverType, new HashMap<>());
+
+        Set<String> exps = expansions.get(receiverType).get(receiver.method);
+        if (exps == null) {
+            LOGGER.info("\tExpanding to subtypes of " + receiverType.getName());
+            exps =
+                    jarMetadata.getReflections().getSubTypesOf(receiverType).stream()
+                            .map(
+                                    subtype ->
+                                            inspector.getTopLevelSignature(
+                                                    subtype,
+                                                    MethodSignatureUtil.namedMethodSignature(
+                                                            receiver.method, receiver.argumentTypes, receiver.returnType)))
+                            .flatMap(Optional::stream) // Remove empty optionals
+                            .map(MethodSignatureUtil::fullyQualifiedMethodSignature)
+                            .collect(Collectors.toSet());
+
+            expansions.get(receiverType).put(receiver.method, exps);
+        }
+
+        /* Record expanded method call */
+        exps.forEach(
+                expansionSignature -> {
+                    methodCalls.add(createEdge(caller.signature, expansionSignature));
+                    jarMetadata.addConcreteMethod(expansionSignature);
+                });
+    }
+
+    public Pair<String, String> createEdge(String from, String to) {
+        return new Pair<>(from, to);
+    }
+
+    private void recordLineNumber(Node receiver) {
+        if (currentLineNumber < 0) {
+            LOGGER.error(currentLineNumber + " cannot be negative!");
+            System.exit(1);
+        }
+
+        throw new Error("TODO: record { class + line -> receiverSignature } in JarMetadata");
+    }
+
+    private String filenameAndLineNumber(String filename, int lineNumber) {
+        return String.format("%s:%d", filename, lineNumber);
+    }
+
+    /**
+     * Contains information relating to a method of a class
+     *
+     * <p>For internal use in {@link MethodVisitor} only, this is NOT a graph vertex.
+     */
+    private static class Node {
+        String clazz;
+        String method;
+        Type[] argumentTypes;
+        Type returnType;
+        String signature;
+
+        private Node(MethodGen mg, JavaClass visitedClass) {
+            this.clazz = visitedClass.getClassName();
+            this.method = mg.getName();
+            this.argumentTypes = mg.getArgumentTypes();
+            this.returnType = mg.getReturnType();
+            this.signature =
+                    MethodSignatureUtil.fullyQualifiedMethodSignature(
+                            clazz, method, argumentTypes, returnType);
+        }
+
+        private Node(InvokeInstruction i, ConstantPoolGen cp, String format) {
+            this.clazz = String.format(format, i.getReferenceType(cp));
+            this.method = i.getMethodName(cp);
+            this.argumentTypes = i.getArgumentTypes(cp);
+            this.returnType = i.getReturnType(cp);
+            this.signature =
+                    MethodSignatureUtil.fullyQualifiedMethodSignature(
+                            clazz, method, argumentTypes, returnType);
+        }
+    }
 }

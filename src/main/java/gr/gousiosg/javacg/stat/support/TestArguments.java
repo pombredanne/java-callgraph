@@ -4,9 +4,7 @@ import org.apache.commons.cli.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.HashSet;
 import java.util.Optional;
-import java.util.Set;
 
 public class TestArguments {
 
@@ -33,7 +31,7 @@ public class TestArguments {
     private Optional<Integer> maybeDepth = Optional.empty();
     private Optional<Integer> maybeAncestry = Optional.empty();
 
-    public TestArguments(String[] args){
+    public TestArguments(String[] args) {
         LOGGER.info("Parsing command line arguments...");
 
         /* Setup cmdline argument parsing */
@@ -41,11 +39,11 @@ public class TestArguments {
         Options options = getOptions();
         CommandLine cmd;
 
-        try{
+        try {
             cmd = parser.parse(options, args);
 
             /*Parse bytecode file */
-            if (cmd.hasOption(FILE_NAME)){
+            if (cmd.hasOption(FILE_NAME)) {
                 bytecodeFile = cmd.getOptionValue(FILE_NAME);
             }
 
@@ -104,8 +102,7 @@ public class TestArguments {
                     System.exit(1);
                 }
             }
-        }
-        catch(ParseException pe){
+        } catch (ParseException pe) {
             LOGGER.error("Error parsing command-line arguments: " + pe.getMessage());
             LOGGER.error("Please, follow the instructions below:");
             HelpFormatter formatter = new HelpFormatter();
@@ -169,7 +166,9 @@ public class TestArguments {
         return options;
     }
 
-    public String getBytecodeFile(){ return bytecodeFile; }
+    public String getBytecodeFile() {
+        return bytecodeFile;
+    }
 
     public Optional<String> maybeOutput() {
         return maybeOutput;

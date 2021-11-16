@@ -23,19 +23,20 @@ public class BuildArguments {
     private Optional<String> maybeOutput = Optional.empty();
 
     private Optional<Pair<String, File>> maybeTestJar = Optional.empty();
+
     /**
      * Parse command line args into variables
      *
      * @param args the command line args
      */
-    public BuildArguments(String[] args){
+    public BuildArguments(String[] args) {
         LOGGER.info("Parsing command line arguments...");
         /* Setup cmdline argument parsing */
         Set<String> jarPaths = new HashSet<>();
         CommandLineParser parser = new DefaultParser();
         Options options = getOptions();
         CommandLine cmd;
-        try{
+        try {
             cmd = parser.parse(options, args);
             /* Parse JARs */
             if (cmd.hasOption(JAR_INPUT)) {
@@ -80,12 +81,12 @@ public class BuildArguments {
                         .build());
 
         options.addOption(
-          Option.builder(TEST_JAR_INPUT)
-            .longOpt(TEST_JAR_INPUT_LONG)
-            .hasArg(true)
-            .desc("[OPTIONAL] specify a path to the test JAR for a project")
-            .required(false)
-            .build());
+                Option.builder(TEST_JAR_INPUT)
+                        .longOpt(TEST_JAR_INPUT_LONG)
+                        .hasArg(true)
+                        .desc("[OPTIONAL] specify a path to the test JAR for a project")
+                        .required(false)
+                        .build());
 
         options.addOption(
                 Option.builder(OUTPUT_NAME)
@@ -97,7 +98,9 @@ public class BuildArguments {
         return options;
     }
 
-    public List<Pair<String, File>> getJars() { return jars; }
+    public List<Pair<String, File>> getJars() {
+        return jars;
+    }
 
     public Optional<String> maybeOutput() {
         return maybeOutput;
