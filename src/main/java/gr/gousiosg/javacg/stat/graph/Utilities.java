@@ -16,6 +16,7 @@ import java.io.IOException;
 import java.io.Writer;
 import java.util.*;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
@@ -24,6 +25,10 @@ import static gr.gousiosg.javacg.stat.graph.Constants.*;
 public class Utilities {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Utilities.class);
+
+    public static Map<String, ColoredNode> nodeMap(Set<ColoredNode> nodes) {
+        return nodes.stream().collect(Collectors.toMap(ColoredNode::getLabel, node -> node));
+    }
 
     /**
      * Writes a graph to a file `name.dot`

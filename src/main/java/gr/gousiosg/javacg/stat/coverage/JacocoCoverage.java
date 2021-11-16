@@ -15,6 +15,8 @@ import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static gr.gousiosg.javacg.stat.graph.Utilities.nodeMap;
+
 public class JacocoCoverage {
 
     public static final String METHOD_TYPE = "METHOD";
@@ -87,10 +89,6 @@ public class JacocoCoverage {
             /* Indicate that coverage has been applied */
             hasCoverage = true;
         }
-    }
-
-    private static Map<String, ColoredNode> nodeMap(Set<ColoredNode> nodes) {
-        return nodes.stream().collect(Collectors.toMap(ColoredNode::getLabel, node -> node));
     }
 
     public void applyCoverage(Graph<ColoredNode, DefaultEdge> graph, JarMetadata metadata) {
