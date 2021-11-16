@@ -29,6 +29,7 @@ public class Pruning {
   }
 
   public static void pruneReachabilityGraph(Graph<ColoredNode, DefaultEdge> reachability, JarMetadata metadata, JacocoCoverage coverage, TestArguments testArguments) {
+    pruneMethodsFromTestsThatAreReachable(reachability, metadata, testArguments, coverage);
 
   }
 
@@ -155,5 +156,15 @@ public class Pruning {
       .collect(Collectors.toSet());
 
     targetsToRemove.forEach(graph::removeVertex);
+  }
+
+  /**
+   * Prunes methods that are only called by tests that are in the reachability graph
+   **  @param graph the graph
+   * @param metadata the metadata of the graph
+   */
+  private static void pruneMethodsFromTestsThatAreReachable(Graph<ColoredNode, DefaultEdge> graph, JarMetadata metadata, TestArguments testArguments, JacocoCoverage coverage) {
+    // TODO @WCYGAN: similar to the above, this will take the reachability graph and prune all nodes reachable ONLY from
+    //               test methods within the reachability graph
   }
 }
