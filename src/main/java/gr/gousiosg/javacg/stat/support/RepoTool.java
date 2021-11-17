@@ -21,14 +21,15 @@ public class RepoTool {
     private String URL;
     private String checkoutID;
     private String patchName;
-    private String output = "artifacts/output/";
+    private String property;
     private Git git;
 
-    private RepoTool(String name, String URL, String checkoutID, String patchName){
+    private RepoTool(String name, String URL, String checkoutID, String patchName, String property){
         this.name = name;
         this.URL = URL;
         this.checkoutID = checkoutID;
         this.patchName = patchName;
+        this.property = property;
     }
 
     public void cloneRepo() throws GitAPIException, JGitInternalException {
@@ -66,6 +67,21 @@ public class RepoTool {
         process.waitFor();
     }
 
+    public void generateCoverage() throws IOException, InterruptedException {
+        ProcessBuilder pb = new ProcessBuilder();
+        if(isWindows())
+            pb.command("cmd.exe", "/c", "mvn", "test", "-Dtest=" + this.property);
+        else
+            pb.command("bash", "-c", "mvn install -Dtest=" + this.property);
+        pb.directory(new File(this.name));
+        Process process = pb.start();
+        BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        String line;
+        while((line = br.readLine()) != null)
+            LOGGER.info(line);
+        process.waitFor();
+    }
+
     public void moveFiles() throws IOException{
 //        Path jacoco = Files.move(
 //                Paths.get(System.getProperty("user.dir") + "/" + this.name + "/target/site/jacoco/jacoco.xml"),
@@ -92,7 +108,7 @@ public class RepoTool {
             Yaml yaml = new Yaml();
             InputStream inputStream = new FileInputStream(new File("artifacts/configs/" + folderName + "/" + folderName + ".yaml"));
             Map<String, String> data = yaml.load(inputStream);
-            return Optional.of(new RepoTool(data.get("name"), data.get("URL"), data.get("checkoutID"), data.get("patchName")));
+            return Optional.of(new RepoTool(data.get("name"), data.get("URL"), data.get("checkoutID"), data.get("patchName"), data.get("property")));
         }
         catch(IOException e){
             e.printStackTrace();
