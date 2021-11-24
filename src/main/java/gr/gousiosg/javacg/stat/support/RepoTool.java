@@ -47,7 +47,7 @@ public class RepoTool {
         if(isWindows())
             pb.command("cmd.exe", "/c", "git", "apply", patchName, "--directory", name);
         else
-            pb.command("bash", "-c", "patch -d " + name + " < " + patchName);
+            pb.command("bash", "-c", "patch -p1 -d " + name + " < " + patchName);
         Process process = pb.start();
         process.waitFor();
     }
