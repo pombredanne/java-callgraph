@@ -33,6 +33,7 @@ import gr.gousiosg.javacg.stat.coverage.CoverageStatistics;
 import gr.gousiosg.javacg.stat.coverage.JacocoCoverage;
 import gr.gousiosg.javacg.stat.graph.*;
 import gr.gousiosg.javacg.stat.support.BuildArguments;
+import gr.gousiosg.javacg.stat.support.GitArguments;
 import gr.gousiosg.javacg.stat.support.RepoTool;
 import gr.gousiosg.javacg.stat.support.TestArguments;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -73,11 +74,12 @@ public class JCallGraph {
       LOGGER.info("Starting java-cg!");
       switch(args[0]){
         case "git":{
+          //GitArguments arguments = new GitArguments(args);
           RepoTool rt = maybeObtainTool(args[1]);
           rt.cloneRepo();
           rt.applyPatch();
-          rt.buildJars();
-          rt.moveFiles();
+          //rt.buildJars();
+          //rt.moveFiles();
           break;
         }
         case "build": {
