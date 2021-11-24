@@ -1,0 +1,102 @@
+diff --git a/pom.xml b/pom.xml
+index 65f0f80..508b290 100644
+--- a/pom.xml
++++ b/pom.xml
+@@ -40,9 +40,57 @@
+                     <target>1.8</target>
+                 </configuration>
+             </plugin>
++            <plugin>
++                <groupId>org.jacoco</groupId>
++                <artifactId>jacoco-maven-plugin</artifactId>
++                <version>0.8.6</version>
++                <executions>
++                    <execution>
++                        <id>default-prepare-agent</id>
++                        <goals>
++                            <goal>prepare-agent</goal>
++                        </goals>
++                    </execution>
++                    <execution>
++                        <id>jacoco-report</id>
++                        <phase>test</phase>
++                        <goals>
++                            <goal>report</goal>
++                        </goals>
++                    </execution>
++                </executions>
++            </plugin>
++            <plugin>
++                <groupId>org.apache.maven.plugins</groupId>
++                <artifactId>maven-jar-plugin</artifactId>
++                <version>3.2.0</version>
++                <executions>
++                    <execution>
++                        <goals>
++                            <goal>test-jar</goal>
++                        </goals>
++                    </execution>
++                </executions>
++            </plugin>
+         </plugins>
+     </build>
+ 
++    <reporting>
++        <plugins>
++            <plugin>
++                <groupId>org.jacoco</groupId>
++                <artifactId>jacoco-maven-plugin</artifactId>
++                <reportSets>
++                    <reportSet>
++                        <reports>
++                            <report>report</report>
++                        </reports>
++                    </reportSet>
++                </reportSets>
++            </plugin>
++        </plugins>
++    </reporting>
++
+     <dependencies>
+ 
+         <dependency>
+diff --git a/src/test/java/com/indeed/mph/serializers/TestSmartListSerializer.java b/src/test/java/com/indeed/mph/serializers/TestSmartListSerializer.java
+index 8312fe2..e898509 100644
+--- a/src/test/java/com/indeed/mph/serializers/TestSmartListSerializer.java
++++ b/src/test/java/com/indeed/mph/serializers/TestSmartListSerializer.java
+@@ -1,9 +1,9 @@
+ package com.indeed.mph.serializers;
+-
++import com.pholser.junit.quickcheck.From;
+ import com.pholser.junit.quickcheck.Property;
+ import com.pholser.junit.quickcheck.runner.JUnitQuickcheck;
+ import org.junit.runner.RunWith;
+-
++import com.indeed.mph.generators.IntListGenerator;
+ import java.io.IOException;
+ import java.util.List;
+ 
+@@ -23,7 +23,23 @@ public class TestSmartListSerializer {
+         final SmartListSerializer<Byte> bytesSerializer = new SmartListSerializer<>(new SmartByteSerializer());
+         assertRoundTrip(bytesSerializer, byteTarget);
+ 
++        final SmartListSerializer<String> stringsSerializer = new SmartListSerializer<>(new SmartStringSerializer());
++        assertRoundTrip(stringsSerializer, stringTarget);
++    }
++    @Property
++    public void canRoundTripSerializableListsWithGenerator(
++            @From(IntListGenerator.class) final List<Integer> intTarget,
++            final List<Byte> byteTarget,
++            final List<String> stringTarget
++    ) throws IOException {
++        final SmartListSerializer<Integer> intsSerializer = new SmartListSerializer<>(new SmartIntegerSerializer());
++        assertRoundTrip(intsSerializer, intTarget);
++
++        final SmartListSerializer<Byte> bytesSerializer = new SmartListSerializer<>(new SmartByteSerializer());
++        assertRoundTrip(bytesSerializer, byteTarget);
++
+         final SmartListSerializer<String> stringsSerializer = new SmartListSerializer<>(new SmartStringSerializer());
+         assertRoundTrip(stringsSerializer, stringTarget);
+     }
+ }
++
