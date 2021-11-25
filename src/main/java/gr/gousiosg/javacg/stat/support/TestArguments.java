@@ -15,6 +15,8 @@ public class TestArguments {
     private static final String XML_SUFFIX = ".xml";
     private static final String FILE_NAME = "f";
     private static final String FILE_NAME_LONG = "file";
+    private static final String CONFIG_NAME = "c";
+    private static final String CONFIG_NAME_LONG = "config";
     private static final String OUTPUT_NAME = "o";
     private static final String OUTPUT_NAME_LONG = "output";
     private static final String DEPTH_INPUT = "d";
@@ -26,10 +28,11 @@ public class TestArguments {
     private static final String ANCESTRY_INPUT = "a";
     private static final String ANCESTRY_INPUT_LONG = "ancestry";
 
-    private String bytecodeFile;
-    private Optional<String> maybeOutput = Optional.empty();
-    private Optional<String> maybeEntryPoint = Optional.empty();
-    private Optional<String> maybeCoverage = Optional.empty();
+    private Optional<String> bytecodeFile;
+//    private Optional<String> maybeOutput = Optional.empty();
+//    private Optional<String> maybeEntryPoint = Optional.empty();
+//    private Optional<String> maybeCoverage = Optional.empty();
+    private Optional<String> maybeConfig = Optional.empty();
     private Optional<Integer> maybeDepth = Optional.empty();
     private Optional<Integer> maybeAncestry = Optional.empty();
 
@@ -46,41 +49,43 @@ public class TestArguments {
 
             /*Parse bytecode file */
             if (cmd.hasOption(FILE_NAME)){
-                bytecodeFile = cmd.getOptionValue(FILE_NAME);
+                bytecodeFile = Optional.of(cmd.getOptionValue(FILE_NAME));
             }
-
-            /* Parse coverage file */
-            if (cmd.hasOption(COVERAGE_INPUT)) {
-                String coverageFile = cmd.getOptionValue(COVERAGE_INPUT);
-                if (!coverageFile.endsWith(XML_SUFFIX)) {
-                    LOGGER.error("File " + coverageFile + " must be an XML file!");
-                    System.exit(1);
-                }
-                maybeCoverage = Optional.of(coverageFile);
+//
+//            /* Parse coverage file */
+//            if (cmd.hasOption(COVERAGE_INPUT)) {
+//                String coverageFile = cmd.getOptionValue(COVERAGE_INPUT);
+//                if (!coverageFile.endsWith(XML_SUFFIX)) {
+//                    LOGGER.error("File " + coverageFile + " must be an XML file!");
+//                    System.exit(1);
+//                }
+//                maybeCoverage = Optional.of(coverageFile);
+//            }
+//
+//            /* Parse entry point */
+//            if (cmd.hasOption(ENTRYPOINT_INPUT)) {
+//                String ep = cmd.getOptionValue(ENTRYPOINT_INPUT);
+//                LOGGER.info("Entry Point: " + ep);
+//                this.maybeEntryPoint = Optional.of(ep);
+//            }
+//
+//            /* Parse output name */
+//            if (cmd.hasOption(OUTPUT_NAME)) {
+//                String name = cmd.getOptionValue(OUTPUT_NAME);
+//
+//                /* Validate output filename */
+//                if (!name.matches("^[a-zA-Z0-9_]*$")) {
+//                    LOGGER.error("---> " + name + " <---");
+//                    LOGGER.error(
+//                            "Please specify a valid name (letters, numbers, underscores) for the output. Do not include filetype!");
+//                    System.exit(1);
+//                }
+//
+//                this.maybeOutput = Optional.of(name);
+//            }
+            if(cmd.hasOption(CONFIG_NAME)){
+                this.maybeConfig = Optional.of(cmd.getOptionValue(CONFIG_NAME));
             }
-
-            /* Parse entry point */
-            if (cmd.hasOption(ENTRYPOINT_INPUT)) {
-                String ep = cmd.getOptionValue(ENTRYPOINT_INPUT);
-                LOGGER.info("Entry Point: " + ep);
-                this.maybeEntryPoint = Optional.of(ep);
-            }
-
-            /* Parse output name */
-            if (cmd.hasOption(OUTPUT_NAME)) {
-                String name = cmd.getOptionValue(OUTPUT_NAME);
-
-                /* Validate output filename */
-                if (!name.matches("^[a-zA-Z0-9_]*$")) {
-                    LOGGER.error("---> " + name + " <---");
-                    LOGGER.error(
-                            "Please specify a valid name (letters, numbers, underscores) for the output. Do not include filetype!");
-                    System.exit(1);
-                }
-
-                this.maybeOutput = Optional.of(name);
-            }
-
             /* Parse ancestry */
             if (cmd.hasOption(ANCESTRY_INPUT)) {
                 String val = cmd.getOptionValue(ANCESTRY_INPUT);
@@ -117,6 +122,13 @@ public class TestArguments {
 
     private static Options getOptions() {
         Options options = new Options();
+        options.addOption(
+                Option.builder(CONFIG_NAME)
+                .longOpt(CONFIG_NAME_LONG)
+                .hasArg(true)
+                .desc("[REQUIRED] specify the config folder")
+                .required(true)
+                .build());
 
         options.addOption(
                 Option.builder(FILE_NAME)
@@ -126,13 +138,13 @@ public class TestArguments {
                         .required(true)
                         .build());
 
-        options.addOption(
-                Option.builder(OUTPUT_NAME)
-                        .longOpt(OUTPUT_NAME_LONG)
-                        .hasArg(true)
-                        .desc("[OPTIONAL] specify an output name for the graph")
-                        .required(false)
-                        .build());
+//        options.addOption(
+//                Option.builder(OUTPUT_NAME)
+//                        .longOpt(OUTPUT_NAME_LONG)
+//                        .hasArg(true)
+//                        .desc("[OPTIONAL] specify an output name for the graph")
+//                        .required(false)
+//                        .build());
 
         options.addOption(
                 Option.builder(DEPTH_INPUT)
@@ -142,21 +154,21 @@ public class TestArguments {
                         .required(false)
                         .build());
 
-        options.addOption(
-                Option.builder(COVERAGE_INPUT)
-                        .longOpt(COVERAGE_INPUT_LONG)
-                        .hasArg(true)
-                        .desc("[OPTIONAL] specify the coverage to apply to the reachability graph")
-                        .required(false)
-                        .build());
-
-        options.addOption(
-                Option.builder(ENTRYPOINT_INPUT)
-                        .longOpt(ENTRYPOINT_INPUT_LONG)
-                        .hasArg(true)
-                        .desc("[OPTIONAL] specify an entry point into the graph")
-                        .required(false)
-                        .build());
+//        options.addOption(
+//                Option.builder(COVERAGE_INPUT)
+//                        .longOpt(COVERAGE_INPUT_LONG)
+//                        .hasArg(true)
+//                        .desc("[OPTIONAL] specify the coverage to apply to the reachability graph")
+//                        .required(false)
+//                        .build());
+//
+//        options.addOption(
+//                Option.builder(ENTRYPOINT_INPUT)
+//                        .longOpt(ENTRYPOINT_INPUT_LONG)
+//                        .hasArg(true)
+//                        .desc("[OPTIONAL] specify an entry point into the graph")
+//                        .required(false)
+//                        .build());
 
         options.addOption(
                 Option.builder(ANCESTRY_INPUT)
@@ -169,24 +181,25 @@ public class TestArguments {
         return options;
     }
 
-    public String getBytecodeFile(){ return bytecodeFile; }
+    public Optional<String> maybeBytecodeFile(){ return bytecodeFile; }
 
-    public Optional<String> maybeOutput() {
-        return maybeOutput;
-    }
+//    public Optional<String> maybeOutput() {
+//        return maybeOutput;
+//    }
 
-    public Optional<String> maybeEntryPoint() {
-        return maybeEntryPoint;
-    }
+//    public Optional<String> maybeEntryPoint() {
+//        return maybeEntryPoint;
+//    }
 
     public Optional<Integer> maybeDepth() {
         return maybeDepth;
     }
 
-    public Optional<String> maybeCoverage() {
-        return maybeCoverage;
-    }
+//    public Optional<String> maybeCoverage() {
+//        return maybeCoverage;
+//    }
 
+    public Optional<String> maybeGetConfig() {return maybeConfig;}
     public Optional<Integer> maybeAncestry() {
         return maybeAncestry;
     }
