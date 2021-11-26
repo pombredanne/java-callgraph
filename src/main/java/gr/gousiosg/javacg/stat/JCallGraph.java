@@ -82,7 +82,6 @@ public class JCallGraph {
           rt.cloneRepo();
           rt.applyPatch();
           rt.buildJars();
-          rt.moveJars();
           break;
         }
         case "build": {
@@ -93,13 +92,13 @@ public class JCallGraph {
           break;
         }
         case "test": {
-          // 1. Deserialize callgraph
           TestArguments arguments = new TestArguments(args);
-          StaticCallgraph callgraph = deserializeStaticCallGraph(arguments);
-          // 2. Run Tests and obtain coverage
+          // 1. Run Tests and obtain coverage
           RepoTool rt = maybeObtainTool(arguments);
           List<Pair<String, String>> coverageFilesAndEntryPoints = rt.obtainCoverageFilesAndEntryPoints();
           for(Pair<String, String> s : coverageFilesAndEntryPoints) {
+            // 2. For each coverage file we start with a fresh deserialized callgraph
+            StaticCallgraph callgraph = deserializeStaticCallGraph(arguments);
             LOGGER.info("----------PROPERTY------------");
             String propertyName = s.first.substring(s.first.lastIndexOf("/") + 1, s.first.length() - 4);
             LOGGER.info(propertyName);
@@ -111,6 +110,7 @@ public class JCallGraph {
             maybeWriteGraph(callgraph.graph, Optional.of(propertyName));
             maybeInspectReachability(callgraph, arguments, jacocoCoverage, Optional.of(s.second), Optional.of(propertyName));
             maybeInspectAncestry(callgraph, arguments, jacocoCoverage, Optional.of(s.second), Optional.of(propertyName));
+            rt.cleanTarget();
           }
           break;
         }
