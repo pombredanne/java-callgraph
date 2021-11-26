@@ -1,8 +1,11 @@
 ## Projects using [JUnit-QuickCheck](https://github.com/pholser/junit-quickcheck)
 
-You can find many artifacts using the dependency here: [https://mvnrepository.com/artifact/com.pholser/junit-quickcheck-core/usages](https://mvnrepository.com/artifact/com.pholser/junit-quickcheck-core/usages).
+You can find many artifacts using the dependency
+here: [https://mvnrepository.com/artifact/com.pholser/junit-quickcheck-core/usages](https://mvnrepository.com/artifact/com.pholser/junit-quickcheck-core/usages)
+.
 
-Alternatively, you can search GitHub for Maven POM files containing JUnit-Quickcheck: https://github.com/search?l=Maven+POM&p=1&q=junit-quickcheck-core&type=Code
+Alternatively, you can search GitHub for Maven POM files containing
+JUnit-Quickcheck: https://github.com/search?l=Maven+POM&p=1&q=junit-quickcheck-core&type=Code
 
 For example, here are some that I've found:
 

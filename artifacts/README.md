@@ -1,6 +1,7 @@
 ## How to use the run configuration:
 
-Look through the configuration file `config.yaml` and replace each attribute with the attributes corresponding to your project.
+Look through the configuration file `config.yaml` and replace each attribute with the attributes corresponding to your
+project.
 
 Let's use [java-callgraph-driver](https://github.com/wcygan/java-callgraph-driver) as an example.
 
@@ -39,4 +40,5 @@ Once we have the required fields specified, we can run execute the run script li
 python3 run.py
 ```
 
-Please note that this script depends on [PyYAML](https://pypi.org/project/pyaml/) which can be installed with pip: `pip install pyaml`.
+Please note that this script depends on [PyYAML](https://pypi.org/project/pyaml/) which can be installed with
+pip: `pip install pyaml`.
