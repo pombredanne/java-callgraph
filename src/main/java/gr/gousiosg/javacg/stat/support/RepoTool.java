@@ -75,6 +75,7 @@ public class RepoTool {
         while((line = br.readLine()) != null)
             LOGGER.info(line);
         process.waitFor();
+        moveJars();
     }
 
     public void testProperty(String property) throws IOException, InterruptedException {
@@ -82,7 +83,26 @@ public class RepoTool {
         if(isWindows())
             pb.command("cmd.exe", "/c", "mvn", "test", "-Dtest=" + property);
         else
-            pb.command("bash", "-c", "mvn install -Dtest=" + property);
+            pb.command("bash", "-c", "mvn test -Dtest=" + property);
+        pb.directory(new File(this.name));
+        long start = System.nanoTime();
+        Process process = pb.start();
+        BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
+        String line;
+        while((line = br.readLine()) != null)
+            LOGGER.info(line);
+        process.waitFor();
+        long end = System.nanoTime();
+        moveJacoco(property, end - start);
+    }
+
+    public void cleanTarget() throws IOException, InterruptedException {
+        LOGGER.info("-------Cleaning target---------");
+        ProcessBuilder pb = new ProcessBuilder();
+        if(isWindows())
+            pb.command("cmd.exe", "/c", "mvn", "clean");
+        else
+            pb.command("bash", "-c", "mvn clean");
         pb.directory(new File(this.name));
         Process process = pb.start();
         BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
@@ -90,14 +110,6 @@ public class RepoTool {
         while((line = br.readLine()) != null)
             LOGGER.info(line);
         process.waitFor();
-        String repoPath = System.getProperty("user.dir") + "/" + this.name + "/target/site/jacoco/jacoco.xml";
-        String targetPath = System.getProperty("user.dir") + "/artifacts/results/"+ this.name + "/" + property + ".xml";
-        Path jacoco = Files.move(
-            Paths.get(repoPath),
-            Paths.get(targetPath),
-            StandardCopyOption.REPLACE_EXISTING);
-        if(jacoco.equals(null))
-            throw new IOException("Jacoco file not moved properly!");
     }
 
     public List<Pair<String,String>> obtainCoverageFilesAndEntryPoints(){
@@ -105,21 +117,6 @@ public class RepoTool {
         for(Map<String, String> m : properties)
             coverageFiles.add(new Pair<>("artifacts/results/" + this.name + "/" + m.get("name") + ".xml", m.get("entryPoint")));
         return coverageFiles;
-    }
-
-    public void moveJars() throws IOException{
-        Path jar = Files.move(
-                Paths.get(System.getProperty("user.dir") + "/" + this.name + "/target/" + this.name + "-1.0.6-SNAPSHOT.jar"),
-                Paths.get(System.getProperty("user.dir") + "/artifacts/output/" + this.name + "-1.0.6-SNAPSHOT.jar"),
-                StandardCopyOption.REPLACE_EXISTING);
-        if(jar.equals(null))
-            throw new IOException("Jar not moved properly!");
-        Path testJar = Files.move(
-                Paths.get(System.getProperty("user.dir") + "/" + this.name + "/target/" + this.name + "-1.0.6-SNAPSHOT-tests.jar"),
-                Paths.get(System.getProperty("user.dir") + "/artifacts/output/" + this.name + "-1.0.6-SNAPSHOT-tests.jar"),
-                StandardCopyOption.REPLACE_EXISTING);
-        if(testJar.equals(null))
-            throw new IOException("TestJar not moved properly!");
     }
 
     public static Optional<RepoTool> obtainTool(String folderName){
@@ -130,10 +127,48 @@ public class RepoTool {
             return Optional.of(new RepoTool(data.get("name"), data.get("URL"), data.get("checkoutID"), data.get("patchName")));
         }
         catch(IOException e){
-            e.printStackTrace();
+            LOGGER.error("IOException: " + e.getMessage());
         }
         LOGGER.error("Could not obtain yaml file!");
         return Optional.empty();
+    }
+
+    private void moveJars() throws IOException{
+        Path jar = Files.move(
+                Paths.get(System.getProperty("user.dir") + "/" + this.name + "/target/" + this.name + "-1.0.6-SNAPSHOT.jar"),
+                Paths.get(System.getProperty("user.dir") + "/artifacts/output/" + this.name + "-1.0.6-SNAPSHOT.jar"),
+                StandardCopyOption.REPLACE_EXISTING);
+        Path testJar = Files.move(
+                Paths.get(System.getProperty("user.dir") + "/" + this.name + "/target/" + this.name + "-1.0.6-SNAPSHOT-tests.jar"),
+                Paths.get(System.getProperty("user.dir") + "/artifacts/output/" + this.name + "-1.0.6-SNAPSHOT-tests.jar"),
+                StandardCopyOption.REPLACE_EXISTING);
+    }
+
+    private void moveJacoco(String property, long timeElapsed) throws IOException{
+        String jacocoPath = System.getProperty("user.dir") + "/" + this.name + "/target/site/jacoco/jacoco.xml";
+        String jacocoTargetPath = System.getProperty("user.dir") + "/artifacts/results/"+ this.name + "/" + property + ".xml";
+        String statisticsPath = System.getProperty("user.dir") + "/" + this.name + "/target/site/jacoco/index.html";
+        String statisticsTargetPath = System.getProperty("user.dir") + "/artifacts/results/"+ this.name + "/" + property + ".html";
+        Path jacoco = Files.move(
+                Paths.get(jacocoPath),
+                Paths.get(jacocoTargetPath),
+                StandardCopyOption.REPLACE_EXISTING);
+        Path statistics = Files.move(
+                Paths.get(statisticsPath),
+                Paths.get(statisticsTargetPath),
+                StandardCopyOption.REPLACE_EXISTING);
+        double timeElapsedInSeconds = (double) timeElapsed / 1_000_000_000;
+        FileWriter fileWriter = null;
+        BufferedWriter bufferedWriter = null;
+        try{
+            fileWriter = new FileWriter(statisticsTargetPath, true);
+            bufferedWriter = new BufferedWriter(fileWriter);
+            bufferedWriter.append("<html><section><h1> Total Time Elapsed: "+ timeElapsedInSeconds +" seconds</h1></section></html>");
+            bufferedWriter.flush();
+        } finally{
+            fileWriter.close();
+            bufferedWriter.close();
+        }
     }
 
     private boolean isWindows() {
