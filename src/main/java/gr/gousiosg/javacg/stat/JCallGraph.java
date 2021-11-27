@@ -105,7 +105,7 @@ public class JCallGraph {
             rt.testProperty(propertyName);
             JacocoCoverage jacocoCoverage = new JacocoCoverage(Optional.of(s.first));
             // 3. Prune the graph with coverage
-            Pruning.prune(callgraph, jacocoCoverage);
+            Pruning.pruneOriginalGraph(callgraph, jacocoCoverage, arguments);
             // 4. Operate on the graph and write it to output
             maybeWriteGraph(callgraph.graph, Optional.of(propertyName));
             maybeInspectReachability(callgraph, arguments, jacocoCoverage, Optional.of(s.second), Optional.of(propertyName));
@@ -163,6 +163,8 @@ public class JCallGraph {
 
     /* Apply coverage */
     jacocoCoverage.applyCoverage(reachability, callgraph.metadata);
+
+    Pruning.pruneReachabilityGraph(reachability, callgraph.metadata, jacocoCoverage, arguments);
 
     /* Should we write the graph to a file? */
     Optional<String> outputName =
