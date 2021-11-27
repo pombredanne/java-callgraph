@@ -145,9 +145,10 @@ public class JCallGraph {
   }
 
   private static void maybeWriteGraph(Graph<String, DefaultEdge> graph, Optional<String> output) {
+    if(output.isPresent()) {
       Utilities.writeGraph(
-          graph, Utilities.defaultExporter(), output.map(JCallGraph::asDot));
-
+              graph, Utilities.defaultExporter(), output.map(JCallGraph::asDot));
+    }
   }
 
   private static void maybeInspectReachability(
