@@ -26,15 +26,15 @@ public class Pruning {
      * @param callgraph the graph
      * @param coverage  the coverage
      */
-    public static void pruneOriginalGraph(StaticCallgraph callgraph, JacocoCoverage coverage, TestArguments testArguments) {
+    public static void pruneOriginalGraph(StaticCallgraph callgraph, JacocoCoverage coverage) {
         markConcreteBridgeTargets(callgraph.graph, callgraph.metadata);
         pruneBridgeMethods(callgraph.graph, callgraph.metadata);
         pruneConcreteMethods(callgraph.graph, callgraph.metadata, coverage);
-        pruneMethodsFromTests(callgraph.graph, callgraph.metadata, testArguments, coverage);
+        pruneMethodsFromTests(callgraph.graph, callgraph.metadata, coverage);
     }
 
-    public static void pruneReachabilityGraph(Graph<ColoredNode, DefaultEdge> reachability, JarMetadata metadata, JacocoCoverage coverage, TestArguments testArguments) {
-        pruneMethodsFromTestsThatAreReachable(reachability, metadata, testArguments, coverage);
+    public static void pruneReachabilityGraph(Graph<ColoredNode, DefaultEdge> reachability, JarMetadata metadata, JacocoCoverage coverage) {
+        pruneMethodsFromTestsThatAreReachable(reachability, metadata, coverage);
     }
 
     /**
@@ -129,7 +129,7 @@ public class Pruning {
      * @param graph    the graph
      * @param metadata the metadata of the graph
      */
-    private static void pruneMethodsFromTests(Graph<String, DefaultEdge> graph, JarMetadata metadata, TestArguments testArguments, JacocoCoverage coverage) {
+    private static void pruneMethodsFromTests(Graph<String, DefaultEdge> graph, JarMetadata metadata, JacocoCoverage coverage) {
         var testTargetNodes = metadata.testMethods.stream()
                 .filter(graph::containsVertex)
                 .map(graph::outgoingEdgesOf)
@@ -168,7 +168,7 @@ public class Pruning {
      *
      * @param metadata the metadata of the graph
      */
-    private static void pruneMethodsFromTestsThatAreReachable(Graph<ColoredNode, DefaultEdge> graph, JarMetadata metadata, TestArguments testArguments, JacocoCoverage coverage) {
+    private static void pruneMethodsFromTestsThatAreReachable(Graph<ColoredNode, DefaultEdge> graph, JarMetadata metadata, JacocoCoverage coverage) {
         Map<String, ColoredNode> nodeMap = nodeMap(graph.vertexSet());
 
         var testTargetNodes = metadata.testMethods.stream()

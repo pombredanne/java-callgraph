@@ -31,64 +31,62 @@ public class JacocoCoverage {
     /**
      * Create a {@link JacocoCoverage} object
      *
-     * @param maybeFilepath the JaCoCo coverage XML file to parse
+     * @param path the JaCoCo coverage XML file to parse
      */
-    public JacocoCoverage(Optional<String> maybeFilepath)
+    public JacocoCoverage(String path)
             throws IOException, ParserConfigurationException, JAXBException, SAXException {
 
-        if (maybeFilepath.isPresent()) {
-            /* Convert the jacoco.xml file into a Report object */
-            Report report = JacocoCoverageParser.getReport(maybeFilepath.get());
+        /* Convert the jacoco.xml file into a Report object */
+        Report report = JacocoCoverageParser.getReport(path);
 
-            /* Iterate over all packages in report */
-            for (Report.Package pkg : report.getPackage()) {
+        /* Iterate over all packages in report */
+        for (Report.Package pkg : report.getPackage()) {
 
-                /* Iterate over all classes in a package */
-                pkg.getClazz()
-                        .forEach(
-                                clazz -> {
-                                    /* Find all methods in a class */
-                                    List<Report.Package.Class.Method> methods =
-                                            clazz.getContent().stream()
-                                                    .filter(s -> s instanceof JAXBElement)
-                                                    .map(s -> (JAXBElement<?>) s)
-                                                    .filter(je -> je.getValue() instanceof Report.Package.Class.Method)
-                                                    .map(je -> (Report.Package.Class.Method) je.getValue())
-                                                    .collect(Collectors.toList());
-
-                                    /* Store "covered" methods in methodCoverage */
-                                    methods.forEach(
-                                            method -> {
-                                                String qualifiedName =
-                                                        MethodSignatureUtil.fullyQualifiedMethodSignature(
-                                                                clazz.getName(), method.getName(), method.getDesc());
-                                                methodCoverage.putIfAbsent(qualifiedName, method);
-                                            });
-                                });
-
-                /* Iterate over all source files in a package */
-                pkg.getSourcefile()
-                        .forEach(
-                                rawSrcFile ->
-                                        rawSrcFile.getContent().stream()
+            /* Iterate over all classes in a package */
+            pkg.getClazz()
+                    .forEach(
+                            clazz -> {
+                                /* Find all methods in a class */
+                                List<Report.Package.Class.Method> methods =
+                                        clazz.getContent().stream()
                                                 .filter(s -> s instanceof JAXBElement)
                                                 .map(s -> (JAXBElement<?>) s)
-                                                .filter(je -> je.getValue() instanceof Report.Package.Sourcefile.Line)
-                                                .map(je -> (Report.Package.Sourcefile.Line) je.getValue())
-                                                .filter(
-                                                        line ->
-                                                                Byte.toUnsignedInt(line.cb) > 0 || Byte.toUnsignedInt(line.ci) > 0)
-                                                .forEach(
-                                                        line ->
-                                                                coveredLines.add(
-                                                                        String.format(
-                                                                                "%s:%d",
-                                                                                rawSrcFile.getName(), Byte.toUnsignedInt(line.nr)))));
-            }
+                                                .filter(je -> je.getValue() instanceof Report.Package.Class.Method)
+                                                .map(je -> (Report.Package.Class.Method) je.getValue())
+                                                .collect(Collectors.toList());
 
-            /* Indicate that coverage has been applied */
-            hasCoverage = true;
+                                /* Store "covered" methods in methodCoverage */
+                                methods.forEach(
+                                        method -> {
+                                            String qualifiedName =
+                                                    MethodSignatureUtil.fullyQualifiedMethodSignature(
+                                                            clazz.getName(), method.getName(), method.getDesc());
+                                            methodCoverage.putIfAbsent(qualifiedName, method);
+                                        });
+                            });
+
+            /* Iterate over all source files in a package */
+            pkg.getSourcefile()
+                    .forEach(
+                            rawSrcFile ->
+                                    rawSrcFile.getContent().stream()
+                                            .filter(s -> s instanceof JAXBElement)
+                                            .map(s -> (JAXBElement<?>) s)
+                                            .filter(je -> je.getValue() instanceof Report.Package.Sourcefile.Line)
+                                            .map(je -> (Report.Package.Sourcefile.Line) je.getValue())
+                                            .filter(
+                                                    line ->
+                                                            Byte.toUnsignedInt(line.cb) > 0 || Byte.toUnsignedInt(line.ci) > 0)
+                                            .forEach(
+                                                    line ->
+                                                            coveredLines.add(
+                                                                    String.format(
+                                                                            "%s:%d",
+                                                                            rawSrcFile.getName(), Byte.toUnsignedInt(line.nr)))));
         }
+
+        /* Indicate that coverage has been applied */
+        hasCoverage = true;
     }
 
     public void applyCoverage(Graph<ColoredNode, DefaultEdge> graph, JarMetadata metadata) {

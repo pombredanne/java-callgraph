@@ -35,22 +35,16 @@ public class Utilities {
      *
      * @param graph           the graph
      * @param exporter        the exporter that will write the graph to a file
-     * @param maybeOutputName the name to use
+     * @param path            the file to use
      * @param <T>             the type of the elements in the graph
      */
     public static <T> void writeGraph(
             Graph<T, DefaultEdge> graph,
             DOTExporter<T, DefaultEdge> exporter,
-            Optional<String> maybeOutputName) {
+            String path) {
         LOGGER.info("Attempting to store callgraph...");
 
-        if (maybeOutputName.isEmpty()) {
-            LOGGER.error("No output name specified!");
-            return;
-        }
-
         /* Write to .dot file in output directory */
-        String path = JCallGraph.OUTPUT_DIRECTORY + maybeOutputName.get();
         try {
             Writer writer = new FileWriter(path);
             exporter.exportGraph(graph, writer);

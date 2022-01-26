@@ -103,12 +103,12 @@ public class JCallGraph {
             String propertyName = s.first.substring(s.first.lastIndexOf("/") + 1, s.first.length() - 4);
             LOGGER.info(propertyName);
             rt.testProperty(propertyName);
-            JacocoCoverage jacocoCoverage = new JacocoCoverage(Optional.of(s.first));
+            JacocoCoverage jacocoCoverage = new JacocoCoverage(s.first);
             // 3. Prune the graph with coverage
-            Pruning.pruneOriginalGraph(callgraph, jacocoCoverage, arguments);
+            Pruning.pruneOriginalGraph(callgraph, jacocoCoverage);
             // 4. Operate on the graph and write it to output
-            maybeWriteGraph(callgraph.graph, Optional.of(propertyName));
-            maybeInspectReachability(callgraph, arguments, jacocoCoverage, Optional.of(s.second), Optional.of(propertyName));
+            maybeWriteGraph(callgraph.graph, JCallGraph.OUTPUT_DIRECTORY + propertyName);
+            maybeInspectReachability(callgraph, arguments.maybeDepth(), jacocoCoverage, s.second, JCallGraph.OUTPUT_DIRECTORY + propertyName);
             maybeInspectAncestry(callgraph, arguments, jacocoCoverage, Optional.of(s.second), Optional.of(propertyName));
             rt.cleanTarget();
           }
@@ -144,56 +144,38 @@ public class JCallGraph {
     LOGGER.info("java-cg is finished! Enjoy!");
   }
 
-  private static void maybeWriteGraph(Graph<String, DefaultEdge> graph, Optional<String> output) {
-    if(output.isPresent()) {
-      Utilities.writeGraph(
-              graph, Utilities.defaultExporter(), output.map(JCallGraph::asDot));
-    }
+  private static void maybeWriteGraph(Graph<String, DefaultEdge> graph, String output) {
+    Utilities.writeGraph(graph, Utilities.defaultExporter(), JCallGraph.asDot(output));
   }
 
   private static void maybeInspectReachability(
-      StaticCallgraph callgraph, TestArguments arguments, JacocoCoverage jacocoCoverage, Optional<String> entryPoint, Optional<String> outputFile) {
-    if (entryPoint.isEmpty()) {
-      return;
-    }
+      StaticCallgraph callgraph, Optional<Integer> depth, JacocoCoverage jacocoCoverage, String entryPoint, String outputFile) {
 
     /* Fetch reachability */
     Graph<ColoredNode, DefaultEdge> reachability =
         Reachability.compute(
-            callgraph.graph, entryPoint.get(), arguments.maybeDepth());
+            callgraph.graph, entryPoint, depth);
 
     /* Apply coverage */
     jacocoCoverage.applyCoverage(reachability, callgraph.metadata);
 
-    Pruning.pruneReachabilityGraph(reachability, callgraph.metadata, jacocoCoverage, arguments);
+    Pruning.pruneReachabilityGraph(reachability, callgraph.metadata, jacocoCoverage);
 
     /* Should we write the graph to a file? */
-    Optional<String> outputName =
-        outputFile.isPresent()
-            ? Optional.of(outputFile.get() + DELIMITER + REACHABILITY)
-            : Optional.empty();
+    String outputName = outputFile + DELIMITER + REACHABILITY;
 
     /* Attach depth to name if present */
-    outputName =
-        outputName.map(
-            name -> {
-              if (arguments.maybeDepth().isPresent()) {
-                return name + DELIMITER + arguments.maybeDepth().get();
-              } else {
-                return name;
-              }
-            });
+    if (depth.isPresent()) {
+      outputName = outputName + DELIMITER + depth.get();
+    }
 
     /* Store reachability in file? */
-    if (outputName.isPresent()) {
-      Utilities.writeGraph(
-          reachability, Utilities.coloredExporter(), outputName.map(JCallGraph::asDot));
-    }
+    Utilities.writeGraph(
+            reachability, Utilities.coloredExporter(), JCallGraph.asDot(outputName));
 
     /* Analyze reachability coverage? */
     if (jacocoCoverage.hasCoverage()) {
-      CoverageStatistics.analyze(
-          reachability, outputName.map(name -> asCsv(name + DELIMITER + COVERAGE)));
+      CoverageStatistics.analyze( reachability, Optional.of(asCsv(outputName + DELIMITER + COVERAGE)));
     }
   }
 
@@ -217,7 +199,7 @@ public class JCallGraph {
               + DELIMITER
               + arguments.maybeAncestry().get();
       Utilities.writeGraph(
-          ancestry, Utilities.coloredExporter(), Optional.of(asDot(subgraphOutputName)));
+          ancestry, Utilities.coloredExporter(), JCallGraph.OUTPUT_DIRECTORY + asDot(subgraphOutputName));
     }
   }
 
@@ -248,14 +230,15 @@ public class JCallGraph {
   // Throws: IOException when file cannot be read
   // Throws: ClassNotFoundException when object cannot be read properly
   private static StaticCallgraph deserializeStaticCallGraph(TestArguments arguments) throws IOException, ClassNotFoundException{
-    File filename = new File(arguments.maybeBytecodeFile().get());
-    FileInputStream file = new FileInputStream(filename);
-    ObjectInputStream ois = new ObjectInputStream(file);
-    StaticCallgraph scg = (StaticCallgraph) ois.readObject();
-    ois.close();
-    file.close();
-    return scg;
+    return deserializeStaticCallGraph(new File(arguments.maybeBytecodeFile().get()));
   }
+
+  private static StaticCallgraph deserializeStaticCallGraph(File f) throws IOException, ClassNotFoundException{
+    try (ObjectInput ois = new ObjectInputStream(new FileInputStream(f))) {
+      return (StaticCallgraph) ois.readObject();
+    }
+  }
+
 
   private static RepoTool maybeObtainTool(GitArguments arguments) throws FileNotFoundException{
     Optional<RepoTool> rt = RepoTool.obtainTool(arguments.maybeGetConfig().get());
