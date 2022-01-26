@@ -76,6 +76,10 @@ public class JCallGraph {
     try {
       LOGGER.info("Starting java-cg!");
       switch(args[0]){
+        case "manual-test": {
+          manualMain(args);
+          return;
+        }
         case "git":{
           GitArguments arguments = new GitArguments(args);
           RepoTool rt = maybeObtainTool(arguments);
@@ -142,6 +146,55 @@ public class JCallGraph {
     }
 
     LOGGER.info("java-cg is finished! Enjoy!");
+
+  }
+
+  public static void manualMain(String[] args) {
+
+    // First argument:   the serialized file
+    StaticCallgraph callgraph = null;
+    try {
+      File f = new File(args[1]);
+      LOGGER.info("Deserializing file " + f.getAbsolutePath());
+      callgraph = deserializeStaticCallGraph(new File(args[1]));
+    } catch (IOException e) {
+      LOGGER.error("Could not deserialize static call graph", e);
+    } catch (ClassNotFoundException e) {
+      LOGGER.error("This shouldn't happen, go fix your CLASSPATH", e);
+    }
+
+    // Second argument: the jacoco.xml
+    JacocoCoverage jacocoCoverage = null;
+    try {
+      File f = new File(args[2]);
+      LOGGER.info("Reading JaCoCo coverage file " + f.getAbsolutePath());
+      jacocoCoverage = new JacocoCoverage(f.getAbsolutePath());
+    } catch (IOException | ParserConfigurationException | JAXBException | SAXException e) {
+      LOGGER.error("Could not read JaCoCo coverage file", e);
+    }
+
+    // Third argument:  the entry point
+    String entryPoint = args[3];
+
+    // Fourth argument:  the output file
+    String output = args[4];
+
+    if (callgraph == null || jacocoCoverage == null) {
+      // Something went wrong, bail
+      return;
+    }
+
+    // Fifth argument, optional, is the depth
+    Optional<Integer> depth = Optional.empty();
+    if (args.length > 5)
+      depth = Optional.of(Integer.parseInt(args[5]));
+
+    // This method changes the callgraph object
+    Pruning.pruneOriginalGraph(callgraph, jacocoCoverage);
+
+    maybeInspectReachability(callgraph, depth, jacocoCoverage, args[3], args[4]);
+
+//    maybeWriteGraph(callgraph.graph, args[4]);
   }
 
   private static void maybeWriteGraph(Graph<String, DefaultEdge> graph, String output) {
