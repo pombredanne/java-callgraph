@@ -83,18 +83,92 @@ public class MethodVisitor extends EmptyVisitor {
         return sb.toString();
     }
 
+    private LinkedList<InstructionHandle> findLeaders(InstructionList il) {
+        // https://www.geeksforgeeks.org/basic-blocks-in-compiler-design/
+        LinkedList<InstructionHandle> is = new LinkedList<>();
+        Set<InstructionHandle> leaders = new HashSet<>();
+
+        leaders.add(il.getStart());
+
+        for (InstructionHandle ih = il.getStart(); ih != null; ih = ih.getNext()) {
+            is.addLast(ih);
+            Instruction i = ih.getInstruction();
+
+            if (i instanceof IfInstruction) {
+                IfInstruction ifi = (IfInstruction) i;
+                leaders.add(ifi.getTarget());
+                leaders.add(ih.getNext());
+            } else if (i instanceof GOTO) {
+                // TODO unconditional GOTOs
+            } else if (i instanceof Select) {
+                // TODO switch-case
+            } else if (i instanceof ReturnInstruction || i instanceof ATHROW) {
+                if (ih.getNext() != null)
+                    leaders.add(ih.getNext());
+            }
+        }
+
+        LinkedList<InstructionHandle> sortedLeaders = new LinkedList<>(leaders);
+        Collections.sort(sortedLeaders, Comparator.comparingInt(InstructionHandle::getPosition));
+
+        return sortedLeaders;
+    }
+
+    private List<LinkedList<InstructionHandle>> computeBasicBlocks(InstructionList il) {
+        LinkedList<InstructionHandle> leaders = findLeaders(il);
+
+        LinkedList<LinkedList<InstructionHandle>> ret = new LinkedList<>();
+
+        LinkedList<InstructionHandle> currentBlock = new LinkedList<>();
+
+        {
+            // First instruction is always a leader, add manually
+            leaders.removeFirst();
+            currentBlock.addLast(il.getStart());
+        }
+
+        for (InstructionHandle ih = il.getStart().getNext(); ih != null; ih = ih.getNext()) {
+            if (!leaders.isEmpty() && ih == leaders.getFirst()) {
+                // Found start of next BB
+                ret.addLast(currentBlock);
+                currentBlock = new LinkedList<>();
+                currentBlock.addLast(ih);
+                leaders.removeFirst();
+            } else {
+                // Regular instruction, just add to current block
+                currentBlock.addLast(ih);
+            }
+        }
+
+        // Add last BB
+        ret.addLast(currentBlock);
+
+        return ret;
+    }
+
     public Set<Pair<String, String>> start() {
         if (mg.isAbstract() || mg.isNative()) return Collections.emptySet();
 
-        for (InstructionHandle ih = mg.getInstructionList().getStart(); ih != null; ih = ih.getNext()) {
-            Instruction i = ih.getInstruction();
+        List<LinkedList<InstructionHandle>> bbs = this.computeBasicBlocks(mg.getInstructionList());
 
-            if (!visitInstruction(i)) {
-                int currentBytecodeOffset = ih.getPosition();
-                currentLineNumber = mg.getLineNumberTable(cp).getSourceLine(currentBytecodeOffset);
-                i.accept(this);
+        for (LinkedList<InstructionHandle> bb : bbs) {
+            if (bb.getLast().getInstruction() instanceof ATHROW) {
+                // skip BBs that throw exceptions
+                continue;
+            }
+
+            for (InstructionHandle ih : bb) {
+                Instruction i = ih.getInstruction();
+
+                if (!visitInstruction(i)) {
+                    int currentBytecodeOffset = ih.getPosition();
+                    currentLineNumber = mg.getLineNumberTable(cp).getSourceLine(currentBytecodeOffset);
+                    i.accept(this);
+                }
+
             }
         }
+
         return methodCalls;
     }
 
