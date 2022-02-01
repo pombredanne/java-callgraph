@@ -70,6 +70,12 @@ There are command line options that can be used:
 | `-a`        | Report the ancestry of the entrypoint                           | `-a`                                                       |
 | `-o`        | The name of the output file                                     | `-o example`                                               |
 
+### System Properties
+| Property | Usage | Example |
+| --- | --- | --- |
+| jcg.includeExceptionBasicBlocks | Set to "true" to included exception basic blocks, otherwise these will be excluded by default | -Djcg.includeExceptionBasicBlocks=true |
+
+
 ## Known Restrictions
 
 * The static call graph generator does not account for methods invoked via reflection.

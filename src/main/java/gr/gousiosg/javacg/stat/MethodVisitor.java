@@ -149,10 +149,12 @@ public class MethodVisitor extends EmptyVisitor {
     public Set<Pair<String, String>> start() {
         if (mg.isAbstract() || mg.isNative()) return Collections.emptySet();
 
+        boolean includeExceptionBasicBlocks = Boolean.getBoolean("jcg.includeExceptionBasicBlocks");
+
         List<LinkedList<InstructionHandle>> bbs = this.computeBasicBlocks(mg.getInstructionList());
 
         for (LinkedList<InstructionHandle> bb : bbs) {
-            if (bb.getLast().getInstruction() instanceof ATHROW) {
+            if (!includeExceptionBasicBlocks && bb.getLast().getInstruction() instanceof ATHROW) {
                 // skip BBs that throw exceptions
                 continue;
             }
