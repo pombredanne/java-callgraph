@@ -16,6 +16,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class RepoTool {
 
@@ -146,9 +148,9 @@ public class RepoTool {
 
     private void moveJacoco(String property, long timeElapsed) throws IOException{
         String jacocoPath = System.getProperty("user.dir") + "/" + this.name + "/target/site/jacoco/jacoco.xml";
-        String jacocoTargetPath = System.getProperty("user.dir") + "/artifacts/results/"+ this.name + "/" + property + ".xml";
+        String jacocoTargetPath = System.getProperty("user.dir") + "/artifacts/results/"+ this.name + java.time.LocalDateTime.now() + "/" + property + ".xml";
         String statisticsPath = System.getProperty("user.dir") + "/" + this.name + "/target/site/jacoco/index.html";
-        String statisticsTargetPath = System.getProperty("user.dir") + "/artifacts/results/"+ this.name + "/" + property + ".html";
+        String statisticsTargetPath = System.getProperty("user.dir") + "/artifacts/results/"+ this.name + java.time.LocalDateTime.now() + "/" + property + ".html";
         Path jacoco = Files.move(
                 Paths.get(jacocoPath),
                 Paths.get(jacocoTargetPath),
