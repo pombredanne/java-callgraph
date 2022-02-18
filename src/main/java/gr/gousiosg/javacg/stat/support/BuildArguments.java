@@ -132,6 +132,7 @@ public class BuildArguments {
 
     // Return a (path, file) pair
     private Pair<String, File> pathAndJarFile(String jarPath) {
+        jarPath = System.getProperty("user.dir") + jarPath;
         validateJarSuffix(jarPath);
         File file = getJarFile(jarPath);
         return new Pair<>(jarPath, file);

@@ -147,10 +147,14 @@ public class RepoTool {
     }
 
     private void moveJacoco(String property, long timeElapsed) throws IOException{
+        String timeStamp = String.valueOf(java.time.LocalDateTime.now());
+        String directoryPath = System.getProperty("user.dir") + "/artifacts/results/"+ this.name + timeStamp;
         String jacocoPath = System.getProperty("user.dir") + "/" + this.name + "/target/site/jacoco/jacoco.xml";
-        String jacocoTargetPath = System.getProperty("user.dir") + "/artifacts/results/"+ this.name + java.time.LocalDateTime.now() + "/" + property + ".xml";
+        String jacocoTargetPath = directoryPath + "/" + property + ".xml";
         String statisticsPath = System.getProperty("user.dir") + "/" + this.name + "/target/site/jacoco/index.html";
-        String statisticsTargetPath = System.getProperty("user.dir") + "/artifacts/results/"+ this.name + java.time.LocalDateTime.now() + "/" + property + ".html";
+        String statisticsTargetPath = directoryPath + "/" + property + ".html";
+        File directory = new File(directoryPath);
+        directory.mkdir();
         Path jacoco = Files.move(
                 Paths.get(jacocoPath),
                 Paths.get(jacocoTargetPath),
