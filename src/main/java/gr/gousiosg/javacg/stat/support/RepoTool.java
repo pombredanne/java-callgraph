@@ -160,7 +160,7 @@ public class RepoTool {
 
     private void moveJacoco(String property, long timeElapsed) throws IOException{
         String timeStamp = String.valueOf(java.time.LocalDateTime.now());
-        String projectDir = (subProject.equals("")) ? name : (name + "/" + subProject);
+        String projectDir = getProjectDir();
         String directoryPath = System.getProperty("user.dir") + "/artifacts/results/" + projectDir + timeStamp;
         String jacocoPath = System.getProperty("user.dir") + "/" + projectDir + "/target/site/jacoco/jacoco.xml";
         String jacocoTargetPath = directoryPath + "/" + property + ".xml";
@@ -186,5 +186,9 @@ public class RepoTool {
     private boolean isWindows() {
         return System.getProperty("os.name")
                 .toLowerCase().startsWith("windows");
+    }
+
+    private String getProjectDir() {
+        return (subProject.equals("")) ? name : (name + "/" + subProject);
     }
 }
