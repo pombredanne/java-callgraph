@@ -136,7 +136,7 @@ public class RepoTool {
     public static Optional<RepoTool> obtainTool(String folderName){
         try {
             Yaml yaml = new Yaml();
-            InputStream inputStream = new FileInputStream(new File("artifacts/configs/" + folderName + "/" + folderName + ".yaml"));
+            InputStream inputStream = new FileInputStream("artifacts/configs/" + folderName + "/" + folderName + ".yaml");
             Map<String, String> data = yaml.load(inputStream);
             return Optional.of(new RepoTool(data.get("name"), data.get("URL"), data.get("checkoutID"), data.get("patchName"), data.getOrDefault("subProject", ""), data.getOrDefault("mvnOptions", "")));
         }
@@ -177,16 +177,9 @@ public class RepoTool {
                 Paths.get(statisticsTargetPath),
                 StandardCopyOption.REPLACE_EXISTING);
         double timeElapsedInSeconds = (double) timeElapsed / 1_000_000_000;
-        FileWriter fileWriter = null;
-        BufferedWriter bufferedWriter = null;
-        try{
-            fileWriter = new FileWriter(statisticsTargetPath, true);
-            bufferedWriter = new BufferedWriter(fileWriter);
-            bufferedWriter.append("<html><section><h1> Total Time Elapsed: "+ timeElapsedInSeconds +" seconds</h1></section></html>");
+        try (FileWriter fileWriter = new FileWriter(statisticsTargetPath, true); BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
+            bufferedWriter.append("<html><section><h1> Total Time Elapsed: ").append(String.valueOf(timeElapsedInSeconds)).append(" seconds</h1></section></html>");
             bufferedWriter.flush();
-        } finally{
-            fileWriter.close();
-            bufferedWriter.close();
         }
     }
 
