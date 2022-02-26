@@ -20,26 +20,38 @@ import java.util.Optional;
 public class RepoTool {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RepoTool.class);
-    private String name;
-    private String URL;
-    private String checkoutID;
-    private String patchName;
+    final private String name;
+    final private String URL;
+    final private String checkoutID;
+    final private String patchName;
+    final private String subProject;
+    final private String mvnOptions;
     private List<Map<String, String>> properties;
     private Git git;
 
-    private RepoTool(String name, String URL, String checkoutID, String patchName){
+    private RepoTool(String name, String URL, String checkoutID, String patchName, String subProject, String mvnOptions){
         this.name = name;
         this.URL = URL;
         this.checkoutID = checkoutID;
         this.patchName = patchName;
+        this.subProject = subProject;
+        this.mvnOptions = mvnOptions;
     }
 
     public RepoTool(String name) throws FileNotFoundException {
-        this.name = name;
+        // @todo Perhaps using objects to store configuration data so we don't have to have unchecked casts e.g. https://www.baeldung.com/java-snake-yaml
+
         Yaml yaml = new Yaml();
-        InputStream inputStream = new FileInputStream(new File("artifacts/configs/" + this.name + "/" + this.name + ".yaml"));
-        Map<String, List<Map<String,String>>> data = yaml.load(inputStream);
-        this.properties = data.get("properties");
+        InputStream inputStream = new FileInputStream("artifacts/configs/" + name + "/" + name + ".yaml");
+        Map<String, Object> data = yaml.load(inputStream);
+
+        this.name = name;
+        URL = (String) data.get("URL");
+        checkoutID = (String) data.get("checkoutID");
+        patchName = (String) data.get("patchName");
+        subProject = (String) data.getOrDefault("subProject", "");
+        mvnOptions = (String) data.getOrDefault("mvnOptions", "");
+        properties = (List<Map<String,String>>) data.get("properties");
     }
 
     public void cloneRepo() throws GitAPIException, JGitInternalException {
@@ -81,9 +93,9 @@ public class RepoTool {
     public void testProperty(String property) throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder();
         if(isWindows())
-            pb.command("cmd.exe", "/c", "mvn", "test", "-Dtest=" + property);
+            pb.command("cmd.exe", "/c", "mvn", "test", mvnOptions, "-Dtest=" + property);
         else
-            pb.command("bash", "-c", "mvn test -Dtest=" + property);
+            pb.command("bash", "-c", "mvn test " + mvnOptions + " -Dtest=" + property);
         pb.directory(new File(this.name));
         long start = System.nanoTime();
         Process process = pb.start();
@@ -115,7 +127,7 @@ public class RepoTool {
     public List<Pair<String,String>> obtainCoverageFilesAndEntryPoints(){
         List<Pair<String,String>> coverageFiles = new LinkedList<>();
         for(Map<String, String> m : properties)
-            coverageFiles.add(new Pair<>("artifacts/results/" + this.name + "/" + m.get("name") + ".xml", m.get("entryPoint")));
+            coverageFiles.add(new Pair<>("artifacts/results/" + getProjectDir() + "/" + m.get("name") + ".xml", m.get("entryPoint")));
         return coverageFiles;
     }
 
@@ -124,7 +136,7 @@ public class RepoTool {
             Yaml yaml = new Yaml();
             InputStream inputStream = new FileInputStream(new File("artifacts/configs/" + folderName + "/" + folderName + ".yaml"));
             Map<String, String> data = yaml.load(inputStream);
-            return Optional.of(new RepoTool(data.get("name"), data.get("URL"), data.get("checkoutID"), data.get("patchName")));
+            return Optional.of(new RepoTool(data.get("name"), data.get("URL"), data.get("checkoutID"), data.get("patchName"), data.getOrDefault("subProject", ""), data.getOrDefault("mvnOptions", "")));
         }
         catch(IOException e){
             LOGGER.error("IOException: " + e.getMessage());
@@ -145,10 +157,12 @@ public class RepoTool {
     }
 
     private void moveJacoco(String property, long timeElapsed) throws IOException{
-        String jacocoPath = System.getProperty("user.dir") + "/" + this.name + "/target/site/jacoco/jacoco.xml";
-        String jacocoTargetPath = System.getProperty("user.dir") + "/artifacts/results/"+ this.name + "/" + property + ".xml";
-        String statisticsPath = System.getProperty("user.dir") + "/" + this.name + "/target/site/jacoco/index.html";
-        String statisticsTargetPath = System.getProperty("user.dir") + "/artifacts/results/"+ this.name + "/" + property + ".html";
+        String projectName = getProjectDir();
+
+        String jacocoPath = System.getProperty("user.dir") + "/" + projectName + "/target/site/jacoco/jacoco.xml";
+        String jacocoTargetPath = System.getProperty("user.dir") + "/artifacts/results/"+ projectName + "/" + property + ".xml";
+        String statisticsPath = System.getProperty("user.dir") + "/" + projectName + "/target/site/jacoco/index.html";
+        String statisticsTargetPath = System.getProperty("user.dir") + "/artifacts/results/"+ projectName + "/" + property + ".html";
         Path jacoco = Files.move(
                 Paths.get(jacocoPath),
                 Paths.get(jacocoTargetPath),
@@ -174,5 +188,12 @@ public class RepoTool {
     private boolean isWindows() {
         return System.getProperty("os.name")
                 .toLowerCase().startsWith("windows");
+    }
+
+    private String getProjectDir() {
+        if (subProject.equals("")) {
+            return name;
+        }
+        return this.name + "/" + this.subProject;
     }
 }
