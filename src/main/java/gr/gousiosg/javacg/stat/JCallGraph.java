@@ -243,31 +243,40 @@ public class JCallGraph {
             LOGGER.error("Could not read JaCoCo coverage file", e);
         }
 
-        // Third argument:  the entry point
-        try {
-            String entryPoint = generateEntryPoint("",args[3]);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-//        String entryPoint = args[3];
-
-        // Fourth argument:  the output file
-        String output = args[4];
+        // third argument:  the output file
+        String output = args[3];
 
         if (callgraph == null || jacocoCoverage == null) {
             // Something went wrong, bail
             return;
         }
 
-        // Fifth argument, optional, is the depth
+        // forth argument:  Jar path to infer entry point signature
+        String jarPath = args[4];
+        try {
+            JarFile jarFile = new JarFile(jarPath);
+        } catch (IOException e) {
+            LOGGER.error("Could not read inference Jar file", e);
+        }
+
+        // Fifth argument, class.method input where class can be written as nested classes to generate exact method signature
+        String entryPoint = null;
+        try {
+            entryPoint = generateEntryPoint(jarPath, args[4]);
+        } catch (IOException e) {
+            LOGGER.error("Could not generate method signature", e);
+        }
+//        String entryPoint = args[3];
+
+        // Sixth argument, optional, is the depth
         Optional<Integer> depth = Optional.empty();
         if (args.length > 5)
-            depth = Optional.of(Integer.parseInt(args[5]));
+            depth = Optional.of(Integer.parseInt(args[6]));
 
         // This method changes the callgraph object
         Pruning.pruneOriginalGraph(callgraph, jacocoCoverage);
 
-        maybeInspectReachability(callgraph, depth, jacocoCoverage, args[3], args[4]);
+        maybeInspectReachability(callgraph, depth, jacocoCoverage, entryPoint, args[4]);
 
 //    maybeWriteGraph(callgraph.graph, args[4]);
     }
