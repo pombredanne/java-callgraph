@@ -162,7 +162,12 @@ public class JCallGraph {
         for (String s : tempClassname) {
             listOfFilteredClasses = getFilteredClassesFromJar(listOfFilteredClasses, s);
         }
-
+        if (listOfFilteredClasses.size() > 1){
+            LOGGER.error("Multiple class instances found as listed below:- ");
+            for (JarEntry entry : listOfFilteredClasses) {
+                LOGGER.error(entry.getName());
+            }
+        }
         for (JarEntry Jar : listOfFilteredClasses) {
             String methodSignature = fetchMethodSignatures(jarFile, Jar, methodName);
             if (methodSignature != null) {
@@ -214,12 +219,18 @@ public class JCallGraph {
         ClassParser cp = new ClassParser(JarFile.getInputStream(Jar),Jar.getName());
         JavaClass jc = cp.parse();
         Method[] methods = jc.getMethods();
-        for (Method tempMethod :
-                methods) {
+        ArrayList<String> signatureResults = new ArrayList<>();
+        for (Method tempMethod : methods) {
             if (tempMethod.getName().equals(methodName)) {
 //                System.out.println(jc.getClassName() + "." + tempMethod.getName() + tempMethod.getSignature());
-                return jc.getClassName() + "." + tempMethod.getName() + tempMethod.getSignature();
+                signatureResults.add(jc.getClassName() + "." + tempMethod.getName() + tempMethod.getSignature());
             }
+        }
+        if (signatureResults.size() > 1) {
+            LOGGER.error("Multiple overloaded methods for the given method name");
+        }
+        else{
+            return signatureResults.get(0);
         }
         return null;
     }
@@ -272,7 +283,6 @@ public class JCallGraph {
         } catch (IOException e) {
             LOGGER.error("Could not generate method signature", e);
         }
-//        String entryPoint = args[3];
 
         // Sixth argument, optional, is the depth
         Optional<Integer> depth = Optional.empty();
