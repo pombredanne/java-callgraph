@@ -162,9 +162,12 @@ public class JCallGraph {
         for (String s : tempClassname) {
             listOfFilteredClasses = getFilteredClassesFromJar(listOfFilteredClasses, s);
         }
+
         for (JarEntry Jar : listOfFilteredClasses) {
-            System.out.println(Jar.getName());
-            fetchMethodSignatures(jarFile, Jar, methodName);
+            String methodSignature = fetchMethodSignatures(jarFile, Jar, methodName);
+            if (methodSignature != null) {
+                return methodSignature;
+            }
         }
         return null;
     }
@@ -207,16 +210,18 @@ public class JCallGraph {
     }
 
     //Fetch the method signature of a method from a JarEntry
-    public static void fetchMethodSignatures(JarFile JarFile, JarEntry Jar, String methodName) throws IOException {
+    public static String fetchMethodSignatures(JarFile JarFile, JarEntry Jar, String methodName) throws IOException {
         ClassParser cp = new ClassParser(JarFile.getInputStream(Jar),Jar.getName());
         JavaClass jc = cp.parse();
         Method[] methods = jc.getMethods();
         for (Method tempMethod :
                 methods) {
             if (tempMethod.getName().equals(methodName)) {
-                System.out.println(jc.getClassName() + "." + tempMethod.getName() + tempMethod.getSignature());
+//                System.out.println(jc.getClassName() + "." + tempMethod.getName() + tempMethod.getSignature());
+                return jc.getClassName() + "." + tempMethod.getName() + tempMethod.getSignature();
             }
         }
+        return null;
     }
 
     public static void manualMain(String[] args) {
@@ -262,7 +267,8 @@ public class JCallGraph {
         // Fifth argument, class.method input where class can be written as nested classes to generate exact method signature
         String entryPoint = null;
         try {
-            entryPoint = generateEntryPoint(jarPath, args[4]);
+            entryPoint = generateEntryPoint(jarPath, args[5]);
+            System.out.println(entryPoint);
         } catch (IOException e) {
             LOGGER.error("Could not generate method signature", e);
         }
@@ -270,13 +276,13 @@ public class JCallGraph {
 
         // Sixth argument, optional, is the depth
         Optional<Integer> depth = Optional.empty();
-        if (args.length > 5)
+        if (args.length > 6)
             depth = Optional.of(Integer.parseInt(args[6]));
 
         // This method changes the callgraph object
         Pruning.pruneOriginalGraph(callgraph, jacocoCoverage);
 
-        maybeInspectReachability(callgraph, depth, jacocoCoverage, entryPoint, args[4]);
+        maybeInspectReachability(callgraph, depth, jacocoCoverage, entryPoint, output);
 
 //    maybeWriteGraph(callgraph.graph, args[4]);
     }
