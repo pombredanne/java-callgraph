@@ -151,7 +151,7 @@ public class JCallGraph {
         LOGGER.info("java-cg is finished! Enjoy!");
 
     }
-
+    //Main function to convert class.method arg and generate its respective method signature
     public static String generateEntryPoint(String jarPath, String shortName) throws IOException {
         JarFile jarFile = new JarFile(jarPath);
         JarInputStream JarFile = new JarInputStream(new FileInputStream(jarPath));
@@ -169,6 +169,7 @@ public class JCallGraph {
         return null;
     }
 
+    //Fetch JarEntry of all classes in a Jan using JarInputStream
     public static ArrayList<JarEntry> getAllClassesFromJar(JarInputStream JarInputStream) throws IOException {
         JarEntry Jar;
         ArrayList<JarEntry> listOfAllClasses = new ArrayList<>();
@@ -184,6 +185,7 @@ public class JCallGraph {
         return listOfAllClasses;
     }
 
+    //Fetch filtered classes from a list of JarEntry
     public static ArrayList<JarEntry> getFilteredClassesFromJar(ArrayList<JarEntry> listOfAllClasses, String className)  {
         ArrayList<JarEntry> resultClasses = new ArrayList<>();
         for (JarEntry Jar : listOfAllClasses) {
@@ -204,6 +206,7 @@ public class JCallGraph {
         return resultClasses;
     }
 
+    //Fetch the method signature of a method from a JarEntry
     public static void fetchMethodSignatures(JarFile JarFile, JarEntry Jar, String methodName) throws IOException {
         ClassParser cp = new ClassParser(JarFile.getInputStream(Jar),Jar.getName());
         JavaClass jc = cp.parse();
