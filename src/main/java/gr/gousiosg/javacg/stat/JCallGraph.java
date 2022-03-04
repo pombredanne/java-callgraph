@@ -167,6 +167,7 @@ public class JCallGraph {
             for (JarEntry entry : listOfFilteredClasses) {
                 LOGGER.error(entry.getName());
             }
+            System.exit(1);
         }
         for (JarEntry Jar : listOfFilteredClasses) {
             String methodSignature = fetchMethodSignatures(jarFile, Jar, methodName);
@@ -228,6 +229,7 @@ public class JCallGraph {
         }
         if (signatureResults.size() > 1) {
             LOGGER.error("Multiple overloaded methods for the given method name");
+            System.exit(1);
         }
         else{
             return signatureResults.get(0);
