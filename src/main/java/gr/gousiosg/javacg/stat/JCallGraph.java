@@ -270,7 +270,7 @@ public class JCallGraph {
         // forth argument:  Jar path to infer entry point signature
         String jarPath = args[4];
         try {
-            JarFile jarFile = new JarFile(jarPath);
+            new JarFile(jarPath);
         } catch (IOException e) {
             LOGGER.error("Could not read inference Jar file", e);
         }
@@ -284,10 +284,15 @@ public class JCallGraph {
             LOGGER.error("Could not generate method signature", e);
         }
 
-        // Sixth argument, optional, is the depth
+        // Sixth argument, optional, is the return type
+
+        // Seventh argument, optional, is the depth
+        // Optional<Type> returnType = Optional.empty();
+        //returnType = (Optional<Type>) Optional.of(args[6]);
+
         Optional<Integer> depth = Optional.empty();
         if (args.length > 6)
-            depth = Optional.of(Integer.parseInt(args[6]));
+            depth = Optional.of(Integer.parseInt(args[7]));
 
         // This method changes the callgraph object
         Pruning.pruneOriginalGraph(callgraph, jacocoCoverage);
