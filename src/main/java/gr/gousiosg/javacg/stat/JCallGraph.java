@@ -156,28 +156,25 @@ public class JCallGraph {
     //Main function to convert class.method arg and generate its respective method signature
     public static String generateEntryPoint(String jarPath, String shortName, Optional<String> returnType, Optional<String> paramterTypes) throws IOException {
         JarFile jarFile = new JarFile(jarPath);
-        JarInputStream JarFile = new JarInputStream(new FileInputStream(jarPath));
+        JarInputStream jarFileStream = new JarInputStream(new FileInputStream(jarPath));
+
         String methodName = shortName.substring(shortName.lastIndexOf('.') + 1);
         String className = shortName.substring(0, shortName.lastIndexOf('.'));
-        ArrayList<JarEntry> listOfFilteredClasses = getAllClassesFromJar(JarFile);
+        ArrayList<JarEntry> listOfFilteredClasses = getAllClassesFromJar(jarFileStream);
         className=className.replaceAll("\\.","/")+".class";
-//        String[] tempClassname = className.split("\\.");
-//        for (String s : tempClassname) {
-//            listOfFilteredClasses = getFilteredClassesFromJar(listOfFilteredClasses, s);
-//        }
+
         listOfFilteredClasses = getFilteredClassesFromJar(listOfFilteredClasses, className);
+
         if (listOfFilteredClasses.size() > 1) {
             LOGGER.error("Multiple class instances found as listed below:- ");
-            for (JarEntry entry : listOfFilteredClasses) {
+            for (JarEntry entry : listOfFilteredClasses)
                 LOGGER.error(entry.getName());
-            }
             System.exit(1);
         }
         for (JarEntry Jar : listOfFilteredClasses) {
             String methodSignature = fetchMethodSignatures(jarFile, Jar, methodName, returnType, paramterTypes);
-            if (methodSignature != null) {
+            if (methodSignature != null)
                 return methodSignature;
-            }
         }
         return null;
     }
@@ -188,12 +185,10 @@ public class JCallGraph {
         ArrayList<JarEntry> listOfAllClasses = new ArrayList<>();
         while (true) {
             Jar = JarInputStream.getNextJarEntry();
-            if (Jar == null) {
+            if (Jar == null)
                 break;
-            }
-            if ((Jar.getName().endsWith(".class"))) {
+            if ((Jar.getName().endsWith(".class")))
                 listOfAllClasses.add(Jar);
-            }
         }
         return listOfAllClasses;
     }
@@ -202,19 +197,10 @@ public class JCallGraph {
     public static ArrayList<JarEntry> getFilteredClassesFromJar(ArrayList<JarEntry> listOfAllClasses, String className) {
         ArrayList<JarEntry> resultClasses = new ArrayList<>();
         for (JarEntry Jar : listOfAllClasses) {
-//            String parentClass = Jar.getName().substring(0, Jar.getName().lastIndexOf('/'));
-//            String myClass = Jar.getName().substring(Jar.getName().lastIndexOf('/') + 1);
-//            myClass = myClass.substring(0, myClass.lastIndexOf("."));
             if (Jar.getName().endsWith(className)) {
                 resultClasses.add(Jar);
                 continue;
             }
-//            String[] tempStrList = parentClass.split("/");
-//            for (String tempStr : tempStrList) {
-//                if (tempStr.contains(className)) {
-//                    resultClasses.add(Jar);
-//                }
-//            }
         }
         return resultClasses;
     }
@@ -223,26 +209,25 @@ public class JCallGraph {
     public static String fetchMethodSignatures(JarFile JarFile, JarEntry Jar, String methodName, Optional<String> returnType, Optional<String> paramterTypes) throws IOException {
         ClassParser cp = new ClassParser(JarFile.getInputStream(Jar), Jar.getName());
         JavaClass jc = cp.parse();
+
         Method[] methods = jc.getMethods();
         ArrayList<Method> signatureResults = new ArrayList<>();
         ArrayList<Method> signatureResultsWithRetType = new ArrayList<>();
-        for (Method tempMethod : methods) {
-            if (tempMethod.getName().equals(methodName)) {
-//                System.out.println(jc.getClassName() + "." + tempMethod.getName() + tempMethod.getSignature());
+
+        for (Method tempMethod : methods)
+            if (tempMethod.getName().equals(methodName))
                 signatureResults.add(tempMethod);
-            }
-        }
+
         if (returnType.isPresent()) {
-            for (Method tempMethod : signatureResults){
+            for (Method tempMethod : signatureResults)
                 if (tempMethod.getReturnType().toString().contains(returnType.get()))
                     signatureResultsWithRetType.add(tempMethod);
-            }
+
             if(paramterTypes.isPresent()){
                 String[] paramlist = paramterTypes.get().split(",");
-                    for (Method tempMethod : signatureResultsWithRetType) {
-                        if (Arrays.equals(paramlist,Arrays.stream(tempMethod.getArgumentTypes()).map(Type::toString).map(e->e.substring(e.lastIndexOf(".")+1)).toArray()))
-                            return jc.getClassName() + "." + tempMethod.getName() + tempMethod.getSignature();
-                    }
+                for (Method tempMethod : signatureResultsWithRetType)
+                    if (Arrays.equals(paramlist,Arrays.stream(tempMethod.getArgumentTypes()).map(Type::toString).map(e->e.substring(e.lastIndexOf(".")+1)).toArray()))
+                        return jc.getClassName() + "." + tempMethod.getName() + tempMethod.getSignature();
             }
             validateMethodList(signatureResultsWithRetType);
             return jc.getClassName() + "." + signatureResultsWithRetType.get(0).getName() + signatureResultsWithRetType.get(0).getSignature();
@@ -316,7 +301,7 @@ public class JCallGraph {
         if (args.length > 6)
             returnType = Optional.of(args[6]);
 
-        // Sevent argument, optional, parameter types of expected method
+        // Seventh argument, optional, parameter types of expected method
         Optional<String> paramterTypes = Optional.empty();
         if (args.length > 7)
             paramterTypes = Optional.of(args[7]);
@@ -325,7 +310,7 @@ public class JCallGraph {
         String entryPoint = null;
         try {
             entryPoint = generateEntryPoint(jarPath, args[5], returnType, paramterTypes);
-            System.out.println(entryPoint);
+//            System.out.println(entryPoint);
         } catch (IOException e) {
             LOGGER.error("Could not generate method signature", e);
         }
