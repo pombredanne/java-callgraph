@@ -160,10 +160,12 @@ public class JCallGraph {
         String methodName = shortName.substring(shortName.lastIndexOf('.') + 1);
         String className = shortName.substring(0, shortName.lastIndexOf('.'));
         ArrayList<JarEntry> listOfFilteredClasses = getAllClassesFromJar(JarFile);
-        String[] tempClassname = className.split("\\.");
-        for (String s : tempClassname) {
-            listOfFilteredClasses = getFilteredClassesFromJar(listOfFilteredClasses, s);
-        }
+        className=className.replaceAll("\\.","/")+".class";
+//        String[] tempClassname = className.split("\\.");
+//        for (String s : tempClassname) {
+//            listOfFilteredClasses = getFilteredClassesFromJar(listOfFilteredClasses, s);
+//        }
+        listOfFilteredClasses = getFilteredClassesFromJar(listOfFilteredClasses, className);
         if (listOfFilteredClasses.size() > 1) {
             LOGGER.error("Multiple class instances found as listed below:- ");
             for (JarEntry entry : listOfFilteredClasses) {
@@ -200,19 +202,19 @@ public class JCallGraph {
     public static ArrayList<JarEntry> getFilteredClassesFromJar(ArrayList<JarEntry> listOfAllClasses, String className) {
         ArrayList<JarEntry> resultClasses = new ArrayList<>();
         for (JarEntry Jar : listOfAllClasses) {
-            String parentClass = Jar.getName().substring(0, Jar.getName().lastIndexOf('/'));
-            String myClass = Jar.getName().substring(Jar.getName().lastIndexOf('/') + 1);
-            myClass = myClass.substring(0, myClass.lastIndexOf("."));
-            if (myClass.equals(className)) {
+//            String parentClass = Jar.getName().substring(0, Jar.getName().lastIndexOf('/'));
+//            String myClass = Jar.getName().substring(Jar.getName().lastIndexOf('/') + 1);
+//            myClass = myClass.substring(0, myClass.lastIndexOf("."));
+            if (Jar.getName().endsWith(className)) {
                 resultClasses.add(Jar);
                 continue;
             }
-            String[] tempStrList = parentClass.split("/");
-            for (String tempStr : tempStrList) {
-                if (tempStr.equals(className)) {
-                    resultClasses.add(Jar);
-                }
-            }
+//            String[] tempStrList = parentClass.split("/");
+//            for (String tempStr : tempStrList) {
+//                if (tempStr.contains(className)) {
+//                    resultClasses.add(Jar);
+//                }
+//            }
         }
         return resultClasses;
     }
@@ -232,13 +234,13 @@ public class JCallGraph {
         }
         if (returnType.isPresent()) {
             for (Method tempMethod : signatureResults){
-                if (tempMethod.getReturnType().toString().equals(returnType.get()))
+                if (tempMethod.getReturnType().toString().contains(returnType.get()))
                     signatureResultsWithRetType.add(tempMethod);
             }
             if(paramterTypes.isPresent()){
                 String[] paramlist = paramterTypes.get().split(",");
                     for (Method tempMethod : signatureResultsWithRetType) {
-                        if (Arrays.equals(paramlist,Arrays.stream(tempMethod.getArgumentTypes()).map(Type::toString).toArray()))
+                        if (Arrays.equals(paramlist,Arrays.stream(tempMethod.getArgumentTypes()).map(Type::toString).map(e->e.substring(e.lastIndexOf(".")+1)).toArray()))
                             return jc.getClassName() + "." + tempMethod.getName() + tempMethod.getSignature();
                     }
             }
