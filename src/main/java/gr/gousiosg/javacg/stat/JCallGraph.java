@@ -56,6 +56,7 @@ import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarInputStream;
+import java.util.stream.Collectors;
 
 /**
  * Constructs a callgraph out of a JAR archive. Can combine multiple archives into a single call
@@ -154,7 +155,7 @@ public class JCallGraph {
     }
 
     //Main function to convert class.method arg and generate its respective method signature
-    public static String generateEntryPoint(String jarPath, String shortName, Optional<String> returnType, Optional<String> paramterTypes) throws IOException {
+    public static String generateEntryPoint(String jarPath, String shortName, Optional<String> returnType, Optional<String> parameterTypes) throws IOException {
         JarFile jarFile = new JarFile(jarPath);
         JarInputStream jarFileStream = new JarInputStream(new FileInputStream(jarPath));
 
@@ -171,12 +172,9 @@ public class JCallGraph {
                 LOGGER.error(entry.getName());
             System.exit(1);
         }
-        for (JarEntry Jar : listOfFilteredClasses) {
-            String methodSignature = fetchMethodSignatures(jarFile, Jar, methodName, returnType, paramterTypes);
-            if (methodSignature != null)
-                return methodSignature;
-        }
-        return null;
+
+        return fetchMethodSignatures(jarFile, listOfFilteredClasses.get(0),methodName,returnType,parameterTypes);
+
     }
 
     //Fetch JarEntry of all classes in a Jan using JarInputStream
@@ -195,14 +193,8 @@ public class JCallGraph {
 
     //Fetch filtered classes from a list of JarEntry
     public static ArrayList<JarEntry> getFilteredClassesFromJar(ArrayList<JarEntry> listOfAllClasses, String className) {
-        ArrayList<JarEntry> resultClasses = new ArrayList<>();
-        for (JarEntry Jar : listOfAllClasses) {
-            if (Jar.getName().endsWith(className)) {
-                resultClasses.add(Jar);
-                continue;
-            }
-        }
-        return resultClasses;
+        listOfAllClasses=listOfAllClasses.stream().filter(e->e.getName().endsWith(className)).collect(Collectors.toCollection(ArrayList::new));
+        return listOfAllClasses;
     }
 
     //Fetch the method signature of a method from a JarEntry
@@ -212,25 +204,22 @@ public class JCallGraph {
 
         Method[] methods = jc.getMethods();
         ArrayList<Method> signatureResults = new ArrayList<>();
-        ArrayList<Method> signatureResultsWithRetType = new ArrayList<>();
 
         for (Method tempMethod : methods)
             if (tempMethod.getName().equals(methodName))
                 signatureResults.add(tempMethod);
 
         if (returnType.isPresent()) {
-            for (Method tempMethod : signatureResults)
-                if (tempMethod.getReturnType().toString().contains(returnType.get()))
-                    signatureResultsWithRetType.add(tempMethod);
+            signatureResults=signatureResults.stream().filter(e->e.getReturnType().toString().contains(returnType.get())).collect(Collectors.toCollection(ArrayList::new));
 
             if(paramterTypes.isPresent()){
                 String[] paramlist = paramterTypes.get().split(",");
-                for (Method tempMethod : signatureResultsWithRetType)
+                for (Method tempMethod : signatureResults)
                     if (Arrays.equals(paramlist,Arrays.stream(tempMethod.getArgumentTypes()).map(Type::toString).map(e->e.substring(e.lastIndexOf(".")+1)).toArray()))
                         return jc.getClassName() + "." + tempMethod.getName() + tempMethod.getSignature();
             }
-            validateMethodList(signatureResultsWithRetType);
-            return jc.getClassName() + "." + signatureResultsWithRetType.get(0).getName() + signatureResultsWithRetType.get(0).getSignature();
+            validateMethodList(signatureResults);
+            return jc.getClassName() + "." + signatureResults.get(0).getName() + signatureResults.get(0).getSignature();
         } else {
             validateMethodList(signatureResults);
             return jc.getClassName() + "." + signatureResults.get(0).getName() + signatureResults.get(0).getSignature();
