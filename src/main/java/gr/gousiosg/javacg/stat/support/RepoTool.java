@@ -8,10 +8,7 @@ import org.yaml.snakeyaml.Yaml;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +27,7 @@ public class RepoTool {
     final private String mvnOptions;
     private List<Map<String, String>> properties;
     private Git git;
+    final private String timeStamp;
 
     private RepoTool(String name, String URL, String checkoutID, String patchName, String subProject, String mvnOptions){
         this.name = name;
@@ -38,6 +36,8 @@ public class RepoTool {
         this.patchName = patchName;
         this.subProject = subProject;
         this.mvnOptions = mvnOptions;
+
+        this.timeStamp = String.valueOf(java.time.LocalDateTime.now());
     }
 
     public RepoTool(String name) throws FileNotFoundException {
@@ -54,6 +54,8 @@ public class RepoTool {
         subProject = (String) data.getOrDefault("subProject", "");
         mvnOptions = (String) data.getOrDefault("mvnOptions", "");
         properties = (List<Map<String,String>>) data.get("properties");
+
+        this.timeStamp = String.valueOf(java.time.LocalDateTime.now());
     }
 
     public void cloneRepo() throws GitAPIException, JGitInternalException {
@@ -129,7 +131,7 @@ public class RepoTool {
     public List<Pair<String,String>> obtainCoverageFilesAndEntryPoints(){
         List<Pair<String,String>> coverageFiles = new LinkedList<>();
         for(Map<String, String> m : properties)
-            coverageFiles.add(new Pair<>("artifacts/results/" + getProjectDir() + "/" + m.get("name") + ".xml", m.get("entryPoint")));
+            coverageFiles.add(new Pair<>("artifacts/results/" + getProjectDir() + timeStamp + "/" + m.get("name") + ".xml", m.get("entryPoint")));
         return coverageFiles;
     }
 
@@ -159,7 +161,6 @@ public class RepoTool {
     }
 
     private void moveJacoco(String property, long timeElapsed) throws IOException{
-        String timeStamp = String.valueOf(java.time.LocalDateTime.now());
         String projectDir = getProjectDir();
         String directoryPath = System.getProperty("user.dir") + "/artifacts/results/" + projectDir + timeStamp;
         String jacocoPath = System.getProperty("user.dir") + "/" + projectDir + "/target/site/jacoco/jacoco.xml";
