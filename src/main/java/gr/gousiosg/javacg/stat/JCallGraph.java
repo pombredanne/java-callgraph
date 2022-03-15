@@ -80,7 +80,7 @@ public class JCallGraph {
   public static void main(String[] args) {
     try {
       LOGGER.info("Starting java-cg!");
-      switch (args[0]) {
+      switch(args[0]) {
         case "manual-test": {
           manualMain(args);
           return;
@@ -105,7 +105,7 @@ public class JCallGraph {
           // 1. Run Tests and obtain coverage
           RepoTool rt = maybeObtainTool(arguments);
           List<Pair<String, String>> coverageFilesAndEntryPoints = rt.obtainCoverageFilesAndEntryPoints();
-          for (Pair<String, String> s : coverageFilesAndEntryPoints) {
+          for(Pair<String, String> s : coverageFilesAndEntryPoints) {
             // 2. For each coverage file we start with a fresh deserialized callgraph
             StaticCallgraph callgraph = deserializeStaticCallGraph(arguments);
             LOGGER.info("----------PROPERTY------------");
@@ -127,25 +127,25 @@ public class JCallGraph {
           LOGGER.error("Invalid argument provided!");
           System.exit(1);
       }
-    } catch (InputMismatchException e) {
+    } catch(InputMismatchException e) {
       LOGGER.error("Unable to load callgraph: " + e.getMessage());
       System.exit(1);
-    } catch (JGitInternalException e) {
+    } catch(JGitInternalException e) {
       LOGGER.error("Cloned directory already exists!");
       System.exit(1);
-    } catch (FileNotFoundException e) {
+    } catch(FileNotFoundException e) {
       LOGGER.error("Error obtaining valid yaml folder path: " + e.getMessage());
       System.exit(1);
-    } catch (ParserConfigurationException | SAXException | JAXBException | IOException e) {
+    } catch(ParserConfigurationException | SAXException | JAXBException | IOException e) {
       LOGGER.error("Error fetching Jacoco coverage: " + e.getMessage());
       System.exit(1);
-    } catch (ClassNotFoundException e) {
+    } catch(ClassNotFoundException e) {
       LOGGER.error("Error creating class through deserialization");
       System.exit(1);
-    } catch (GitAPIException e) {
+    } catch(GitAPIException e) {
       LOGGER.error("Error cloning repository");
       System.exit(1);
-    } catch (InterruptedException e) {
+    } catch(InterruptedException e) {
       LOGGER.error("Interrupted during applying patches/building jars");
       System.exit(1);
     }
@@ -166,9 +166,9 @@ public class JCallGraph {
 
     listOfFilteredClasses = getFilteredClassesFromJar(listOfFilteredClasses, className);
 
-    if (listOfFilteredClasses.size() > 1) {
+    if(listOfFilteredClasses.size() > 1) {
       LOGGER.error("Multiple class instances found as listed below:- ");
-      for (JarEntry entry : listOfFilteredClasses)
+      for(JarEntry entry : listOfFilteredClasses)
         LOGGER.error(entry.getName());
       System.exit(1);
     }
@@ -181,11 +181,11 @@ public class JCallGraph {
   public static ArrayList<JarEntry> getAllClassesFromJar(JarInputStream JarInputStream) throws IOException {
     JarEntry Jar;
     ArrayList<JarEntry> listOfAllClasses = new ArrayList<>();
-    while (true) {
+    while(true) {
       Jar = JarInputStream.getNextJarEntry();
-      if (Jar == null)
+      if(Jar == null)
         break;
-      if ((Jar.getName().endsWith(".class")))
+      if((Jar.getName().endsWith(".class")))
         listOfAllClasses.add(Jar);
     }
     return listOfAllClasses;
@@ -205,17 +205,17 @@ public class JCallGraph {
     Method[] methods = jc.getMethods();
     ArrayList<Method> signatureResults = new ArrayList<>();
 
-    for (Method tempMethod : methods)
-      if (tempMethod.getName().equals(methodName))
+    for(Method tempMethod : methods)
+      if(tempMethod.getName().equals(methodName))
         signatureResults.add(tempMethod);
 
-    if (returnType.isPresent()) {
+    if(returnType.isPresent()) {
       signatureResults = signatureResults.stream().filter(e -> e.getReturnType().toString().contains(returnType.get())).collect(Collectors.toCollection(ArrayList::new));
 
-      if (paramterTypes.isPresent()) {
+      if(paramterTypes.isPresent()) {
         String[] paramlist = paramterTypes.get().split(",");
-        for (Method tempMethod : signatureResults)
-          if (Arrays.equals(paramlist, Arrays.stream(tempMethod.getArgumentTypes()).map(Type::toString).map(e -> e.substring(e.lastIndexOf(".") + 1)).toArray()))
+        for(Method tempMethod : signatureResults)
+          if(Arrays.equals(paramlist, Arrays.stream(tempMethod.getArgumentTypes()).map(Type::toString).map(e -> e.substring(e.lastIndexOf(".") + 1)).toArray()))
             return jc.getClassName() + "." + tempMethod.getName() + tempMethod.getSignature();
       }
       validateMethodList(signatureResults);
@@ -228,18 +228,18 @@ public class JCallGraph {
 
   // Check the size of list and submit Logger info for the methods
   public static void validateMethodList(ArrayList<Method> methodList) {
-    if (methodList.size() > 1) {
+    if(methodList.size() > 1) {
       LOGGER.error("Multiple overloaded methods for the given method name");
-      for (Method method : methodList) {
+      for(Method method : methodList) {
         LOGGER.info("Name:- " + method.getName() + " Return Type:- " + method.getReturnType().toString());
         LOGGER.info("Parameter Types:- ");
-        for (Type t : method.getArgumentTypes()) {
+        for(Type t : method.getArgumentTypes()) {
           LOGGER.info(t.toString());
         }
         method.getArgumentTypes();
       }
       System.exit(1);
-    } else if (methodList.size() == 0) {
+    } else if(methodList.size() == 0) {
       LOGGER.info("Incorrect arguments supplied");
       System.exit(1);
     }
@@ -253,9 +253,9 @@ public class JCallGraph {
       File f = new File(args[1]);
       LOGGER.info("Deserializing file " + f.getAbsolutePath());
       callgraph = deserializeStaticCallGraph(new File(args[1]));
-    } catch (IOException e) {
+    } catch(IOException e) {
       LOGGER.error("Could not deserialize static call graph", e);
-    } catch (ClassNotFoundException e) {
+    } catch(ClassNotFoundException e) {
       LOGGER.error("This shouldn't happen, go fix your CLASSPATH", e);
     }
 
@@ -265,14 +265,14 @@ public class JCallGraph {
       File f = new File(args[2]);
       LOGGER.info("Reading JaCoCo coverage file " + f.getAbsolutePath());
       jacocoCoverage = new JacocoCoverage(f.getAbsolutePath());
-    } catch (IOException | ParserConfigurationException | JAXBException | SAXException e) {
+    } catch(IOException | ParserConfigurationException | JAXBException | SAXException e) {
       LOGGER.error("Could not read JaCoCo coverage file", e);
     }
 
     // third argument:  the output file
     String output = args[3];
 
-    if (callgraph == null || jacocoCoverage == null) {
+    if(callgraph == null || jacocoCoverage == null) {
       // Something went wrong, bail
       return;
     }
@@ -281,18 +281,18 @@ public class JCallGraph {
     String jarPath = args[4];
     try {
       new JarFile(jarPath);
-    } catch (IOException e) {
+    } catch(IOException e) {
       LOGGER.error("Could not read inference Jar file", e);
     }
 
     // Sixth argument, optional, return type of expected method
     Optional<String> returnType = Optional.empty();
-    if (args.length > 6)
+    if(args.length > 6)
       returnType = Optional.of(args[6]);
 
     // Seventh argument, optional, parameter types of expected method
     Optional<String> paramterTypes = Optional.empty();
-    if (args.length > 7)
+    if(args.length > 7)
       paramterTypes = Optional.of(args[7]);
 
     // Fifth argument, class.method input where class can be written as nested classes to generate exact method signature
@@ -300,7 +300,7 @@ public class JCallGraph {
     try {
       entryPoint = generateEntryPoint(jarPath, args[5], returnType, paramterTypes);
 //            System.out.println(entryPoint);
-    } catch (IOException e) {
+    } catch(IOException e) {
       LOGGER.error("Could not generate method signature", e);
     }
 
@@ -339,7 +339,7 @@ public class JCallGraph {
     String outputName = outputFile + DELIMITER + REACHABILITY;
 
     /* Attach depth to name if present */
-    if (depth.isPresent()) {
+    if(depth.isPresent()) {
       outputName = outputName + DELIMITER + depth.get();
     }
 
@@ -348,14 +348,14 @@ public class JCallGraph {
             reachability, Utilities.coloredExporter(), JCallGraph.asDot(outputName));
 
     /* Analyze reachability coverage? */
-    if (jacocoCoverage.hasCoverage()) {
+    if(jacocoCoverage.hasCoverage()) {
       CoverageStatistics.analyze(reachability, Optional.of(asCsv(outputName + DELIMITER + COVERAGE)));
     }
   }
 
   private static void maybeInspectAncestry(
           StaticCallgraph callgraph, TestArguments arguments, JacocoCoverage jacocoCoverage, Optional<String> entryPoint, Optional<String> outputName) {
-    if (arguments.maybeAncestry().isEmpty() || entryPoint.isEmpty()) {
+    if(arguments.maybeAncestry().isEmpty() || entryPoint.isEmpty()) {
       return;
     }
 
@@ -365,7 +365,7 @@ public class JCallGraph {
     jacocoCoverage.applyCoverage(ancestry, callgraph.metadata);
 
     /* Should we store the ancestry in a file? */
-    if (outputName.isPresent()) {
+    if(outputName.isPresent()) {
       String subgraphOutputName =
               outputName.get()
                       + DELIMITER
@@ -389,7 +389,7 @@ public class JCallGraph {
   // serializeStaticCallGraph creates a file that contains the bytecode data of the StaticCallgraph object
   // Throws: IOException when the file cannot be written to disk
   private static void maybeSerializeStaticCallGraph(StaticCallgraph callgraph, BuildArguments arguments) throws IOException {
-    if (arguments.maybeOutput().isPresent()) {
+    if(arguments.maybeOutput().isPresent()) {
       File filename = new File(arguments.maybeOutput().get());
       FileOutputStream file = new FileOutputStream(filename);
       ObjectOutputStream out = new ObjectOutputStream(file);
@@ -408,7 +408,7 @@ public class JCallGraph {
   }
 
   private static StaticCallgraph deserializeStaticCallGraph(File f) throws IOException, ClassNotFoundException {
-    try (ObjectInput ois = new ObjectInputStream(new FileInputStream(f))) {
+    try(ObjectInput ois = new ObjectInputStream(new FileInputStream(f))) {
       return (StaticCallgraph) ois.readObject();
     }
   }
@@ -416,7 +416,7 @@ public class JCallGraph {
 
   private static RepoTool maybeObtainTool(GitArguments arguments) throws FileNotFoundException {
     Optional<RepoTool> rt = RepoTool.obtainTool(arguments.maybeGetConfig().get());
-    if (rt.isPresent())
+    if(rt.isPresent())
       return rt.get();
     throw new FileNotFoundException("folderName path is incorrect! Please provide a valid folder");
   }
