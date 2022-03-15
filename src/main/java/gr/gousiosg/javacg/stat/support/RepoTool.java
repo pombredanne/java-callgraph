@@ -149,15 +149,27 @@ public class RepoTool {
         return Optional.empty();
     }
 
-    private void moveJars() throws IOException{
-        Path jar = Files.move(
-                Paths.get(System.getProperty("user.dir") + "/" + this.name + "/target/" + this.name + "-1.0.6-SNAPSHOT.jar"),
-                Paths.get(System.getProperty("user.dir") + "/artifacts/output/" + this.name + "-1.0.6-SNAPSHOT.jar"),
-                StandardCopyOption.REPLACE_EXISTING);
-        Path testJar = Files.move(
-                Paths.get(System.getProperty("user.dir") + "/" + this.name + "/target/" + this.name + "-1.0.6-SNAPSHOT-tests.jar"),
-                Paths.get(System.getProperty("user.dir") + "/artifacts/output/" + this.name + "-1.0.6-SNAPSHOT-tests.jar"),
-                StandardCopyOption.REPLACE_EXISTING);
+    private void moveJars() throws IOException {
+        Path sourceDir = Paths.get(System.getProperty("user.dir"), getProjectDir(), "target");
+        Path targetDir = Paths.get(System.getProperty("user.dir"), "artifacts", "output");
+
+        // @todo may want to be able to override this in the yaml file on a project basis...
+        String depGlob = this.name + "*-with-dependencies.jar";
+        String testGlob = this.name + "*-tests.jar";
+
+        moveFiles(sourceDir, targetDir, depGlob);
+        moveFiles(sourceDir, targetDir, testGlob);
+    }
+
+    private void moveFiles(Path sourceDir, Path targetDir, String glob) throws IOException {
+        try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(sourceDir, glob)) {
+                for (Path source: dirStream) {
+                Files.move(
+                        source,
+                        targetDir.resolve(source.getFileName()),
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
+        }
     }
 
     private void moveJacoco(String property, long timeElapsed) throws IOException{
