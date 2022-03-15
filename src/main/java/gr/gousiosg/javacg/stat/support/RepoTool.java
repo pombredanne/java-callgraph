@@ -8,10 +8,7 @@ import org.yaml.snakeyaml.Yaml;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -22,26 +19,43 @@ import java.time.format.DateTimeFormatter;
 public class RepoTool {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(RepoTool.class);
-    private String name;
-    private String URL;
-    private String checkoutID;
-    private String patchName;
+    final private String name;
+    final private String URL;
+    final private String checkoutID;
+    final private String patchName;
+    final private String subProject;
+    final private String mvnOptions;
     private List<Map<String, String>> properties;
     private Git git;
+    final private String timeStamp;
 
-    private RepoTool(String name, String URL, String checkoutID, String patchName){
+    private RepoTool(String name, String URL, String checkoutID, String patchName, String subProject, String mvnOptions){
         this.name = name;
         this.URL = URL;
         this.checkoutID = checkoutID;
         this.patchName = patchName;
+        this.subProject = subProject;
+        this.mvnOptions = mvnOptions;
+
+        this.timeStamp = String.valueOf(java.time.LocalDateTime.now());
     }
 
     public RepoTool(String name) throws FileNotFoundException {
-        this.name = name;
+        // @todo Perhaps using objects to store configuration data so we don't have to have unchecked casts e.g. https://www.baeldung.com/java-snake-yaml
+
         Yaml yaml = new Yaml();
-        InputStream inputStream = new FileInputStream(new File("artifacts/configs/" + this.name + "/" + this.name + ".yaml"));
-        Map<String, List<Map<String,String>>> data = yaml.load(inputStream);
-        this.properties = data.get("properties");
+        InputStream inputStream = new FileInputStream("artifacts/configs/" + name + "/" + name + ".yaml");
+        Map<String, Object> data = yaml.load(inputStream);
+
+        this.name = name;
+        URL = (String) data.get("URL");
+        checkoutID = (String) data.get("checkoutID");
+        patchName = (String) data.get("patchName");
+        subProject = (String) data.getOrDefault("subProject", "");
+        mvnOptions = (String) data.getOrDefault("mvnOptions", "");
+        properties = (List<Map<String,String>>) data.get("properties");
+
+        this.timeStamp = String.valueOf(java.time.LocalDateTime.now());
     }
 
     public void cloneRepo() throws GitAPIException, JGitInternalException {
@@ -83,9 +97,9 @@ public class RepoTool {
     public void testProperty(String property) throws IOException, InterruptedException {
         ProcessBuilder pb = new ProcessBuilder();
         if(isWindows())
-            pb.command("cmd.exe", "/c", "mvn", "test", "-Dtest=" + property);
+            pb.command("cmd.exe", "/c", "mvn", "test", mvnOptions, "-Dtest=" + property);
         else
-            pb.command("bash", "-c", "mvn test -Dtest=" + property);
+            pb.command("bash", "-c", "mvn test " + mvnOptions + " -Dtest=" + property);
         pb.directory(new File(this.name));
         long start = System.nanoTime();
         Process process = pb.start();
@@ -117,16 +131,16 @@ public class RepoTool {
     public List<Pair<String,String>> obtainCoverageFilesAndEntryPoints(){
         List<Pair<String,String>> coverageFiles = new LinkedList<>();
         for(Map<String, String> m : properties)
-            coverageFiles.add(new Pair<>("artifacts/results/" + this.name + "/" + m.get("name") + ".xml", m.get("entryPoint")));
+            coverageFiles.add(new Pair<>("artifacts/results/" + getProjectDir() + timeStamp + "/" + m.get("name") + ".xml", m.get("entryPoint")));
         return coverageFiles;
     }
 
     public static Optional<RepoTool> obtainTool(String folderName){
         try {
             Yaml yaml = new Yaml();
-            InputStream inputStream = new FileInputStream(new File("artifacts/configs/" + folderName + "/" + folderName + ".yaml"));
+            InputStream inputStream = new FileInputStream("artifacts/configs/" + folderName + "/" + folderName + ".yaml");
             Map<String, String> data = yaml.load(inputStream);
-            return Optional.of(new RepoTool(data.get("name"), data.get("URL"), data.get("checkoutID"), data.get("patchName")));
+            return Optional.of(new RepoTool(data.get("name"), data.get("URL"), data.get("checkoutID"), data.get("patchName"), data.getOrDefault("subProject", ""), data.getOrDefault("mvnOptions", "")));
         }
         catch(IOException e){
             LOGGER.error("IOException: " + e.getMessage());
@@ -135,23 +149,35 @@ public class RepoTool {
         return Optional.empty();
     }
 
-    private void moveJars() throws IOException{
-        Path jar = Files.move(
-                Paths.get(System.getProperty("user.dir") + "/" + this.name + "/target/" + this.name + "-1.0.6-SNAPSHOT.jar"),
-                Paths.get(System.getProperty("user.dir") + "/artifacts/output/" + this.name + "-1.0.6-SNAPSHOT.jar"),
-                StandardCopyOption.REPLACE_EXISTING);
-        Path testJar = Files.move(
-                Paths.get(System.getProperty("user.dir") + "/" + this.name + "/target/" + this.name + "-1.0.6-SNAPSHOT-tests.jar"),
-                Paths.get(System.getProperty("user.dir") + "/artifacts/output/" + this.name + "-1.0.6-SNAPSHOT-tests.jar"),
-                StandardCopyOption.REPLACE_EXISTING);
+    private void moveJars() throws IOException {
+        Path sourceDir = Paths.get(System.getProperty("user.dir"), getProjectDir(), "target");
+        Path targetDir = Paths.get(System.getProperty("user.dir"), "artifacts", "output");
+
+        // @todo may want to be able to override this in the yaml file on a project basis...
+        String depGlob = this.name + "*-with-dependencies.jar";
+        String testGlob = this.name + "*-tests.jar";
+
+        moveFiles(sourceDir, targetDir, depGlob);
+        moveFiles(sourceDir, targetDir, testGlob);
+    }
+
+    private void moveFiles(Path sourceDir, Path targetDir, String glob) throws IOException {
+        try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(sourceDir, glob)) {
+                for (Path source: dirStream) {
+                Files.move(
+                        source,
+                        targetDir.resolve(source.getFileName()),
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
+        }
     }
 
     private void moveJacoco(String property, long timeElapsed) throws IOException{
-        String timeStamp = String.valueOf(java.time.LocalDateTime.now());
-        String directoryPath = System.getProperty("user.dir") + "/artifacts/results/"+ this.name + timeStamp;
-        String jacocoPath = System.getProperty("user.dir") + "/" + this.name + "/target/site/jacoco/jacoco.xml";
+        String projectDir = getProjectDir();
+        String directoryPath = System.getProperty("user.dir") + "/artifacts/results/" + projectDir + timeStamp;
+        String jacocoPath = System.getProperty("user.dir") + "/" + projectDir + "/target/site/jacoco/jacoco.xml";
         String jacocoTargetPath = directoryPath + "/" + property + ".xml";
-        String statisticsPath = System.getProperty("user.dir") + "/" + this.name + "/target/site/jacoco/index.html";
+        String statisticsPath = System.getProperty("user.dir") + "/" + projectDir + "/target/site/jacoco/index.html";
         String statisticsTargetPath = directoryPath + "/" + property + ".html";
         File directory = new File(directoryPath);
         directory.mkdir();
@@ -164,21 +190,18 @@ public class RepoTool {
                 Paths.get(statisticsTargetPath),
                 StandardCopyOption.REPLACE_EXISTING);
         double timeElapsedInSeconds = (double) timeElapsed / 1_000_000_000;
-        FileWriter fileWriter = null;
-        BufferedWriter bufferedWriter = null;
-        try{
-            fileWriter = new FileWriter(statisticsTargetPath, true);
-            bufferedWriter = new BufferedWriter(fileWriter);
-            bufferedWriter.append("<html><section><h1> Total Time Elapsed: "+ timeElapsedInSeconds +" seconds</h1></section></html>");
+        try (FileWriter fileWriter = new FileWriter(statisticsTargetPath, true); BufferedWriter bufferedWriter = new BufferedWriter(fileWriter)) {
+            bufferedWriter.append("<html><section><h1> Total Time Elapsed: ").append(String.valueOf(timeElapsedInSeconds)).append(" seconds</h1></section></html>");
             bufferedWriter.flush();
-        } finally{
-            fileWriter.close();
-            bufferedWriter.close();
         }
     }
 
     private boolean isWindows() {
         return System.getProperty("os.name")
                 .toLowerCase().startsWith("windows");
+    }
+
+    private String getProjectDir() {
+        return (subProject.equals("")) ? name : (name + "/" + subProject);
     }
 }
