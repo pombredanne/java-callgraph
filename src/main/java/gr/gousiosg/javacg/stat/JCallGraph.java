@@ -80,12 +80,12 @@ public class JCallGraph {
   public static void main(String[] args) {
     try {
       LOGGER.info("Starting java-cg!");
-      switch(args[0]) {
+      switch(args[0]){
         case "manual-test": {
           manualMain(args);
           return;
         }
-        case "git": {
+        case "git":{
           GitArguments arguments = new GitArguments(args);
           RepoTool rt = maybeObtainTool(arguments);
           rt.cloneRepo();
@@ -127,25 +127,25 @@ public class JCallGraph {
           LOGGER.error("Invalid argument provided!");
           System.exit(1);
       }
-    } catch(InputMismatchException e) {
+    } catch (InputMismatchException e) {
       LOGGER.error("Unable to load callgraph: " + e.getMessage());
       System.exit(1);
-    } catch(JGitInternalException e) {
+    } catch(JGitInternalException e){
       LOGGER.error("Cloned directory already exists!");
       System.exit(1);
-    } catch(FileNotFoundException e) {
+    } catch(FileNotFoundException e){
       LOGGER.error("Error obtaining valid yaml folder path: " + e.getMessage());
       System.exit(1);
-    } catch(ParserConfigurationException | SAXException | JAXBException | IOException e) {
+    } catch (ParserConfigurationException | SAXException | JAXBException | IOException e) {
       LOGGER.error("Error fetching Jacoco coverage: " + e.getMessage());
       System.exit(1);
-    } catch(ClassNotFoundException e) {
+    } catch(ClassNotFoundException e){
       LOGGER.error("Error creating class through deserialization");
       System.exit(1);
-    } catch(GitAPIException e) {
+    } catch (GitAPIException e) {
       LOGGER.error("Error cloning repository");
       System.exit(1);
-    } catch(InterruptedException e) {
+    } catch (InterruptedException e) {
       LOGGER.error("Interrupted during applying patches/building jars");
       System.exit(1);
     }
@@ -253,9 +253,9 @@ public class JCallGraph {
       File f = new File(args[1]);
       LOGGER.info("Deserializing file " + f.getAbsolutePath());
       callgraph = deserializeStaticCallGraph(new File(args[1]));
-    } catch(IOException e) {
+    } catch (IOException e) {
       LOGGER.error("Could not deserialize static call graph", e);
-    } catch(ClassNotFoundException e) {
+    } catch (ClassNotFoundException e) {
       LOGGER.error("This shouldn't happen, go fix your CLASSPATH", e);
     }
 
@@ -265,14 +265,14 @@ public class JCallGraph {
       File f = new File(args[2]);
       LOGGER.info("Reading JaCoCo coverage file " + f.getAbsolutePath());
       jacocoCoverage = new JacocoCoverage(f.getAbsolutePath());
-    } catch(IOException | ParserConfigurationException | JAXBException | SAXException e) {
+    } catch (IOException | ParserConfigurationException | JAXBException | SAXException e) {
       LOGGER.error("Could not read JaCoCo coverage file", e);
     }
 
     // third argument:  the output file
     String output = args[3];
 
-    if(callgraph == null || jacocoCoverage == null) {
+    if (callgraph == null || jacocoCoverage == null) {
       // Something went wrong, bail
       return;
     }
@@ -281,7 +281,7 @@ public class JCallGraph {
     String jarPath = args[4];
     try {
       new JarFile(jarPath);
-    } catch(IOException e) {
+    } catch(IOException e){
       LOGGER.error("Could not read inference Jar file", e);
     }
 
@@ -300,7 +300,7 @@ public class JCallGraph {
     try {
       entryPoint = generateEntryPoint(jarPath, args[5], returnType, paramterTypes);
 //            System.out.println(entryPoint);
-    } catch(IOException e) {
+    } catch(IOException e){
       LOGGER.error("Could not generate method signature", e);
     }
 
@@ -323,12 +323,12 @@ public class JCallGraph {
   }
 
   private static void maybeInspectReachability(
-          StaticCallgraph callgraph, Optional<Integer> depth, JacocoCoverage jacocoCoverage, String entryPoint, String outputFile) {
+      StaticCallgraph callgraph, Optional<Integer> depth, JacocoCoverage jacocoCoverage, String entryPoint, String outputFile) {
 
     /* Fetch reachability */
     Graph<ColoredNode, DefaultEdge> reachability =
-            Reachability.compute(
-                    callgraph.graph, entryPoint, depth);
+        Reachability.compute(
+            callgraph.graph, entryPoint, depth);
 
     /* Apply coverage */
     jacocoCoverage.applyCoverage(reachability, callgraph.metadata);
@@ -339,7 +339,7 @@ public class JCallGraph {
     String outputName = outputFile + DELIMITER + REACHABILITY;
 
     /* Attach depth to name if present */
-    if(depth.isPresent()) {
+    if (depth.isPresent()) {
       outputName = outputName + DELIMITER + depth.get();
     }
 
@@ -348,32 +348,32 @@ public class JCallGraph {
             reachability, Utilities.coloredExporter(), JCallGraph.asDot(outputName));
 
     /* Analyze reachability coverage? */
-    if(jacocoCoverage.hasCoverage()) {
-      CoverageStatistics.analyze(reachability, Optional.of(asCsv(outputName + DELIMITER + COVERAGE)));
+    if (jacocoCoverage.hasCoverage()) {
+      CoverageStatistics.analyze( reachability, Optional.of(asCsv(outputName + DELIMITER + COVERAGE)));
     }
   }
 
   private static void maybeInspectAncestry(
-          StaticCallgraph callgraph, TestArguments arguments, JacocoCoverage jacocoCoverage, Optional<String> entryPoint, Optional<String> outputName) {
-    if(arguments.maybeAncestry().isEmpty() || entryPoint.isEmpty()) {
+      StaticCallgraph callgraph, TestArguments arguments, JacocoCoverage jacocoCoverage, Optional<String> entryPoint, Optional<String>outputName) {
+    if (arguments.maybeAncestry().isEmpty() || entryPoint.isEmpty()) {
       return;
     }
 
     Graph<ColoredNode, DefaultEdge> ancestry =
-            Ancestry.compute(
-                    callgraph.graph, entryPoint.get(), arguments.maybeAncestry().get());
+        Ancestry.compute(
+            callgraph.graph, entryPoint.get(), arguments.maybeAncestry().get());
     jacocoCoverage.applyCoverage(ancestry, callgraph.metadata);
 
     /* Should we store the ancestry in a file? */
-    if(outputName.isPresent()) {
+    if (outputName.isPresent()) {
       String subgraphOutputName =
-              outputName.get()
-                      + DELIMITER
-                      + ANCESTRY
-                      + DELIMITER
-                      + arguments.maybeAncestry().get();
+          outputName.get()
+              + DELIMITER
+              + ANCESTRY
+              + DELIMITER
+              + arguments.maybeAncestry().get();
       Utilities.writeGraph(
-              ancestry, Utilities.coloredExporter(), JCallGraph.OUTPUT_DIRECTORY + asDot(subgraphOutputName));
+          ancestry, Utilities.coloredExporter(), JCallGraph.OUTPUT_DIRECTORY + asDot(subgraphOutputName));
     }
   }
 
@@ -388,7 +388,7 @@ public class JCallGraph {
   //
   // serializeStaticCallGraph creates a file that contains the bytecode data of the StaticCallgraph object
   // Throws: IOException when the file cannot be written to disk
-  private static void maybeSerializeStaticCallGraph(StaticCallgraph callgraph, BuildArguments arguments) throws IOException {
+  private static void maybeSerializeStaticCallGraph(StaticCallgraph callgraph, BuildArguments arguments) throws IOException{
     if(arguments.maybeOutput().isPresent()) {
       File filename = new File(arguments.maybeOutput().get());
       FileOutputStream file = new FileOutputStream(filename);
@@ -403,25 +403,25 @@ public class JCallGraph {
   // deserializeStaticCallGraph reads bytecode and creates a StaticCallgraph object to be returned
   // Throws: IOException when file cannot be read
   // Throws: ClassNotFoundException when object cannot be read properly
-  private static StaticCallgraph deserializeStaticCallGraph(TestArguments arguments) throws IOException, ClassNotFoundException {
+  private static StaticCallgraph deserializeStaticCallGraph(TestArguments arguments) throws IOException, ClassNotFoundException{
     return deserializeStaticCallGraph(new File(arguments.maybeBytecodeFile().get()));
   }
 
-  private static StaticCallgraph deserializeStaticCallGraph(File f) throws IOException, ClassNotFoundException {
-    try(ObjectInput ois = new ObjectInputStream(new FileInputStream(f))) {
+  private static StaticCallgraph deserializeStaticCallGraph(File f) throws IOException, ClassNotFoundException{
+    try (ObjectInput ois = new ObjectInputStream(new FileInputStream(f))) {
       return (StaticCallgraph) ois.readObject();
     }
   }
 
 
-  private static RepoTool maybeObtainTool(GitArguments arguments) throws FileNotFoundException {
+  private static RepoTool maybeObtainTool(GitArguments arguments) throws FileNotFoundException{
     Optional<RepoTool> rt = RepoTool.obtainTool(arguments.maybeGetConfig().get());
     if(rt.isPresent())
       return rt.get();
     throw new FileNotFoundException("folderName path is incorrect! Please provide a valid folder");
   }
 
-  private static RepoTool maybeObtainTool(TestArguments arguments) throws FileNotFoundException {
+  private static RepoTool maybeObtainTool(TestArguments arguments) throws FileNotFoundException{
     return new RepoTool(arguments.maybeGetConfig().get());
   }
 }
