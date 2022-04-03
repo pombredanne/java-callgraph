@@ -1,5 +1,6 @@
 package gr.gousiosg.javacg.stat.support;
 
+import com.sun.xml.xsom.impl.scd.Iterators;
 import gr.gousiosg.javacg.dyn.Pair;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -8,14 +9,12 @@ import org.yaml.snakeyaml.Yaml;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.*;
+import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -114,10 +113,15 @@ public class RepoTool {
         process.waitFor();
     }
 
-    public List<Pair<String,String>> obtainCoverageFilesAndEntryPoints(){
-        List<Pair<String,String>> coverageFiles = new LinkedList<>();
-        for(Map<String, String> m : properties)
-            coverageFiles.add(new Pair<>("artifacts/results/" + this.name + "/" + m.get("name") + ".xml", m.get("entryPoint")));
+    public List<Pair<String,?>> obtainCoverageFilesAndEntryPoints(){
+        List<Pair<String,?>> coverageFiles = new LinkedList<>();
+        for(Map<String, ?> m : properties)
+            if(m.get("entryPoint").getClass().toString().equals("class java.lang.String")){
+                coverageFiles.add(new Pair<String,String>("artifacts/results/" + this.name + "/" + m.get("name") + ".xml", (String) m.get("entryPoint")));
+            }
+            else{
+                coverageFiles.add(new Pair<String, ArrayList>("artifacts/results/" + this.name + "/" + m.get("name") + ".xml", (ArrayList) m.get("entryPoint")));
+            }
         return coverageFiles;
     }
 

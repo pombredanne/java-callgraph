@@ -33,6 +33,7 @@ public class StaticCallgraph implements Serializable {
 
     public JarMetadata metadata;
     public SerializableDefaultDirectedGraph<String, DefaultEdge> graph;
+    public String JarEntry;
 
     private StaticCallgraph(Graph<String, DefaultEdge> graph, JarMetadata jarMetadata) {
         this.graph = (SerializableDefaultDirectedGraph<String, DefaultEdge>) graph;

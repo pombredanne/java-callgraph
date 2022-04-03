@@ -97,17 +97,50 @@ public class JCallGraph {
           // Build and serialize a staticcallgraph object with jar files provided
           BuildArguments arguments = new BuildArguments(args);
           StaticCallgraph callgraph = StaticCallgraph.build(arguments);
+          callgraph.JarEntry=arguments.getJars().get(1).first;
           maybeSerializeStaticCallGraph(callgraph, arguments);
           break;
         }
         case "test": {
           TestArguments arguments = new TestArguments(args);
+          String entryPoint = null;
           // 1. Run Tests and obtain coverage
           RepoTool rt = maybeObtainTool(arguments);
-          List<Pair<String, String>> coverageFilesAndEntryPoints = rt.obtainCoverageFilesAndEntryPoints();
+          StaticCallgraph callgraph = deserializeStaticCallGraph(arguments);
+          List<Pair<String, ?>> coverageFilesAndEntryPointsShorthand = rt.obtainCoverageFilesAndEntryPoints();
+          List<Pair<String, String>> coverageFilesAndEntryPoints=new ArrayList<>();
+          for(Pair<String, ?> s : coverageFilesAndEntryPointsShorthand) {
+            Pair<String,String> result=new Pair<>(s.first,null);
+            if(s.second.getClass().toString().equals("class java.lang.String")){
+              try {
+                entryPoint = generateEntryPoint(callgraph.JarEntry, (String) s.second, Optional.empty(), Optional.empty());
+              } catch(IOException e){
+                LOGGER.error("Could not generate method signature", e);
+              }
+            }
+            else{
+              try {
+                Optional<String> returnType = Optional.empty();
+                if(((ArrayList) s.second).size() > 1)
+                  returnType = Optional.of(((ArrayList) s.second).get(1).toString());
+
+                // Seventh argument, optional, parameter types of expected method
+                Optional<String> paramterTypes = Optional.empty();
+                if(((ArrayList) s.second).size() > 2)
+                  paramterTypes = Optional.of(((ArrayList) s.second).get(2).toString());
+
+                entryPoint = generateEntryPoint(callgraph.JarEntry, (String) ((ArrayList) s.second).get(0), returnType, paramterTypes);
+              } catch(IOException e){
+                LOGGER.error("Could not generate method signature", e);
+              }
+            }
+            result.second=entryPoint;
+            coverageFilesAndEntryPoints.add(result);
+          }
+
           for(Pair<String, String> s : coverageFilesAndEntryPoints) {
             // 2. For each coverage file we start with a fresh deserialized callgraph
-            StaticCallgraph callgraph = deserializeStaticCallGraph(arguments);
+            callgraph = deserializeStaticCallGraph(arguments);
             LOGGER.info("----------PROPERTY------------");
             String propertyName = s.first.substring(s.first.lastIndexOf("/") + 1, s.first.length() - 4);
             LOGGER.info(propertyName);
