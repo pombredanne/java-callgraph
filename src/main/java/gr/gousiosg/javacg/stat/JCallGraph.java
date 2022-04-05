@@ -48,6 +48,7 @@ import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
+import org.yaml.snakeyaml.Yaml;
 
 import javax.xml.bind.JAXBException;
 import javax.xml.parsers.ParserConfigurationException;
@@ -57,6 +58,8 @@ import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarInputStream;
 import java.util.stream.Collectors;
+
+import static java.util.Map.entry;
 
 /**
  * Constructs a callgraph out of a JAR archive. Can combine multiple archives into a single call
@@ -100,6 +103,25 @@ public class JCallGraph {
           callgraph.JarEntry=arguments.getJars().get(1).first;
           maybeSerializeStaticCallGraph(callgraph, arguments);
           break;
+        }
+        case "buildyaml":{
+          Yaml yaml = new Yaml();
+          JarInputStream jarFileStream = new JarInputStream(new FileInputStream(args[1]));
+          JarFile jarFile = new JarFile(args[1]);
+          ArrayList<JarEntry> listOfAllClasses = getAllClassesFromJar(jarFileStream);
+          ArrayList<Pair<String, String>> nameEntryList = new ArrayList<>();
+          for (JarEntry entry : listOfAllClasses)
+            nameEntryList.addAll(getfetchAllMethodSignaturesForyaml(jarFile,entry));
+          ArrayList<Map<String,String>> entryResult = new ArrayList<>();
+          for(Pair<String, String> entry : nameEntryList)
+            entryResult.add(Map.ofEntries(entry("name",entry.first),entry("entryPoint",entry.second)));
+
+          Map<String, ArrayList<Map<String,String>>> dataMap = new HashMap<>();
+
+          dataMap.put("properties",entryResult);
+          PrintWriter writer = new PrintWriter(new File("./mph-tableFull.yaml"));
+
+          yaml.dump(dataMap, writer);
         }
         case "test": {
           TestArguments arguments = new TestArguments(args);
@@ -229,7 +251,17 @@ public class JCallGraph {
     listOfAllClasses = listOfAllClasses.stream().filter(e -> e.getName().endsWith(className)).collect(Collectors.toCollection(ArrayList::new));
     return listOfAllClasses;
   }
+public static ArrayList<Pair<String, String>> getfetchAllMethodSignaturesForyaml (JarFile JarFile,JarEntry Jar) throws IOException {
+  ClassParser cp = new ClassParser(JarFile.getInputStream(Jar), Jar.getName());
+  JavaClass jc = cp.parse();
 
+  Method[] methods = jc.getMethods();
+  ArrayList<Pair<String, String>> signatureResults = new ArrayList<>();
+  for(Method tempMethod : methods)
+    signatureResults.add(new Pair<>(jc.getClassName().substring(jc.getClassName().lastIndexOf(".")+1)+"#"+tempMethod.getName(),jc.getClassName() + "." + tempMethod.getName() + tempMethod.getSignature()));
+
+  return signatureResults;
+}
   //Fetch the method signature of a method from a JarEntry
   public static String fetchMethodSignatures(JarFile JarFile, JarEntry Jar, String methodName, Optional<String> returnType, Optional<String> paramterTypes) throws IOException {
     ClassParser cp = new ClassParser(JarFile.getInputStream(Jar), Jar.getName());
