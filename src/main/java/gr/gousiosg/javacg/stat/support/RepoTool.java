@@ -152,13 +152,7 @@ public class RepoTool {
     private void moveJars() throws IOException {
         Path sourceDir = Paths.get(System.getProperty("user.dir"), getProjectDir(), "target");
         Path targetDir = Paths.get(System.getProperty("user.dir"), "artifacts", "output");
-
-        // @todo may want to be able to override this in the yaml file on a project basis...
-        String depGlob = this.name + "*-with-dependencies.jar";
-        String testGlob = this.name + "*-tests.jar";
-
-        moveFiles(sourceDir, targetDir, depGlob);
-        moveFiles(sourceDir, targetDir, testGlob);
+        moveFiles(sourceDir, targetDir, "*.jar");
     }
 
     private void moveFiles(Path sourceDir, Path targetDir, String glob) throws IOException {
