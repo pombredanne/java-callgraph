@@ -134,11 +134,7 @@ public class JCallGraph {
           for(Pair<String, ?> s : coverageFilesAndEntryPointsShorthand) {
             Pair<String,String> result=new Pair<>(s.first,null);
             if(s.second.getClass().toString().equals("class java.lang.String")){
-              try {
-                entryPoint = generateEntryPoint(callgraph.JarEntry, (String) s.second, Optional.empty(), Optional.empty());
-              } catch(IOException e){
-                LOGGER.error("Could not generate method signature", e);
-              }
+              entryPoint= (String) s.second;
             }
             else{
               try {
@@ -156,6 +152,7 @@ public class JCallGraph {
                 LOGGER.error("Could not generate method signature", e);
               }
             }
+            LOGGER.info("Entry point inferred for name \n"+s.first.substring(s.first.lastIndexOf("/")+1)+" is\n "+entryPoint);
             result.second=entryPoint;
             coverageFilesAndEntryPoints.add(result);
           }
