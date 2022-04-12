@@ -133,7 +133,7 @@ public class RepoTool {
                 coverageFiles.add(new Pair<>("artifacts/results/" + getProjectDir() + timeStamp + "/" + m.get("name") + ".xml", m.get("entryPoint")));
             }
             else{
-                coverageFiles.add(new Pair<String, ArrayList>("artifacts/results/" + this.name + "/" + m.get("name") + ".xml", (ArrayList) m.get("entryPoint")));
+                coverageFiles.add(new Pair<String, ArrayList>("artifacts/results/" + getProjectDir() + timeStamp + "/" + m.get("name") + ".xml", (ArrayList) m.get("entryPoint")));
             }
         }
 
