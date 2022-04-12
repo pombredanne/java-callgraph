@@ -82,7 +82,7 @@ public class JacocoCoverage {
                                                             coveredLines.add(
                                                                     String.format(
                                                                             "%s:%d",
-                                                                            rawSrcFile.getName(), Byte.toUnsignedInt(line.nr)))));
+                                                                            rawSrcFile.getName(), Short.toUnsignedInt(line.nr)))));
         }
 
         /* Indicate that coverage has been applied */
