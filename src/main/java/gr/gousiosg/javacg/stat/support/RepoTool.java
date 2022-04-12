@@ -1,6 +1,5 @@
 package gr.gousiosg.javacg.stat.support;
 
-import com.sun.xml.xsom.impl.scd.Iterators;
 import gr.gousiosg.javacg.dyn.Pair;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
@@ -127,14 +126,18 @@ public class RepoTool {
         process.waitFor();
     }
 
-    public List<Pair<String,String>> obtainCoverageFilesAndEntryPoints(){
-        List<Pair<String,String>> coverageFiles = new LinkedList<>();
-        for(Map<String, String> m : properties)
+    public List<Pair<String,?>> obtainCoverageFilesAndEntryPoints(){
+        List<Pair<String,?>> coverageFiles = new LinkedList<>();
+        for(Map<String, ?> m : properties){
             if(m.get("entryPoint").getClass().toString().equals("class java.lang.String")){
                 coverageFiles.add(new Pair<>("artifacts/results/" + getProjectDir() + timeStamp + "/" + m.get("name") + ".xml", m.get("entryPoint")));
-            else
+            }
+            else{
                 coverageFiles.add(new Pair<String, ArrayList>("artifacts/results/" + this.name + "/" + m.get("name") + ".xml", (ArrayList) m.get("entryPoint")));
-            return coverageFiles;
+            }
+        }
+
+        return coverageFiles;
     }
 
     public static Optional<RepoTool> obtainTool(String folderName){
