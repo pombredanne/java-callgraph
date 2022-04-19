@@ -37,6 +37,7 @@ import gr.gousiosg.javacg.stat.support.BuildArguments;
 import gr.gousiosg.javacg.stat.support.GitArguments;
 import gr.gousiosg.javacg.stat.support.RepoTool;
 import gr.gousiosg.javacg.stat.support.TestArguments;
+import org.apache.bcel.classfile.AnnotationEntry;
 import org.apache.bcel.classfile.ClassParser;
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.Method;
@@ -100,7 +101,7 @@ public class JCallGraph {
           // Build and serialize a staticcallgraph object with jar files provided
           BuildArguments arguments = new BuildArguments(args);
           StaticCallgraph callgraph = StaticCallgraph.build(arguments);
-          callgraph.JarEntry=arguments.getJars().get(1).first;
+          callgraph.JarEntry=arguments.getJars().get(0).first;
           maybeSerializeStaticCallGraph(callgraph, arguments);
           break;
         }
@@ -111,7 +112,7 @@ public class JCallGraph {
           ArrayList<JarEntry> listOfAllClasses = getAllClassesFromJar(jarFileStream);
           ArrayList<Pair<String, String>> nameEntryList = new ArrayList<>();
           for (JarEntry entry : listOfAllClasses)
-            nameEntryList.addAll(getfetchAllMethodSignaturesForyaml(jarFile,entry));
+            nameEntryList.addAll(fetchAllMethodSignaturesForyaml(jarFile,entry));
           ArrayList<Map<String,String>> entryResult = new ArrayList<>();
           for(Pair<String, String> entry : nameEntryList)
             entryResult.add(Map.ofEntries(entry("name",entry.first),entry("entryPoint",entry.second)));
@@ -119,9 +120,9 @@ public class JCallGraph {
           Map<String, ArrayList<Map<String,String>>> dataMap = new HashMap<>();
 
           dataMap.put("properties",entryResult);
-          PrintWriter writer = new PrintWriter(new File("./mph-tableFull.yaml"));
-
-          yaml.dump(dataMap, writer);
+//          PrintWriter writer = new PrintWriter(new File("./mph-tableFull.yaml"));
+//          yaml.dump(dataMap, writer);
+//          ObjectMapper om = new ObjectMapper(new YAMLFactory());
         }
         case "test": {
           TestArguments arguments = new TestArguments(args);
@@ -224,6 +225,10 @@ public class JCallGraph {
         LOGGER.error(entry.getName());
       System.exit(1);
     }
+    if(listOfFilteredClasses.size()==0){
+      LOGGER.error("no class instances found ");
+      System.exit(1);
+    }
 
     return fetchMethodSignatures(jarFile, listOfFilteredClasses.get(0), methodName, returnType, parameterTypes);
 
@@ -248,14 +253,16 @@ public class JCallGraph {
     listOfAllClasses = listOfAllClasses.stream().filter(e -> e.getName().endsWith(className)).collect(Collectors.toCollection(ArrayList::new));
     return listOfAllClasses;
   }
-public static ArrayList<Pair<String, String>> getfetchAllMethodSignaturesForyaml (JarFile JarFile,JarEntry Jar) throws IOException {
+public static ArrayList<Pair<String, String>> fetchAllMethodSignaturesForyaml (JarFile JarFile,JarEntry Jar) throws IOException {
   ClassParser cp = new ClassParser(JarFile.getInputStream(Jar), Jar.getName());
   JavaClass jc = cp.parse();
 
   Method[] methods = jc.getMethods();
   ArrayList<Pair<String, String>> signatureResults = new ArrayList<>();
   for(Method tempMethod : methods)
-    signatureResults.add(new Pair<>(jc.getClassName().substring(jc.getClassName().lastIndexOf(".")+1)+"#"+tempMethod.getName(),jc.getClassName() + "." + tempMethod.getName() + tempMethod.getSignature()));
+    if(Arrays.stream(tempMethod.getAnnotationEntries()).filter(e->e.getAnnotationType().equals("Lorg/junit/Test;")).toArray().length > 0)
+      signatureResults.add(new Pair<>(jc.getClassName().substring(jc.getClassName().lastIndexOf(".")+1)+"#"+tempMethod.getName(),jc.getClassName() + "." + tempMethod.getName() + tempMethod.getSignature()));
+
 
   return signatureResults;
 }
