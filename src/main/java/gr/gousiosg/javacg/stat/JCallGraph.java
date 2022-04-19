@@ -111,19 +111,24 @@ public class JCallGraph {
           options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
           options.setPrettyFlow(true);
           Yaml yaml = new Yaml(options);
+
           JarInputStream jarFileStream = new JarInputStream(new FileInputStream(args[1]));
           JarFile jarFile = new JarFile(args[1]);
+
           ArrayList<JarEntry> listOfAllClasses = getAllClassesFromJar(jarFileStream);
           ArrayList<Pair<String, String>> nameEntryList = new ArrayList<>();
           for (JarEntry entry : listOfAllClasses)
             nameEntryList.addAll(fetchAllMethodSignaturesForyaml(jarFile,entry));
           ArrayList<Map<String,String>> entryResult = new ArrayList<>();
+
           for(Pair<String, String> entry : nameEntryList)
             entryResult.add(Map.ofEntries(entry("name",entry.first),entry("entryPoint",entry.second)));
+
           Map<String, ArrayList<Map<String,String>>> dataMap = new HashMap<>();
           dataMap.put("properties",entryResult);
-          final FileWriter writer = new FileWriter("mph-table-full.yaml");
+          final FileWriter writer = new FileWriter(args[2]+".yaml");
           yaml.dump(dataMap, writer);
+          break;
         }
         case "test": {
           TestArguments arguments = new TestArguments(args);
