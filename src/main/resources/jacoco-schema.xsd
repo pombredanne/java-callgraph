@@ -66,7 +66,7 @@
                                             <xs:complexType>
                                                 <xs:simpleContent>
                                                     <xs:extension base="xs:string">
-                                                        <xs:attribute type="xs:byte" name="nr" use="optional"/>
+                                                        <xs:attribute type="xs:short" name="nr" use="optional"/>
                                                         <xs:attribute type="xs:byte" name="mi" use="optional"/>
                                                         <xs:attribute type="xs:byte" name="ci" use="optional"/>
                                                         <xs:attribute type="xs:byte" name="mb" use="optional"/>

@@ -35,7 +35,7 @@ public class RepoTool {
         this.subProject = subProject;
         this.mvnOptions = mvnOptions;
 
-        this.timeStamp = String.valueOf(java.time.LocalDateTime.now());
+        this.timeStamp = String.valueOf(java.time.LocalDateTime.now()).replace(':', '_');
     }
 
     public RepoTool(String name) throws FileNotFoundException {
@@ -53,7 +53,7 @@ public class RepoTool {
         mvnOptions = (String) data.getOrDefault("mvnOptions", "");
         properties = (List<Map<String,String>>) data.get("properties");
 
-        this.timeStamp = String.valueOf(java.time.LocalDateTime.now());
+        this.timeStamp = String.valueOf(java.time.LocalDateTime.now()).replace(':', '_');
     }
 
     public void cloneRepo() throws GitAPIException, JGitInternalException {
