@@ -49,6 +49,7 @@ import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
+import org.yaml.snakeyaml.DumperOptions;
 import org.yaml.snakeyaml.Yaml;
 
 import javax.xml.bind.JAXBException;
@@ -106,7 +107,10 @@ public class JCallGraph {
           break;
         }
         case "buildyaml":{
-          Yaml yaml = new Yaml();
+          DumperOptions options = new DumperOptions();
+          options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+          options.setPrettyFlow(true);
+          Yaml yaml = new Yaml(options);
           JarInputStream jarFileStream = new JarInputStream(new FileInputStream(args[1]));
           JarFile jarFile = new JarFile(args[1]);
           ArrayList<JarEntry> listOfAllClasses = getAllClassesFromJar(jarFileStream);
@@ -116,13 +120,10 @@ public class JCallGraph {
           ArrayList<Map<String,String>> entryResult = new ArrayList<>();
           for(Pair<String, String> entry : nameEntryList)
             entryResult.add(Map.ofEntries(entry("name",entry.first),entry("entryPoint",entry.second)));
-
           Map<String, ArrayList<Map<String,String>>> dataMap = new HashMap<>();
-
           dataMap.put("properties",entryResult);
-//          PrintWriter writer = new PrintWriter(new File("./mph-tableFull.yaml"));
-//          yaml.dump(dataMap, writer);
-//          ObjectMapper om = new ObjectMapper(new YAMLFactory());
+          final FileWriter writer = new FileWriter("mph-table-full.yaml");
+          yaml.dump(dataMap, writer);
         }
         case "test": {
           TestArguments arguments = new TestArguments(args);
