@@ -129,7 +129,7 @@ public class RepoTool {
     public List<Pair<String,?>> obtainCoverageFilesAndEntryPoints(){
         List<Pair<String,?>> coverageFiles = new LinkedList<>();
         for(Map<String, ?> m : properties){
-            if(m.get("entryPoint").getClass().toString().equals("class java.lang.String")){
+            if(m.get("entryPoint") instanceof String){
                 coverageFiles.add(new Pair<>("artifacts/results/" + getProjectDir() + timeStamp + "/" + m.get("name") + ".xml", m.get("entryPoint")));
             }
             else{

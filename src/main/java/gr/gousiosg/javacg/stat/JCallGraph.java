@@ -140,10 +140,10 @@ public class JCallGraph {
           List<Pair<String, String>> coverageFilesAndEntryPoints=new ArrayList<>();
           for(Pair<String, ?> s : coverageFilesAndEntryPointsShorthand) {
             Pair<String,String> result=new Pair<>(s.first,null);
-            if(s.second.getClass().toString().equals("class java.lang.String")){
+            if(s.second instanceof String){
               entryPoint= (String) s.second;
             }
-            else{
+            else if(s.second instanceof ArrayList){
               try {
                 Optional<String> returnType = Optional.empty();
                 if(((ArrayList) s.second).size() > 1)
@@ -242,14 +242,14 @@ public class JCallGraph {
 
   //Fetch JarEntry of all classes in a Jan using JarInputStream
   public static ArrayList<JarEntry> getAllClassesFromJar(JarInputStream JarInputStream) throws IOException {
-    JarEntry Jar;
+    JarEntry jar;
     ArrayList<JarEntry> listOfAllClasses = new ArrayList<>();
     while(true) {
-      Jar = JarInputStream.getNextJarEntry();
-      if(Jar == null)
+      jar = JarInputStream.getNextJarEntry();
+      if(jar == null)
         break;
-      if((Jar.getName().endsWith(".class")))
-        listOfAllClasses.add(Jar);
+      if((jar.getName().endsWith(".class")))
+        listOfAllClasses.add(jar);
     }
     return listOfAllClasses;
   }
@@ -259,8 +259,8 @@ public class JCallGraph {
     listOfAllClasses = listOfAllClasses.stream().filter(e -> e.getName().endsWith(className)).collect(Collectors.toCollection(ArrayList::new));
     return listOfAllClasses;
   }
-public static ArrayList<Pair<String, String>> fetchAllMethodSignaturesForyaml (JarFile JarFile,JarEntry Jar) throws IOException {
-  ClassParser cp = new ClassParser(JarFile.getInputStream(Jar), Jar.getName());
+public static ArrayList<Pair<String, String>> fetchAllMethodSignaturesForyaml (JarFile JarFile,JarEntry jar) throws IOException {
+  ClassParser cp = new ClassParser(JarFile.getInputStream(jar), jar.getName());
   JavaClass jc = cp.parse();
 
   Method[] methods = jc.getMethods();
@@ -273,8 +273,8 @@ public static ArrayList<Pair<String, String>> fetchAllMethodSignaturesForyaml (J
   return signatureResults;
 }
   //Fetch the method signature of a method from a JarEntry
-  public static String fetchMethodSignatures(JarFile JarFile, JarEntry Jar, String methodName, Optional<String> returnType, Optional<String> paramterTypes) throws IOException {
-    ClassParser cp = new ClassParser(JarFile.getInputStream(Jar), Jar.getName());
+  public static String fetchMethodSignatures(JarFile JarFile, JarEntry jar, String methodName, Optional<String> returnType, Optional<String> paramterTypes) throws IOException {
+    ClassParser cp = new ClassParser(JarFile.getInputStream(jar), jar.getName());
     JavaClass jc = cp.parse();
 
     Method[] methods = jc.getMethods();
