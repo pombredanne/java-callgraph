@@ -264,12 +264,13 @@ public static ArrayList<Pair<String, String>> fetchAllMethodSignaturesForyaml (J
   JavaClass jc = cp.parse();
 
   Method[] methods = jc.getMethods();
+  String className =jc.getClassName().substring(jc.getClassName().lastIndexOf(".")+1);
   ArrayList<Pair<String, String>> signatureResults = new ArrayList<>();
   for(Method tempMethod : methods)
-    if(Arrays.stream(tempMethod.getAnnotationEntries()).filter(e->e.getAnnotationType().equals("Lorg/junit/Test;")).toArray().length > 0)
-      signatureResults.add(new Pair<>(jc.getClassName().substring(jc.getClassName().lastIndexOf(".")+1)+"#"+tempMethod.getName(),jc.getClassName() + "." + tempMethod.getName() + tempMethod.getSignature()));
-
-
+    if(Arrays.stream(tempMethod.getAnnotationEntries()).filter(e->e.getAnnotationType().equals("Lorg/junit/Test;")).toArray().length > 0){
+      String methodDescriptor=tempMethod.getName() + tempMethod.getSignature();
+      signatureResults.add(new Pair<>(className+"#"+tempMethod.getName(),jc.getClassName() + "." + methodDescriptor));
+    }
   return signatureResults;
 }
   //Fetch the method signature of a method from a JarEntry
