@@ -256,8 +256,11 @@ public class JCallGraph {
 
   //Fetch filtered classes from a list of JarEntry
   public static ArrayList<JarEntry> getFilteredClassesFromJar(ArrayList<JarEntry> listOfAllClasses, String className) {
-    listOfAllClasses = listOfAllClasses.stream().filter(e -> e.getName().endsWith(className)).collect(Collectors.toCollection(ArrayList::new));
-    return listOfAllClasses;
+    ArrayList<JarEntry> listOfFilteredClasses= new ArrayList<>();
+    for (JarEntry entry : listOfAllClasses)
+      if (entry.getName().endsWith(className))
+        listOfFilteredClasses.add(entry);
+    return listOfFilteredClasses;
   }
 public static ArrayList<Pair<String, String>> fetchAllMethodSignaturesForyaml (JarFile JarFile,JarEntry jar) throws IOException {
   ClassParser cp = new ClassParser(JarFile.getInputStream(jar), jar.getName());
@@ -267,7 +270,9 @@ public static ArrayList<Pair<String, String>> fetchAllMethodSignaturesForyaml (J
   String className =jc.getClassName().substring(jc.getClassName().lastIndexOf(".")+1);
   ArrayList<Pair<String, String>> signatureResults = new ArrayList<>();
   for(Method tempMethod : methods)
-    if(Arrays.stream(tempMethod.getAnnotationEntries()).filter(e->e.getAnnotationType().equals("Lorg/junit/Test;")).toArray().length > 0){
+    if(Arrays.stream(tempMethod.getAnnotationEntries())
+            .map(e->e.getAnnotationType())
+            .anyMatch(e->e.equals("Lorg/junit/Test;"))){
       String methodDescriptor=tempMethod.getName() + tempMethod.getSignature();
       signatureResults.add(new Pair<>(className+"#"+tempMethod.getName(),jc.getClassName() + "." + methodDescriptor));
     }
@@ -286,12 +291,19 @@ public static ArrayList<Pair<String, String>> fetchAllMethodSignaturesForyaml (J
         signatureResults.add(tempMethod);
 
     if(returnType.isPresent()) {
-      signatureResults = signatureResults.stream().filter(e -> e.getReturnType().toString().contains(returnType.get())).collect(Collectors.toCollection(ArrayList::new));
+      ArrayList<Method> tempsignatureResults = new ArrayList<>();
+      for(Method tempMethod : signatureResults)
+        if(tempMethod.getReturnType().toString().contains(returnType.get()))
+          tempsignatureResults.add(tempMethod);
+      signatureResults=new ArrayList<>(tempsignatureResults);
 
       if(paramterTypes.isPresent()) {
         String[] paramlist = paramterTypes.get().split(",");
         for(Method tempMethod : signatureResults)
-          if(Arrays.equals(paramlist, Arrays.stream(tempMethod.getArgumentTypes()).map(Type::toString).map(e -> e.substring(e.lastIndexOf(".") + 1)).toArray()))
+          if(Arrays.equals(paramlist, Arrays.stream(tempMethod.getArgumentTypes())
+                  .map(Type::toString)
+                  .map(e -> e.substring(e.lastIndexOf(".") + 1))
+                  .toArray()))
             return jc.getClassName() + "." + tempMethod.getName() + tempMethod.getSignature();
       }
       validateMethodList(signatureResults);
