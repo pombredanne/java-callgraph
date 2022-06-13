@@ -37,6 +37,11 @@ import gr.gousiosg.javacg.stat.support.BuildArguments;
 import gr.gousiosg.javacg.stat.support.GitArguments;
 import gr.gousiosg.javacg.stat.support.RepoTool;
 import gr.gousiosg.javacg.stat.support.TestArguments;
+import org.apache.bcel.classfile.AnnotationEntry;
+import org.apache.bcel.classfile.ClassParser;
+import org.apache.bcel.classfile.JavaClass;
+import org.apache.bcel.classfile.Method;
+import org.apache.bcel.generic.Type;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.api.errors.JGitInternalException;
 import org.jgrapht.Graph;
@@ -44,14 +49,19 @@ import org.jgrapht.graph.DefaultEdge;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.xml.sax.SAXException;
+import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.Yaml;
 
 import javax.xml.bind.JAXBException;
 import javax.xml.parsers.ParserConfigurationException;
 import java.io.*;
-import java.util.InputMismatchException;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.jar.JarInputStream;
+import java.util.stream.Collectors;
+
+import static java.util.Map.entry;
 
 /**
  * Constructs a callgraph out of a JAR archive. Can combine multiple archives into a single call
@@ -92,17 +102,71 @@ public class JCallGraph {
           // Build and serialize a staticcallgraph object with jar files provided
           BuildArguments arguments = new BuildArguments(args);
           StaticCallgraph callgraph = StaticCallgraph.build(arguments);
+          callgraph.JarEntry=arguments.getJars().get(0).first;
           maybeSerializeStaticCallGraph(callgraph, arguments);
+          break;
+        }
+        case "buildyaml":{
+          DumperOptions options = new DumperOptions();
+          options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
+          options.setPrettyFlow(true);
+          Yaml yaml = new Yaml(options);
+
+          JarInputStream jarFileStream = new JarInputStream(new FileInputStream(args[1]));
+          JarFile jarFile = new JarFile(args[1]);
+
+          ArrayList<JarEntry> listOfAllClasses = getAllClassesFromJar(jarFileStream);
+          ArrayList<Pair<String, String>> nameEntryList = new ArrayList<>();
+          for (JarEntry entry : listOfAllClasses)
+            nameEntryList.addAll(fetchAllMethodSignaturesForyaml(jarFile,entry));
+          ArrayList<Map<String,String>> entryResult = new ArrayList<>();
+
+          for(Pair<String, String> entry : nameEntryList)
+            entryResult.add(Map.ofEntries(entry("name",entry.first),entry("entryPoint",entry.second)));
+
+          Map<String, ArrayList<Map<String,String>>> dataMap = new HashMap<>();
+          dataMap.put("properties",entryResult);
+          final FileWriter writer = new FileWriter(args[2]+".yaml");
+          yaml.dump(dataMap, writer);
           break;
         }
         case "test": {
           TestArguments arguments = new TestArguments(args);
+          String entryPoint = null;
           // 1. Run Tests and obtain coverage
           RepoTool rt = maybeObtainTool(arguments);
-          List<Pair<String, String>> coverageFilesAndEntryPoints = rt.obtainCoverageFilesAndEntryPoints();
+          StaticCallgraph callgraph = deserializeStaticCallGraph(arguments);
+          List<Pair<String, ?>> coverageFilesAndEntryPointsShorthand = rt.obtainCoverageFilesAndEntryPoints();
+          List<Pair<String, String>> coverageFilesAndEntryPoints=new ArrayList<>();
+          for(Pair<String, ?> s : coverageFilesAndEntryPointsShorthand) {
+            Pair<String,String> result=new Pair<>(s.first,null);
+            if(s.second instanceof String){
+              entryPoint= (String) s.second;
+            }
+            else if(s.second instanceof ArrayList){
+              try {
+                Optional<String> returnType = Optional.empty();
+                if(((ArrayList) s.second).size() > 1)
+                  returnType = Optional.of(((ArrayList) s.second).get(1).toString());
+
+                // Seventh argument, optional, parameter types of expected method
+                Optional<String> paramterTypes = Optional.empty();
+                if(((ArrayList) s.second).size() > 2)
+                  paramterTypes = Optional.of(((ArrayList) s.second).get(2).toString());
+
+                entryPoint = generateEntryPoint(callgraph.JarEntry, (String) ((ArrayList) s.second).get(0), returnType, paramterTypes);
+              } catch(IOException e){
+                LOGGER.error("Could not generate method signature", e);
+              }
+            }
+            LOGGER.info("Entry point inferred for name \n"+s.first.substring(s.first.lastIndexOf("/")+1)+" is\n "+entryPoint);
+            result.second=entryPoint;
+            coverageFilesAndEntryPoints.add(result);
+          }
+
           for(Pair<String, String> s : coverageFilesAndEntryPoints) {
             // 2. For each coverage file we start with a fresh deserialized callgraph
-            StaticCallgraph callgraph = deserializeStaticCallGraph(arguments);
+            callgraph = deserializeStaticCallGraph(arguments);
             LOGGER.info("----------PROPERTY------------");
             String propertyName = s.first.substring(s.first.lastIndexOf("/") + 1, s.first.length() - 4);
             LOGGER.info(propertyName);
@@ -149,6 +213,126 @@ public class JCallGraph {
 
   }
 
+  //Main function to convert class.method arg and generate its respective method signature
+  public static String generateEntryPoint(String jarPath, String shortName, Optional<String> returnType, Optional<String> parameterTypes) throws IOException {
+    JarFile jarFile = new JarFile(jarPath);
+    JarInputStream jarFileStream = new JarInputStream(new FileInputStream(jarPath));
+
+    String methodName = shortName.substring(shortName.lastIndexOf('.') + 1);
+    String className = shortName.substring(0, shortName.lastIndexOf('.'));
+    ArrayList<JarEntry> listOfFilteredClasses = getAllClassesFromJar(jarFileStream);
+    className = className.replaceAll("\\.", "/") + ".class";
+
+    listOfFilteredClasses = getFilteredClassesFromJar(listOfFilteredClasses, className);
+
+    if(listOfFilteredClasses.size() > 1) {
+      LOGGER.error("Multiple class instances found as listed below:- ");
+      for(JarEntry entry : listOfFilteredClasses)
+        LOGGER.error(entry.getName());
+      System.exit(1);
+    }
+    if(listOfFilteredClasses.size()==0){
+      LOGGER.error("no class instances found ");
+      System.exit(1);
+    }
+
+    return fetchMethodSignatures(jarFile, listOfFilteredClasses.get(0), methodName, returnType, parameterTypes);
+
+  }
+
+  //Fetch JarEntry of all classes in a Jan using JarInputStream
+  public static ArrayList<JarEntry> getAllClassesFromJar(JarInputStream JarInputStream) throws IOException {
+    JarEntry jar;
+    ArrayList<JarEntry> listOfAllClasses = new ArrayList<>();
+    while(true) {
+      jar = JarInputStream.getNextJarEntry();
+      if(jar == null)
+        break;
+      if((jar.getName().endsWith(".class")))
+        listOfAllClasses.add(jar);
+    }
+    return listOfAllClasses;
+  }
+
+  //Fetch filtered classes from a list of JarEntry
+  public static ArrayList<JarEntry> getFilteredClassesFromJar(ArrayList<JarEntry> listOfAllClasses, String className) {
+    ArrayList<JarEntry> listOfFilteredClasses= new ArrayList<>();
+    for (JarEntry entry : listOfAllClasses)
+      if (entry.getName().endsWith(className))
+        listOfFilteredClasses.add(entry);
+    return listOfFilteredClasses;
+  }
+public static ArrayList<Pair<String, String>> fetchAllMethodSignaturesForyaml (JarFile JarFile,JarEntry jar) throws IOException {
+  ClassParser cp = new ClassParser(JarFile.getInputStream(jar), jar.getName());
+  JavaClass jc = cp.parse();
+
+  Method[] methods = jc.getMethods();
+  String className =jc.getClassName().substring(jc.getClassName().lastIndexOf(".")+1);
+  ArrayList<Pair<String, String>> signatureResults = new ArrayList<>();
+  for(Method tempMethod : methods)
+    if(Arrays.stream(tempMethod.getAnnotationEntries())
+            .map(e->e.getAnnotationType())
+            .anyMatch(e->e.equals("Lorg/junit/Test;"))){
+      String methodDescriptor=tempMethod.getName() + tempMethod.getSignature();
+      signatureResults.add(new Pair<>(className+"#"+tempMethod.getName(),jc.getClassName() + "." + methodDescriptor));
+    }
+  return signatureResults;
+}
+  //Fetch the method signature of a method from a JarEntry
+  public static String fetchMethodSignatures(JarFile JarFile, JarEntry jar, String methodName, Optional<String> returnType, Optional<String> paramterTypes) throws IOException {
+    ClassParser cp = new ClassParser(JarFile.getInputStream(jar), jar.getName());
+    JavaClass jc = cp.parse();
+
+    Method[] methods = jc.getMethods();
+    ArrayList<Method> signatureResults = new ArrayList<>();
+
+    for(Method tempMethod : methods)
+      if(tempMethod.getName().equals(methodName))
+        signatureResults.add(tempMethod);
+
+    if(returnType.isPresent()) {
+      ArrayList<Method> tempsignatureResults = new ArrayList<>();
+      for(Method tempMethod : signatureResults)
+        if(tempMethod.getReturnType().toString().contains(returnType.get()))
+          tempsignatureResults.add(tempMethod);
+      signatureResults=new ArrayList<>(tempsignatureResults);
+
+      if(paramterTypes.isPresent()) {
+        String[] paramlist = paramterTypes.get().split(",");
+        for(Method tempMethod : signatureResults)
+          if(Arrays.equals(paramlist, Arrays.stream(tempMethod.getArgumentTypes())
+                  .map(Type::toString)
+                  .map(e -> e.substring(e.lastIndexOf(".") + 1))
+                  .toArray()))
+            return jc.getClassName() + "." + tempMethod.getName() + tempMethod.getSignature();
+      }
+      validateMethodList(signatureResults);
+      return jc.getClassName() + "." + signatureResults.get(0).getName() + signatureResults.get(0).getSignature();
+    } else {
+      validateMethodList(signatureResults);
+      return jc.getClassName() + "." + signatureResults.get(0).getName() + signatureResults.get(0).getSignature();
+    }
+  }
+
+  // Check the size of list and submit Logger info for the methods
+  public static void validateMethodList(ArrayList<Method> methodList) {
+    if(methodList.size() > 1) {
+      LOGGER.error("Multiple overloaded methods for the given method name");
+      for(Method method : methodList) {
+        LOGGER.info("Name:- " + method.getName() + " Return Type:- " + method.getReturnType().toString());
+        LOGGER.info("Parameter Types:- ");
+        for(Type t : method.getArgumentTypes()) {
+          LOGGER.info(t.toString());
+        }
+        method.getArgumentTypes();
+      }
+      System.exit(1);
+    } else if(methodList.size() == 0) {
+      LOGGER.info("Incorrect arguments supplied");
+      System.exit(1);
+    }
+  }
+
   public static void manualMain(String[] args) {
 
     // First argument:   the serialized file
@@ -173,26 +357,51 @@ public class JCallGraph {
       LOGGER.error("Could not read JaCoCo coverage file", e);
     }
 
-    // Third argument:  the entry point
-    String entryPoint = args[3];
-
-    // Fourth argument:  the output file
-    String output = args[4];
+    // third argument:  the output file
+    String output = args[3];
 
     if (callgraph == null || jacocoCoverage == null) {
       // Something went wrong, bail
       return;
     }
 
-    // Fifth argument, optional, is the depth
+    // forth argument:  Jar path to infer entry point signature
+    String jarPath = args[4];
+    try {
+      new JarFile(jarPath);
+    } catch(IOException e){
+      LOGGER.error("Could not read inference Jar file", e);
+    }
+
+    // Sixth argument, optional, return type of expected method
+    Optional<String> returnType = Optional.empty();
+    if(args.length > 6)
+      returnType = Optional.of(args[6]);
+
+    // Seventh argument, optional, parameter types of expected method
+    Optional<String> paramterTypes = Optional.empty();
+    if(args.length > 7)
+      paramterTypes = Optional.of(args[7]);
+
+    // Fifth argument, class.method input where class can be written as nested classes to generate exact method signature
+    String entryPoint = null;
+    try {
+      entryPoint = generateEntryPoint(jarPath, args[5], returnType, paramterTypes);
+//            System.out.println(entryPoint);
+    } catch(IOException e){
+      LOGGER.error("Could not generate method signature", e);
+    }
+
+
+    // Seventh argument, optional, is the depth
     Optional<Integer> depth = Optional.empty();
-    if (args.length > 5)
-      depth = Optional.of(Integer.parseInt(args[5]));
+//        if (args.length > 6)
+//            depth = Optional.of(Integer.parseInt(args[7]));
 
     // This method changes the callgraph object
     Pruning.pruneOriginalGraph(callgraph, jacocoCoverage);
 
-    maybeInspectReachability(callgraph, depth, jacocoCoverage, args[3], args[4]);
+    maybeInspectReachability(callgraph, depth, jacocoCoverage, entryPoint, output);
 
 //    maybeWriteGraph(callgraph.graph, args[4]);
   }

@@ -8,11 +8,9 @@ import org.yaml.snakeyaml.Yaml;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.*;
+import java.lang.reflect.Array;
 import java.nio.file.*;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
@@ -128,10 +126,17 @@ public class RepoTool {
         process.waitFor();
     }
 
-    public List<Pair<String,String>> obtainCoverageFilesAndEntryPoints(){
-        List<Pair<String,String>> coverageFiles = new LinkedList<>();
-        for(Map<String, String> m : properties)
-            coverageFiles.add(new Pair<>("artifacts/results/" + getProjectDir() + timeStamp + "/" + m.get("name") + ".xml", m.get("entryPoint")));
+    public List<Pair<String,?>> obtainCoverageFilesAndEntryPoints(){
+        List<Pair<String,?>> coverageFiles = new LinkedList<>();
+        for(Map<String, ?> m : properties){
+            if(m.get("entryPoint") instanceof String){
+                coverageFiles.add(new Pair<>("artifacts/results/" + getProjectDir() + timeStamp + "/" + m.get("name") + ".xml", m.get("entryPoint")));
+            }
+            else{
+                coverageFiles.add(new Pair<String, ArrayList>("artifacts/results/" + getProjectDir() + timeStamp + "/" + m.get("name") + ".xml", (ArrayList) m.get("entryPoint")));
+            }
+        }
+
         return coverageFiles;
     }
 
