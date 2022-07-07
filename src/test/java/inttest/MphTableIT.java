@@ -33,7 +33,7 @@ public class MphTableIT {
     }
 
     @Test
-    public void testFinalAssertions(){
+    public void testD(){
         // Git Stage
         Path mphJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","mph-table-1.0.6-SNAPSHOT.jar");
         Path mphTestJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","mph-table-1.0.6-SNAPSHOT-tests.jar");
@@ -41,11 +41,11 @@ public class MphTableIT {
         assertTrue(Files.exists(mphJar));
         assertTrue(Files.exists(mphTestJar));
 
+
         // Build Stage
         Path mphGraph = Paths.get(System.getProperty("user.dir"),"mph_table_graph");
         LOGGER.info("Starting Mph-Table Build Verification");
         assertTrue(Files.exists(mphGraph));
-
 
         // Test Stage
         Path mphSmartByteSerializer = Paths.get(System.getProperty("user.dir"),"output","TestSmartByteSerializer#canRoundTripBytes.dot");
