@@ -73,23 +73,3 @@ index 47904b61..185a3790 100644
          </executions>
        </plugin>
      </plugins>
-
-diff --git a/jflex/src/test/java/jflex/state/StateSetQuickcheck.java b/jflex/src/test/java/jflex/state/StateSetQuickcheck.java
-index c3ac7e67..35c34f32 100644
---- a/jflex/src/test/java/jflex/state/StateSetQuickcheck.java
-+++ b/jflex/src/test/java/jflex/state/StateSetQuickcheck.java
-@@ -165,6 +165,13 @@ public class StateSetQuickcheck {
-     assertThat(s).isNotEqualTo(sPre);
-     s.addState(e);
-     assertThat(s).isEqualTo(sPre);
-+
-+    // remove with add larger to force resize
-+    s.remove(e);
-+    assertThat(sPre.contains(s)).isTrue();
-+    assertThat(s).isNotEqualTo(sPre);
-+    s.addState(e + 384);
-+    assertThat(s).contains(e + 384);
-   }
- 
-   @Property
-
