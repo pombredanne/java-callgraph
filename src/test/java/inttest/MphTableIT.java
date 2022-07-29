@@ -54,8 +54,6 @@ public class MphTableIT {
         Path mphSmartIntegerSerializerReachability = Paths.get(System.getProperty("user.dir"),"output","TestSmartIntegerSerializer#canRoundTripIntegers-reachability.dot");
         Path mphSmartListSerializer = Paths.get(System.getProperty("user.dir"),"output","TestSmartListSerializer#canRoundTripSerializableLists.dot");
         Path mphSmartListSerializerReachability = Paths.get(System.getProperty("user.dir"),"output","TestSmartListSerializer#canRoundTripSerializableLists-reachability.dot");
-        Path mphSmartListSerializerWithGenerator = Paths.get(System.getProperty("user.dir"),"output","TestSmartListSerializer#canRoundTripSerializableListsWithGenerator.dot");
-        Path mphSmartListSerializerWithGeneratorReachability = Paths.get(System.getProperty("user.dir"),"output","TestSmartListSerializer#canRoundTripSerializableListsWithGenerator-reachability.dot");
         Path mphSmartLongSerializer = Paths.get(System.getProperty("user.dir"),"output","TestSmartLongSerializer#canRoundTripLongs.dot");
         Path mphSmartLongSerializerReachability = Paths.get(System.getProperty("user.dir"),"output","TestSmartLongSerializer#canRoundTripLongs-reachability.dot");
         Path mphSmartPairSerializer = Paths.get(System.getProperty("user.dir"),"output","TestSmartPairSerializer#canRoundTripPairs.dot");
@@ -70,8 +68,6 @@ public class MphTableIT {
         assertTrue(Files.exists(mphSmartIntegerSerializerReachability));
         assertTrue(Files.exists(mphSmartListSerializer));
         assertTrue(Files.exists(mphSmartListSerializerReachability));
-        assertTrue(Files.exists(mphSmartListSerializerWithGenerator));
-        assertTrue(Files.exists(mphSmartListSerializerWithGeneratorReachability));
         assertTrue(Files.exists(mphSmartLongSerializer));
         assertTrue(Files.exists(mphSmartLongSerializerReachability));
         assertTrue(Files.exists(mphSmartPairSerializer));
