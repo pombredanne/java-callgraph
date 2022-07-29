@@ -51,6 +51,7 @@ do
     # copy output
     rm -rf output-$projectName
     mv output output-$projectName
+		mkdir output
 
 		cd output-$projectName || exit
     ../buildsvg.sh
