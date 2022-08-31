@@ -27,13 +27,20 @@ public class RepoTool {
     private Git git;
     final private String timeStamp;
 
-    private RepoTool(String name, String URL, String checkoutID, String patchName, String subProject, String mvnOptions){
+    final private String mainJar;
+
+    final private String testJar;
+
+
+    private RepoTool(String name, String URL, String checkoutID, String patchName, String subProject, String mvnOptions, String mainJar, String testJar){
         this.name = name;
         this.URL = URL;
         this.checkoutID = checkoutID;
         this.patchName = patchName;
         this.subProject = subProject;
         this.mvnOptions = mvnOptions;
+        this.mainJar = mainJar;
+        this.testJar = testJar;
 
         this.timeStamp = String.valueOf(java.time.LocalDateTime.now()).replace(':', '_');
     }
@@ -52,6 +59,8 @@ public class RepoTool {
         subProject = (String) data.getOrDefault("subProject", "");
         mvnOptions = (String) data.getOrDefault("mvnOptions", "");
         properties = (List<Map<String,String>>) data.get("properties");
+        mainJar = (String) data.getOrDefault("mainJar", new ArrayList<>());
+        testJar = (String) data.getOrDefault("testJar", Optional.empty());
 
         this.timeStamp = String.valueOf(java.time.LocalDateTime.now()).replace(':', '_');
     }
@@ -140,12 +149,20 @@ public class RepoTool {
         return coverageFiles;
     }
 
+    public String getTestJar() {
+        return testJar;
+    }
+
+    public String getMainJar() {
+        return mainJar;
+    }
+
     public static Optional<RepoTool> obtainTool(String folderName){
         try {
             Yaml yaml = new Yaml();
             InputStream inputStream = new FileInputStream("artifacts/configs/" + folderName + "/" + folderName + ".yaml");
             Map<String, String> data = yaml.load(inputStream);
-            return Optional.of(new RepoTool(data.get("name"), data.get("URL"), data.get("checkoutID"), data.get("patchName"), data.getOrDefault("subProject", ""), data.getOrDefault("mvnOptions", "")));
+            return Optional.of(new RepoTool(data.get("name"), data.get("URL"), data.get("checkoutID"), data.get("patchName"), data.getOrDefault("subProject", ""), data.getOrDefault("mvnOptions", ""),  data.getOrDefault("mainJar", ""),  data.getOrDefault("testJar", "")));
         }
         catch(IOException e){
             LOGGER.error("IOException: " + e.getMessage());
