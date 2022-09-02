@@ -38,7 +38,6 @@ import gr.gousiosg.javacg.stat.support.BuildArguments;
 import gr.gousiosg.javacg.stat.support.GitArguments;
 import gr.gousiosg.javacg.stat.support.RepoTool;
 import gr.gousiosg.javacg.stat.support.TestArguments;
-import org.apache.bcel.classfile.AnnotationEntry;
 import org.apache.bcel.classfile.ClassParser;
 import org.apache.bcel.classfile.JavaClass;
 import org.apache.bcel.classfile.Method;
@@ -60,7 +59,6 @@ import java.util.*;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 import java.util.jar.JarInputStream;
-import java.util.stream.Collectors;
 
 import static java.util.Map.entry;
 

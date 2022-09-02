@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.util.*;
 
 public class BuildArguments {
@@ -19,10 +20,18 @@ public class BuildArguments {
     private static final String TEST_JAR_INPUT = "t";
     private static final String TEST_JAR_INPUT_LONG = "testJarPath";
 
+    private static final String CONFIG_NAME = "c";
+
+    private static final String CONFIG_NAME_LONG = "config";
+
     private final List<Pair<String, File>> jars = new ArrayList<>();
     private Optional<String> maybeOutput = Optional.empty();
 
     private Optional<Pair<String, File>> maybeTestJar = Optional.empty();
+
+    private Optional<String> maybeConfig = Optional.empty();
+
+    private final static String jarBasePath = "artifacts/output/";
 
     /**
      * Parse command line args into variables
@@ -38,17 +47,36 @@ public class BuildArguments {
         CommandLine cmd;
         try {
             cmd = parser.parse(options, args);
-            /* Parse JARs */
-            if (cmd.hasOption(JAR_INPUT)) {
-                jarPaths.addAll(Arrays.asList(cmd.getOptionValues(JAR_INPUT)));
-            }
 
-            /* Parse test JAR */
-            if (cmd.hasOption(TEST_JAR_INPUT)) {
-                String testJarPath = cmd.getOptionValue(TEST_JAR_INPUT);
-                Pair<String, File> testJarPair = pathAndJarFile(testJarPath);
-                jars.add(testJarPair);
-                maybeTestJar = Optional.of(testJarPair);
+            /* Get from configuration */
+            if (cmd.hasOption(CONFIG_NAME)) {
+                Optional<RepoTool> rt = RepoTool.obtainTool(cmd.getOptionValue(CONFIG_NAME));
+
+                if (rt.isPresent()) {
+                    String mainJar = getJarRelativePath(rt.get().getMainJar());
+                    jarPaths.add(mainJar);
+
+                    String testJar = getJarRelativePath(rt.get().getTestJar());
+                    Pair<String, File> testJarPair = pathAndJarFile(testJar);
+                    jars.add(testJarPair);
+                    maybeTestJar = Optional.of(testJarPair);
+                } else {
+                    LOGGER.error("Unable to obtain RepoTool.");
+                    System.exit(1);
+                }
+            } else {
+                /* Parse JARs */
+                if (cmd.hasOption(JAR_INPUT)) {
+                    jarPaths.addAll(Arrays.asList(cmd.getOptionValues(JAR_INPUT)));
+                }
+
+                /* Parse test JAR */
+                if (cmd.hasOption(TEST_JAR_INPUT)) {
+                    String testJarPath = cmd.getOptionValue(TEST_JAR_INPUT);
+                    Pair<String, File> testJarPair = pathAndJarFile(testJarPath);
+                    jars.add(testJarPair);
+                    maybeTestJar = Optional.of(testJarPair);
+                }
             }
 
             /* Parse output name */
@@ -69,16 +97,33 @@ public class BuildArguments {
                 .forEach(this.jars::add);
     }
 
+    private static String getJarRelativePath(String jar) {
+        return jar.charAt(0) == '/' ? jar : Path.of(jarBasePath, jar).toString();
+    }
+
     private static Options getOptions() {
         Options options = new Options();
+        OptionGroup configOrMainJar = new OptionGroup();
 
-        options.addOption(
+        configOrMainJar.isRequired();
+
+        configOrMainJar.addOption(
+                Option.builder(CONFIG_NAME)
+                        .longOpt(CONFIG_NAME_LONG)
+                        .hasArg(true)
+                        .desc("[REQUIRED if -"+JAR_INPUT+" not specified] specify an output name for the bytecode")
+                        .required(false)
+                        .build());
+
+        configOrMainJar.addOption(
                 Option.builder(JAR_INPUT)
                         .longOpt(JAR_INPUT_LONG)
                         .hasArg(true)
-                        .desc("[REQUIRED] specify one or more paths to JARs to analyze")
-                        .required(true)
+                        .desc("[REQUIRED if -"+CONFIG_NAME+"not specified] specify one or more paths to JARs to analyze")
+                        .required(false)
                         .build());
+
+        options.addOptionGroup(configOrMainJar);
 
         options.addOption(
                 Option.builder(TEST_JAR_INPUT)
@@ -108,6 +153,10 @@ public class BuildArguments {
 
     public Optional<Pair<String, File>> getMaybeTestJar() {
         return maybeTestJar;
+    }
+
+    public Optional<String> getMaybeConfig() {
+        return maybeConfig;
     }
 
     // Make sure the path is a path to a jar file
