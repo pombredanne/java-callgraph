@@ -38,8 +38,8 @@ public class ConvexIT {
 
     @Test
     public void testB(){
-        String [] args = {"build", "-j", "./artifacts/output/convex-core-0.7.1.jar",
-                "-t", "./artifacts/output/convex-core-0.7.1-tests.jar", "-o", "convex_core_graph"};
+        String [] args = {"build", "-j", "./artifacts/output/convex/convex-core-0.7.1.jar",
+                "-t", "./artifacts/output/convex/convex-core-0.7.1-tests.jar", "-o", "convex_core_graph"};
         JCallGraph.main(args);
     }
 

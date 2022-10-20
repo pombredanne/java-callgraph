@@ -47,8 +47,8 @@ public class MphTableIT {
     //Build Stage
     @Test
     public void testB(){
-        String [] args = {"build", "-j", "./artifacts/output/mph-table-1.0.6-SNAPSHOT.jar",
-            "-t", "./artifacts/output/mph-table-1.0.6-SNAPSHOT-tests.jar", "-o", "mph_table_graph"};
+        String [] args = {"build", "-j", "./artifacts/output/mph-table/mph-table-1.0.6-SNAPSHOT.jar",
+            "-t", "./artifacts/output/mph-table/mph-table-1.0.6-SNAPSHOT-tests.jar", "-o", "mph_table_graph"};
         JCallGraph.main(args);
     }
 

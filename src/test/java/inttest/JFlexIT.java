@@ -39,8 +39,8 @@ public class JFlexIT {
 
     @Test
     public void testB(){
-        String [] args = {"build", "-j", "./artifacts/output/jflex-1.8.2.jar",
-                "-t", "./artifacts/output/jflex-1.8.2-tests.jar", "-o", "jflex_graph"};
+        String [] args = {"build", "-j", "./artifacts/output/jflex/jflex-1.8.2.jar",
+                "-t", "./artifacts/output/jflex/jflex-1.8.2-tests.jar", "-o", "jflex_graph"};
         JCallGraph.main(args);
     }
 

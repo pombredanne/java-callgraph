@@ -173,7 +173,10 @@ public class RepoTool {
 
     private void moveJars() throws IOException {
         Path sourceDir = Paths.get(System.getProperty("user.dir"), getProjectDir(), "target");
-        Path targetDir = Paths.get(System.getProperty("user.dir"), "artifacts", "output");
+        Path targetDir = Paths.get(System.getProperty("user.dir"), "artifacts", "output", name);
+        File validateDirectory = targetDir.toFile();
+        if(!validateDirectory.exists())
+            validateDirectory.mkdir();
         moveFiles(sourceDir, targetDir, "*.jar");
     }
 
@@ -199,7 +202,8 @@ public class RepoTool {
             String [] directories = projectDir.split("/");
             String rootDirectoryPath = System.getProperty("user.dir") + "/artifacts/results/" + directories[0];
             File rootDir = new File(rootDirectoryPath);
-            rootDir.mkdir();
+            if(!rootDir.exists())
+                rootDir.mkdir();
         }
         File directory = new File(directoryPath);
         directory.mkdir();
