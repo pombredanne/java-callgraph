@@ -39,7 +39,7 @@ def evaluate_directories(project_name: str, results_directory: str, directories:
 def retrieve_time_elapsed(directory_path: str, valid_htmls: list[str]) -> dict[str, str]:
     times_elapsed_dict = {}
     for html_file in valid_htmls:
-        property_name = "Property - " + html_file.replace(".html", "")
+        property_name = "Property - " + html_file.replace(".html", "").replace("#", "")
         file_path = directory_path + html_file
         with open(file_path) as f:
             contents = f.read()
@@ -50,7 +50,7 @@ def retrieve_time_elapsed(directory_path: str, valid_htmls: list[str]) -> dict[s
     return times_elapsed_dict
 
 def generate_report(project_name: str, final_stats: dict[str, pd.Series], final_fixed_stats: dict[str, dict]):
-    report_name = "artifacts/output/" + project_name + ".csv"
+    report_name = "artifacts/output/rq4_" + project_name + ".csv"
     tex_file = report_name.replace(".csv", ".tex")
     final_stats.update(final_fixed_stats)
     df = pd.DataFrame(final_stats)
