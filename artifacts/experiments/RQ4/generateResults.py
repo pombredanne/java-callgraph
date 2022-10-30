@@ -3,9 +3,12 @@ import subprocess
 import os
 import datetime
 import re
+
+import numpy as np
 import pandas as pd
 
 BASE_RESULT_DIR = "artifacts/results/"
+PROJECTS = ["convex", "jflex", "mph-table"]
 
 def obtain_stats_directories(results_directory: str) -> list[str]:
     directory_tree = [x for x in os.walk(results_directory)] # os.walk returns a tuple with structure (directory, subdirectories, files)
@@ -39,7 +42,7 @@ def evaluate_directories(project_name: str, results_directory: str, directories:
 def retrieve_time_elapsed(directory_path: str, valid_htmls: list[str]) -> dict[str, str]:
     times_elapsed_dict = {}
     for html_file in valid_htmls:
-        property_name = "Property - " + html_file.replace(".html", "").replace("#", "")
+        property_name = html_file.replace(".html", "").replace("#", "-")
         file_path = directory_path + html_file
         with open(file_path) as f:
             contents = f.read()
@@ -49,13 +52,37 @@ def retrieve_time_elapsed(directory_path: str, valid_htmls: list[str]) -> dict[s
                 times_elapsed_dict[property_name] = round(float(time_elapsed), 2)
     return times_elapsed_dict
 
-def generate_report(project_name: str, final_stats: dict[str, pd.Series], final_fixed_stats: dict[str, dict]):
+def generate_report_stats(stat_values: dict[str, dict]) -> dict[str, str]:
+    first_iteration = stat_values[next(iter(stat_values))]
+    # stage a dictionary to contain an array of times for ea property
+    property_dict = {}
+    for key in first_iteration:
+        property_dict[key] = []
+
+    # populate the dictionary with our results
+    for key, val in stat_values.items():
+        for prop, time in val.items():
+            property_array = property_dict.get(prop)
+            property_array.append(time)
+
+    # generate mean, standard deviation and populate our final object
+    property_stats_dict = {}
+    for key, val in property_dict.items():
+        np_array = np.array(val)
+        mean = round(np_array.mean(), 2)
+        standard_dev = round(np_array.std(), 2)
+        property_stats_dict[key] = str(mean) + " \u00B1 " + str(standard_dev)
+    return property_stats_dict
+
+def generate_report(project_name: str, final_stats: dict[str, str], final_fixed_stats: dict[str, str]):
     report_name = "artifacts/output/rq4_" + project_name + ".csv"
-    tex_file = report_name.replace(".csv", ".tex")
-    final_stats.update(final_fixed_stats)
-    df = pd.DataFrame(final_stats)
+    final_report_dict = {}
+    final_report_dict[project_name] = final_stats
+    final_report_dict[project_name + "-fixed"] = final_fixed_stats
+    df = pd.DataFrame(final_report_dict)
     df.to_csv(path_or_buf=report_name)
-    df.style.to_latex(buf=tex_file)
+
+
 
 def main():
     if not sys.argv[1]:
@@ -67,14 +94,16 @@ def main():
     # vanilla
     stats_directories = obtain_stats_directories(results_directory=results_directory)
     evaluated_runs = filter_for_recent_results(project_name=project_name, stats_directories=stats_directories)
-    final_stats = evaluate_directories(project_name=project_name, results_directory=results_directory, directories=evaluated_runs)
+    raw_stats = evaluate_directories(project_name=project_name, results_directory=results_directory, directories=evaluated_runs)
 
     # fixed
     fixed_stats_directories = obtain_stats_directories(results_directory=fixed_results_directory)
     evaluated_fixed_runs = filter_for_recent_results(project_name=project_name, stats_directories=fixed_stats_directories)
-    final_fixed_stats = evaluate_directories(project_name=fixed_project_name, results_directory=fixed_results_directory, directories=evaluated_fixed_runs)
+    fixed_raw_stats = evaluate_directories(project_name=fixed_project_name, results_directory=fixed_results_directory, directories=evaluated_fixed_runs)
 
-    # final report
+    # obtain mean/st dev
+    final_stats = generate_report_stats(stat_values=raw_stats)
+    final_fixed_stats = generate_report_stats(stat_values=fixed_raw_stats)
     generate_report(project_name=project_name, final_stats=final_stats, final_fixed_stats=final_fixed_stats)
 
 
