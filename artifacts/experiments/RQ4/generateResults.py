@@ -8,7 +8,9 @@ import numpy as np
 import pandas as pd
 
 BASE_RESULT_DIR = "artifacts/results/"
-PROJECTS = ["convex", "jflex", "mph-table"]
+PROJECTS = ["jflex", "mph-table"]
+REPORT_NAME = "artifacts/output/rq4.csv"
+TEX_REPORT_NAME = "artifacts/output/rq4.tex"
 
 def obtain_stats_directories(results_directory: str) -> list[str]:
     directory_tree = [x for x in os.walk(results_directory)] # os.walk returns a tuple with structure (directory, subdirectories, files)
@@ -16,12 +18,15 @@ def obtain_stats_directories(results_directory: str) -> list[str]:
 
 def filter_for_recent_results(project_name: str, stats_directories: list[str]) -> dict[str, str]:
     valid_directories = []
-    time_stamps = [datetime.datetime.strptime(x.replace(project_name, "").replace("_", ":").replace("T", " "), "%Y-%m-%d %H:%M:%S.%f")
+    project_string = project_name if project_name != "convex" else project_name + "-core"
+    if "mph-table-fixed" in stats_directories[0]:
+        project_string = "mph-table-fixed"
+    time_stamps = [datetime.datetime.strptime(x.replace(project_string, "").replace("_", ":").replace("T", " "), "%Y-%m-%d %H:%M:%S.%f")
                    for x in stats_directories]
     time_stamps.sort()
     valid_runs = time_stamps[-10:]
     for directory in stats_directories:
-        val = datetime.datetime.strptime(directory.replace(project_name, "").replace("_", ":").replace("T", " "), "%Y-%m-%d %H:%M:%S.%f")
+        val = datetime.datetime.strptime(directory.replace(project_string, "").replace("_", ":").replace("T", " "), "%Y-%m-%d %H:%M:%S.%f")
         if val in valid_runs:
             valid_directories.append(directory)
     return valid_directories
@@ -53,6 +58,7 @@ def retrieve_time_elapsed(directory_path: str, valid_htmls: list[str]) -> dict[s
     return times_elapsed_dict
 
 def generate_report_stats(stat_values: dict[str, dict]) -> dict[str, str]:
+    print(stat_values)
     first_iteration = stat_values[next(iter(stat_values))]
     # stage a dictionary to contain an array of times for ea property
     property_dict = {}
@@ -74,37 +80,40 @@ def generate_report_stats(stat_values: dict[str, dict]) -> dict[str, str]:
         property_stats_dict[key] = str(mean) + " \u00B1 " + str(standard_dev)
     return property_stats_dict
 
-def generate_report(project_name: str, final_stats: dict[str, str], final_fixed_stats: dict[str, str]):
-    report_name = "artifacts/output/rq4_" + project_name + ".csv"
+
+def generate_project_report(project_name: str, final_stats: dict[str, str], final_fixed_stats: dict[str, str]) -> dict[str, dict]:
     final_report_dict = {}
     final_report_dict[project_name] = final_stats
     final_report_dict[project_name + "-fixed"] = final_fixed_stats
-    df = pd.DataFrame(final_report_dict)
-    df.to_csv(path_or_buf=report_name)
-
+    return final_report_dict
 
 
 def main():
-    if not sys.argv[1]:
-        raise Exception("Must specify project name through command line param!")
-    project_name = sys.argv[1]
-    fixed_project_name = project_name + "-fixed"
-    results_directory = BASE_RESULT_DIR + project_name + "/"
-    fixed_results_directory = BASE_RESULT_DIR + fixed_project_name + "/"
-    # vanilla
-    stats_directories = obtain_stats_directories(results_directory=results_directory)
-    evaluated_runs = filter_for_recent_results(project_name=project_name, stats_directories=stats_directories)
-    raw_stats = evaluate_directories(project_name=project_name, results_directory=results_directory, directories=evaluated_runs)
+    final_report = {}
+    for project_name in PROJECTS:
+        print("Starting " + project_name)
+        fixed_project_name = project_name + "-fixed"
+        results_directory = BASE_RESULT_DIR + project_name + "/"
+        fixed_results_directory = BASE_RESULT_DIR + fixed_project_name + "/"
+        # vanilla
+        stats_directories = obtain_stats_directories(results_directory=results_directory)
+        evaluated_runs = filter_for_recent_results(project_name=project_name, stats_directories=stats_directories)
+        raw_stats = evaluate_directories(project_name=project_name, results_directory=results_directory, directories=evaluated_runs)
 
-    # fixed
-    fixed_stats_directories = obtain_stats_directories(results_directory=fixed_results_directory)
-    evaluated_fixed_runs = filter_for_recent_results(project_name=project_name, stats_directories=fixed_stats_directories)
-    fixed_raw_stats = evaluate_directories(project_name=fixed_project_name, results_directory=fixed_results_directory, directories=evaluated_fixed_runs)
+        # fixed
+        fixed_stats_directories = obtain_stats_directories(results_directory=fixed_results_directory)
+        evaluated_fixed_runs = filter_for_recent_results(project_name=project_name, stats_directories=fixed_stats_directories)
+        fixed_raw_stats = evaluate_directories(project_name=fixed_project_name, results_directory=fixed_results_directory, directories=evaluated_fixed_runs)
 
-    # obtain mean/st dev
-    final_stats = generate_report_stats(stat_values=raw_stats)
-    final_fixed_stats = generate_report_stats(stat_values=fixed_raw_stats)
-    generate_report(project_name=project_name, final_stats=final_stats, final_fixed_stats=final_fixed_stats)
+        # obtain mean/st dev
+        final_stats = generate_report_stats(stat_values=raw_stats)
+        final_fixed_stats = generate_report_stats(stat_values=fixed_raw_stats)
+        report = generate_project_report(project_name=project_name, final_stats=final_stats, final_fixed_stats=final_fixed_stats)
+        final_report.update(report)
+        print("Completed " + project_name)
+    df = pd.DataFrame(final_report).reset_index()
+    df.to_csv(path_or_buf=REPORT_NAME)
+    df.style.to_latex(buf=TEX_REPORT_NAME)
 
 
 if __name__ == "__main__":

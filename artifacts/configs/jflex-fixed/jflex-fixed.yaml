@@ -37,7 +37,7 @@ properties:
 #  - name: StateSetQuickcheck#removeRemoves
 #    entryPoint: "jflex.state.StateSetQuickcheck.removeRemoves(Ljflex/state/StateSet;I)V"
   - name: StateSetQuickcheck#removeAdd
-    entryPoint: "jflex.state.StateSetQuickcheck.removeAdd(Ljflex/state/StateSet;I)V"
+    entryPoint: "jflex.state.StateSetQuickcheck.removeAdd(Ljflex/state/StateSet;II)V"
 #  - name: StateSetQuickcheck#clearMakesEmpty
 #    entryPoint: "jflex.state.StateSetQuickcheck.clearMakesEmpty(Ljflex/state/StateSet;)V"
 #  - name: StateSetQuickcheck#addStateAdds

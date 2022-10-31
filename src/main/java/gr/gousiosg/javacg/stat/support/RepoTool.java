@@ -138,11 +138,18 @@ public class RepoTool {
     public List<Pair<String,?>> obtainCoverageFilesAndEntryPoints(){
         List<Pair<String,?>> coverageFiles = new LinkedList<>();
         for(Map<String, ?> m : properties){
+            String projectDir = getProjectDir();
             if(m.get("entryPoint") instanceof String){
-                coverageFiles.add(new Pair<>("artifacts/results/" + getProjectDir() + timeStamp + "/" + m.get("name") + ".xml", m.get("entryPoint")));
+                if(!projectDir.contains("/"))
+                    coverageFiles.add(new Pair<>("artifacts/results/" + projectDir + "/"+ projectDir + timeStamp + "/" + m.get("name") + ".xml", m.get("entryPoint")));
+                else
+                    coverageFiles.add(new Pair<>("artifacts/results/" + projectDir + timeStamp + "/" + m.get("name") + ".xml", m.get("entryPoint")));
             }
             else{
-                coverageFiles.add(new Pair<String, ArrayList>("artifacts/results/" + getProjectDir() + timeStamp + "/" + m.get("name") + ".xml", (ArrayList) m.get("entryPoint")));
+                if(!projectDir.contains("/"))
+                    coverageFiles.add(new Pair<String, ArrayList>("artifacts/results/" + projectDir + "/" + projectDir + timeStamp + "/" + m.get("name") + ".xml", (ArrayList) m.get("entryPoint")));
+                else
+                    coverageFiles.add(new Pair<String, ArrayList>("artifacts/results/" + projectDir + timeStamp + "/" + m.get("name") + ".xml", (ArrayList) m.get("entryPoint")));
             }
         }
 
@@ -194,6 +201,8 @@ public class RepoTool {
     private void moveJacoco(String property, long timeElapsed) throws IOException{
         String projectDir = getProjectDir();
         String directoryPath = System.getProperty("user.dir") + "/artifacts/results/" + projectDir + timeStamp;
+        if(!projectDir.contains("/"))
+            directoryPath = System.getProperty("user.dir") + "/artifacts/results/" + projectDir + "/" + projectDir + timeStamp;
         String jacocoPath = System.getProperty("user.dir") + "/" + projectDir + "/target/site/jacoco/jacoco.xml";
         String jacocoTargetPath = directoryPath + "/" + property + ".xml";
         String statisticsPath = System.getProperty("user.dir") + "/" + projectDir + "/target/site/jacoco/index.html";
