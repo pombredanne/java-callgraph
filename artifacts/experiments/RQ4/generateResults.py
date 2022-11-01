@@ -113,5 +113,7 @@ def main():
         df = pd.DataFrame(val).reset_index()
         df.to_csv(path_or_buf="artifacts/output/" + key + "_rq4.csv")
         df.style.to_latex(buf="artifacts/output/" + key + "_rq4.tex")
+
+
 if __name__ == "__main__":
     main()
