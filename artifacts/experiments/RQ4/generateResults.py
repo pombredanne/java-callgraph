@@ -108,10 +108,6 @@ def main():
         df_dict[project_name] = report
         final_report.update(report)
         print("Completed " + project_name)
-    # print(final_report)
-    # df = pd.DataFrame(final_report).reset_index()
-    # df.to_csv(path_or_buf=REPORT_NAME)
-    # df.style.to_latex(buf=TEX_REPORT_NAME)
 
     for key, val in df_dict.items():
         df = pd.DataFrame(val).reset_index()
