@@ -1,5 +1,3 @@
-import sys
-import subprocess
 import os
 import datetime
 import re
@@ -8,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 BASE_RESULT_DIR = "artifacts/results/"
-PROJECTS = ["jflex", "mph-table"]
+PROJECTS = ["jflex", "convex", "mph-table"]
 REPORT_NAME = "artifacts/output/rq4.csv"
 TEX_REPORT_NAME = "artifacts/output/rq4.tex"
 
@@ -18,8 +16,8 @@ def obtain_stats_directories(results_directory: str) -> list[str]:
 
 def filter_for_recent_results(project_name: str, stats_directories: list[str]) -> dict[str, str]:
     valid_directories = []
-    project_string = project_name if project_name != "convex" else project_name + "-core"
-    if "mph-table-fixed" in stats_directories[0]:
+    project_string = project_name if project_name != "convex" else project_name + "-core"  # edge case
+    if "mph-table-fixed" in stats_directories[0]:  # edge case
         project_string = "mph-table-fixed"
     time_stamps = [datetime.datetime.strptime(x.replace(project_string, "").replace("_", ":").replace("T", " "), "%Y-%m-%d %H:%M:%S.%f")
                    for x in stats_directories]
@@ -58,7 +56,6 @@ def retrieve_time_elapsed(directory_path: str, valid_htmls: list[str]) -> dict[s
     return times_elapsed_dict
 
 def generate_report_stats(stat_values: dict[str, dict]) -> dict[str, str]:
-    print(stat_values)
     first_iteration = stat_values[next(iter(stat_values))]
     # stage a dictionary to contain an array of times for ea property
     property_dict = {}
@@ -82,14 +79,13 @@ def generate_report_stats(stat_values: dict[str, dict]) -> dict[str, str]:
 
 
 def generate_project_report(project_name: str, final_stats: dict[str, str], final_fixed_stats: dict[str, str]) -> dict[str, dict]:
-    final_report_dict = {}
-    final_report_dict[project_name] = final_stats
-    final_report_dict[project_name + "-fixed"] = final_fixed_stats
+    final_report_dict = {project_name: final_stats, project_name + "-fixed": final_fixed_stats}
     return final_report_dict
 
 
 def main():
     final_report = {}
+    df_dict = {}
     for project_name in PROJECTS:
         print("Starting " + project_name)
         fixed_project_name = project_name + "-fixed"
@@ -109,12 +105,17 @@ def main():
         final_stats = generate_report_stats(stat_values=raw_stats)
         final_fixed_stats = generate_report_stats(stat_values=fixed_raw_stats)
         report = generate_project_report(project_name=project_name, final_stats=final_stats, final_fixed_stats=final_fixed_stats)
+        df_dict[project_name] = report
         final_report.update(report)
         print("Completed " + project_name)
-    df = pd.DataFrame(final_report).reset_index()
-    df.to_csv(path_or_buf=REPORT_NAME)
-    df.style.to_latex(buf=TEX_REPORT_NAME)
+    # print(final_report)
+    # df = pd.DataFrame(final_report).reset_index()
+    # df.to_csv(path_or_buf=REPORT_NAME)
+    # df.style.to_latex(buf=TEX_REPORT_NAME)
 
-
+    for key, val in df_dict.items():
+        df = pd.DataFrame(val).reset_index()
+        df.to_csv(path_or_buf="artifacts/output/" + key + "_rq4.csv")
+        df.style.to_latex(buf="artifacts/output/" + key + "_rq4.tex")
 if __name__ == "__main__":
     main()
