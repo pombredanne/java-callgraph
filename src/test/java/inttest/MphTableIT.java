@@ -21,7 +21,7 @@ public class MphTableIT {
     private static final Logger LOGGER = LoggerFactory.getLogger(MphTableIT.class);
     private final Path mphJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","mph-table-1.0.6-SNAPSHOT.jar");
     private final Path mphTestJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","mph-table-1.0.6-SNAPSHOT-tests.jar");
-    private final Path mphGraph = Paths.get(System.getProperty("user.dir"),"mph_table_graph");
+    private final Path mphGraph = Paths.get(System.getProperty("user.dir"),"mph-table_graph");
     private final Path mphSmartByteSerializer = Paths.get(System.getProperty("user.dir"),"output","TestSmartByteSerializer#canRoundTripBytes.dot");
     private final Path mphSmartByteSerializerReachability = Paths.get(System.getProperty("user.dir"),"output","TestSmartByteSerializer#canRoundTripBytes-reachability.dot");
     private final Path mphSmartIntegerSerializer = Paths.get(System.getProperty("user.dir"),"output","TestSmartIntegerSerializer#canRoundTripIntegers.dot");
@@ -47,15 +47,15 @@ public class MphTableIT {
     //Build Stage
     @Test
     public void testB(){
-        String [] args = {"build", "-j", "./artifacts/output/mph-table-1.0.6-SNAPSHOT.jar",
-            "-t", "./artifacts/output/mph-table-1.0.6-SNAPSHOT-tests.jar", "-o", "mph_table_graph"};
+        String [] args = {"build", "-j", "./artifacts/output/mph-table/mph-table-1.0.6-SNAPSHOT.jar",
+            "-t", "./artifacts/output/mph-table/mph-table-1.0.6-SNAPSHOT-tests.jar", "-o", "mph-table_graph"};
         JCallGraph.main(args);
     }
 
     // Test Stage
     @Test
     public void testC(){
-        String [] args = {"test", "-c", "mph-table", "-f", "mph_table_graph"};
+        String [] args = {"test", "-c", "mph-table", "-f", "mph-table_graph"};
         JCallGraph.main(args);
     }
 
