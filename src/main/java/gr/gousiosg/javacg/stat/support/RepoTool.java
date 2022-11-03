@@ -8,11 +8,8 @@ import org.yaml.snakeyaml.Yaml;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import java.io.*;
-import java.lang.reflect.Array;
 import java.nio.file.*;
 import java.util.*;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 
 public class RepoTool {
 
@@ -46,6 +43,10 @@ public class RepoTool {
     }
 
     public RepoTool(String name) throws FileNotFoundException {
+        this(name, String.valueOf(java.time.LocalDateTime.now()).replace(':', '_'));
+    }
+
+    public RepoTool(String name, String timeStamp) throws FileNotFoundException {
         // @todo Perhaps using objects to store configuration data so we don't have to have unchecked casts e.g. https://www.baeldung.com/java-snake-yaml
 
         Yaml yaml = new Yaml();
@@ -62,7 +63,7 @@ public class RepoTool {
         mainJar = (String) data.getOrDefault("mainJar", new ArrayList<>());
         testJar = (String) data.getOrDefault("testJar", Optional.empty());
 
-        this.timeStamp = String.valueOf(java.time.LocalDateTime.now()).replace(':', '_');
+        this.timeStamp = timeStamp;
     }
 
     public void cloneRepo() throws GitAPIException, JGitInternalException {
@@ -216,11 +217,11 @@ public class RepoTool {
         }
         File directory = new File(directoryPath);
         directory.mkdir();
-        Path jacoco = Files.move(
+        Files.move(
                 Paths.get(jacocoPath),
                 Paths.get(jacocoTargetPath),
                 StandardCopyOption.REPLACE_EXISTING);
-        Path statistics = Files.move(
+        Files.move(
                 Paths.get(statisticsPath),
                 Paths.get(statisticsTargetPath),
                 StandardCopyOption.REPLACE_EXISTING);
@@ -231,12 +232,22 @@ public class RepoTool {
         }
     }
 
+    public void moveOutput() throws Exception {
+        moveFiles(
+            Paths.get(System.getProperty("user.dir"), "/output"), // src
+            Paths.get(System.getProperty("user.dir"), "/artifacts/results/", getProjectDir() + timeStamp), // dst
+            "*.*"  // g;ob
+        );
+    }
+
     private boolean isWindows() {
         return System.getProperty("os.name")
                 .toLowerCase().startsWith("windows");
     }
 
-    private String getProjectDir() {
+    public String getProjectDir() {
         return (subProject.equals("")) ? name : (name + "/" + subProject);
     }
+
+    public String getSubProject() { return subProject; }
 }
