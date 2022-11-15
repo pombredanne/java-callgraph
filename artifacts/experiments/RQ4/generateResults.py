@@ -99,8 +99,8 @@ def generate_report_stats(stat_values: dict[str, dict]) -> dict[str, str]:
     property_stats_dict = {}
     for key, val in property_dict.items():
         np_array = np.array(val)
-        mean = round(np_array.mean(), 2)
-        standard_dev = round(np_array.std(), 2)
+        mean = '{:.2f}'.format(round(np_array.mean(), 2))
+        standard_dev = '{:.2f}'.format(round(np_array.std(), 2))
         property_stats_dict[key] = str(mean) + " \u00B1 " + str(standard_dev)
     return property_stats_dict
 
@@ -159,13 +159,15 @@ def main():
             improved_mean = pd.DataFrame(proj_mean_and_std['Improved'].apply(lambda v: float(v.split(" \u00B1 ")[0]) if
                                                                 " \u00B1 " in str(v) else np.nan)).reset_index()
 
+            proj_stats = pd.merge(vanilla_mean.copy(), improved_mean.copy(), how='outer', on='index')[CALC_NAMES]
+            final_dataset[project]['Difference'] = proj_stats[['Vanilla', 'Improved']].pct_change(axis='columns')['Improved']
             proj_mean = pd.merge(vanilla_mean, improved_mean, how='outer', on='index')[CALC_NAMES].mean()
             proj_mean['_style'] = 'BOLD'
             proj_mean['N'] = ''
             proj_mean['Property'] = 'Average'
             final_dataset[project].loc['mean'] = proj_mean
 
-            header = dict(zip(['N', 'Property', 'Vanilla', 'Improved'], ['', '', '', '']))
+            header = dict(zip(['N', 'Property', 'Vanilla', 'Improved', 'Difference'], ['', '', '', '', '']))
             df = pd.concat([
                 df,
                 pd.DataFrame(header | {'_style': 'HEADER', 'Property': project}, index=[0]),
