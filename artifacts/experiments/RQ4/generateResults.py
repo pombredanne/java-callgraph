@@ -1,5 +1,5 @@
-import os
 import datetime
+import os
 import re
 
 import numpy as np
@@ -9,6 +9,32 @@ BASE_RESULT_DIR = "artifacts/results/"
 PROJECTS = ["jflex", "convex", "mph-table"]
 REPORT_NAME = "artifacts/output/rq4.csv"
 TEX_REPORT_NAME = "artifacts/output/rq4.tex"
+
+CALC_NAMES = ['Vanilla', 'Improved']
+
+propertyShortNames = {
+    "TestSmartByteSerializer#canRoundTripBytes": 'byte',
+    "TestSmartIntegerSerializer#canRoundTripIntegers": 'int',
+    "TestSmartListSerializer#canRoundTripSerializableLists": 'list',
+    "TestSmartLongSerializer#canRoundTripLongs": 'long',
+    "TestSmartOptionalSerializer#canRoundTripPresentOptionals": 'optionals',
+    "TestSmartPairSerializer#canRoundTripPairs": 'pair',
+    "TestSmartShortSerializer#canRoundTripShort": 'short',
+    "TestSmartStringSerializer#canRoundTripStrings": 'string',
+    "TestSmartListSerializer#canRoundTripSerializableListsWithGenerator": 'list*',
+    "GenTestFormat#dataRoundTrip": 'data',
+    "GenTestFormat#messageRoundTrip": 'message',
+    "GenTestFormat#primitiveRoundTrip": 'primitive',
+    "CharClassesQuickcheck#addSet": 'addSet',
+    "CharClassesQuickcheck#addSingle": 'addSingle',
+    "CharClassesQuickcheck#addSingleSingleton": 'addSingleton',
+    "CharClassesQuickcheck#addString": 'addString',
+    "StateSetQuickcheck#addStateDoesNotRemove": 'add',
+    "StateSetQuickcheck#containsElements": 'contains',
+    "StateSetQuickcheck#removeAdd": 'remove'
+}
+
+row_count = 1
 
 def obtain_stats_directories(results_directory: str) -> list[str]:
     directory_tree = [x for x in os.walk(results_directory)] # os.walk returns a tuple with structure (directory, subdirectories, files)
@@ -45,14 +71,15 @@ def evaluate_directories(project_name: str, results_directory: str, directories:
 def retrieve_time_elapsed(directory_path: str, valid_htmls: list[str]) -> dict[str, str]:
     times_elapsed_dict = {}
     for html_file in valid_htmls:
-        property_name = html_file.replace(".html", "").replace("#", "-")
+        property_name = html_file.replace(".html", "")
+        property_short_name = propertyShortNames[property_name]
         file_path = directory_path + html_file
         with open(file_path) as f:
             contents = f.read()
             time_elapsed_regrex = re.search('Total Time Elapsed: (.+?) seconds', contents)
             if time_elapsed_regrex:
                 time_elapsed = time_elapsed_regrex.group(1)
-                times_elapsed_dict[property_name] = round(float(time_elapsed), 2)
+                times_elapsed_dict[property_short_name] = round(float(time_elapsed), 2)
     return times_elapsed_dict
 
 def generate_report_stats(stat_values: dict[str, dict]) -> dict[str, str]:
@@ -72,8 +99,8 @@ def generate_report_stats(stat_values: dict[str, dict]) -> dict[str, str]:
     property_stats_dict = {}
     for key, val in property_dict.items():
         np_array = np.array(val)
-        mean = round(np_array.mean(), 2)
-        standard_dev = round(np_array.std(), 2)
+        mean = '{:.2f}'.format(round(np_array.mean(), 2))
+        standard_dev = '{:.2f}'.format(round(np_array.std(), 2))
         property_stats_dict[key] = str(mean) + " \u00B1 " + str(standard_dev)
     return property_stats_dict
 
@@ -83,11 +110,25 @@ def generate_project_report(project_name: str, final_stats: dict[str, str], fina
     return final_report_dict
 
 
+def generate_project_df(final_stats: dict[str, str], final_fixed_stats: dict[str, str]) -> pd.DataFrame():
+    vanilla_df = pd.DataFrame()
+    vanilla_df['Property'] = [key for key in final_stats.keys()]
+    vanilla_df['Vanilla'] = [val for val in final_stats.values()]
+
+    improved_df = pd.DataFrame()
+    improved_df['Property'] = [key for key in final_fixed_stats.keys()]
+    improved_df['Improved'] = [val for val in final_fixed_stats.values()]
+
+    merged_df = pd.merge(vanilla_df, improved_df, how='outer', on='Property')
+    merged_df['N'] = pd.RangeIndex(start=row_count, stop=len(merged_df.index) + row_count)
+
+    final_df = merged_df[['N', 'Property', 'Vanilla', 'Improved']]
+    return final_df
+
+
 def main():
-    final_report = {}
-    df_dict = {}
+    final_dataset = {}
     for project_name in PROJECTS:
-        print("Starting " + project_name)
         fixed_project_name = project_name + "-fixed"
         results_directory = BASE_RESULT_DIR + project_name + "/"
         fixed_results_directory = BASE_RESULT_DIR + fixed_project_name + "/"
@@ -104,15 +145,63 @@ def main():
         # obtain mean/st dev
         final_stats = generate_report_stats(stat_values=raw_stats)
         final_fixed_stats = generate_report_stats(stat_values=fixed_raw_stats)
-        report = generate_project_report(project_name=project_name, final_stats=final_stats, final_fixed_stats=final_fixed_stats)
-        df_dict[project_name] = report
-        final_report.update(report)
-        print("Completed " + project_name)
+        project_df = generate_project_df(final_stats=final_stats, final_fixed_stats=final_fixed_stats)
+        final_dataset[project_name] = project_df
 
-    for key, val in df_dict.items():
-        df = pd.DataFrame(val).reset_index()
-        df.to_csv(path_or_buf="artifacts/output/" + key + "_rq4.csv")
-        df.style.to_latex(buf="artifacts/output/" + key + "_rq4.tex")
+
+    with open(TEX_REPORT_NAME, 'w') as tf:
+        df = pd.DataFrame()
+        for project in PROJECTS:
+            final_dataset[project]['_style'] = ''
+            proj_mean_and_std = final_dataset[project][CALC_NAMES].copy()
+            vanilla_mean = pd.DataFrame(proj_mean_and_std['Vanilla'].apply(lambda v: float(v.split(" \u00B1 ")[0]) if
+                                                                " \u00B1 " in str(v) else np.nan)).reset_index()
+            improved_mean = pd.DataFrame(proj_mean_and_std['Improved'].apply(lambda v: float(v.split(" \u00B1 ")[0]) if
+                                                                " \u00B1 " in str(v) else np.nan)).reset_index()
+
+            proj_stats = pd.merge(vanilla_mean.copy(), improved_mean.copy(), how='outer', on='index')[CALC_NAMES]
+            final_dataset[project]['Difference'] = proj_stats[['Vanilla', 'Improved']].pct_change(axis='columns')['Improved']
+            proj_mean = pd.merge(vanilla_mean, improved_mean, how='outer', on='index')[CALC_NAMES].mean()
+            proj_mean['_style'] = 'BOLD'
+            proj_mean['N'] = ''
+            proj_mean['Property'] = 'Average'
+            final_dataset[project].loc['mean'] = proj_mean
+
+            header = dict(zip(['N', 'Property', 'Vanilla', 'Improved', 'Difference'], ['', '', '', '', '']))
+            df = pd.concat([
+                df,
+                pd.DataFrame(header | {'_style': 'HEADER', 'Property': project}, index=[0]),
+                final_dataset[project]
+            ], ignore_index=True)
+            # break
+        bold_rows = df[ df['_style'] == 'BOLD' ].index
+        header_rows = df[ df['_style'] == 'HEADER' ].index
+
+        latexTable = df \
+            .drop(columns=['_style']) \
+            .style \
+            .hide(axis=0) \
+            .format(precision=2) \
+            .set_properties(subset=pd.IndexSlice[header_rows, :], **{'HEADER': ''}) \
+            .set_properties(subset=pd.IndexSlice[bold_rows, :], **{'textbf': '--rwrap'}) \
+            .to_latex(hrules=False)
+
+        outTable = ''
+
+        # transform to sub headers
+        for line in latexTable.splitlines(keepends=True):
+            s = line.split('&')
+            c = str(len(s))
+
+            possibleCommand = s[0].strip()
+
+            if possibleCommand == '\HEADER':
+                outTable += '\\hline' + "\n" + '\multicolumn{' + c + '}{c}{' + s[1].strip()[7:].strip() + '}' + " \\\\\n" + '\\hline' + "\n"
+            else:
+                outTable += line
+
+        tf.write(outTable)
+
 
 
 if __name__ == "__main__":
