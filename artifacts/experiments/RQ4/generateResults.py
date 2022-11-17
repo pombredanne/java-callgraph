@@ -10,7 +10,8 @@ PROJECTS = ["jflex", "convex", "mph-table"]
 REPORT_NAME = "artifacts/output/rq4.csv"
 TEX_REPORT_NAME = "artifacts/output/rq4.tex"
 
-CALC_NAMES = ['Vanilla', 'Improved']
+RAW_NAMES = ['Vanilla', 'Improved']
+CALC_NAMES = ['Vanilla', 'Improved', 'Overhead']
 
 propertyShortNames = {
     "TestSmartByteSerializer#canRoundTripBytes": 'byte',
@@ -153,21 +154,24 @@ def main():
         df = pd.DataFrame()
         for project in PROJECTS:
             final_dataset[project]['_style'] = ''
-            proj_mean_and_std = final_dataset[project][CALC_NAMES].copy()
+            proj_mean_and_std = final_dataset[project][RAW_NAMES].copy()
             vanilla_mean = pd.DataFrame(proj_mean_and_std['Vanilla'].apply(lambda v: float(v.split(" \u00B1 ")[0]) if
                                                                 " \u00B1 " in str(v) else np.nan)).reset_index()
             improved_mean = pd.DataFrame(proj_mean_and_std['Improved'].apply(lambda v: float(v.split(" \u00B1 ")[0]) if
                                                                 " \u00B1 " in str(v) else np.nan)).reset_index()
 
-            proj_stats = pd.merge(vanilla_mean.copy(), improved_mean.copy(), how='outer', on='index')[CALC_NAMES]
-            final_dataset[project]['Difference'] = proj_stats[['Vanilla', 'Improved']].pct_change(axis='columns')['Improved']
-            proj_mean = pd.merge(vanilla_mean, improved_mean, how='outer', on='index')[CALC_NAMES].mean()
+            proj_stats = pd.merge(vanilla_mean, improved_mean, how='outer', on='index')[RAW_NAMES].reset_index()
+
+            final_dataset[project]['Overhead'] = proj_stats[['Improved']].values / proj_stats[['Vanilla']].values
+            overhead_stats = final_dataset[project]['Overhead'].copy().reset_index()
+
+            proj_mean = pd.merge(proj_stats, overhead_stats, how='outer', on='index')[CALC_NAMES].mean()
             proj_mean['_style'] = 'BOLD'
             proj_mean['N'] = ''
             proj_mean['Property'] = 'Average'
             final_dataset[project].loc['mean'] = proj_mean
 
-            header = dict(zip(['N', 'Property', 'Vanilla', 'Improved', 'Difference'], ['', '', '', '', '']))
+            header = dict(zip(['N', 'Property', 'Vanilla', 'Improved', 'Overhead'], ['', '', '', '', '']))
             df = pd.concat([
                 df,
                 pd.DataFrame(header | {'_style': 'HEADER', 'Property': project}, index=[0]),
@@ -201,7 +205,6 @@ def main():
                 outTable += line
 
         tf.write(outTable)
-
 
 
 if __name__ == "__main__":
