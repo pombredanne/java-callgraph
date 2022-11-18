@@ -199,6 +199,18 @@ public class RepoTool {
         }
     }
 
+    private void copyFiles(Path sourceDir, Path targetDir, String glob) throws IOException {
+        try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(sourceDir, glob)) {
+            for (Path source: dirStream) {
+                Files.copy(
+                        source,
+                        targetDir.resolve(source.getFileName()),
+                        StandardCopyOption.REPLACE_EXISTING);
+            }
+        }
+    }
+
+
     private void moveJacoco(String property, long timeElapsed) throws IOException{
         String projectDir = getProjectDir();
         String directoryPath = System.getProperty("user.dir") + "/artifacts/results/" + projectDir + timeStamp;
@@ -233,7 +245,7 @@ public class RepoTool {
     }
 
     public void moveOutput() throws Exception {
-        moveFiles(
+        copyFiles(
             Paths.get(System.getProperty("user.dir"), "/output"), // src
             Paths.get(System.getProperty("user.dir"), "/artifacts/results/", getProjectDir() + timeStamp), // dst
             "*.*"  // g;ob
