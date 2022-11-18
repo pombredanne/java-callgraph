@@ -19,8 +19,8 @@ import static org.junit.Assert.assertTrue;
 public class MphTableIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(MphTableIT.class);
-    private final Path mphJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","mph-table-1.0.6-SNAPSHOT.jar");
-    private final Path mphTestJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","mph-table-1.0.6-SNAPSHOT-tests.jar");
+    private final Path mphJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","mph-table", "mph-table-1.0.6-SNAPSHOT.jar");
+    private final Path mphTestJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","mph-table","mph-table-1.0.6-SNAPSHOT-tests.jar");
     private final Path mphGraph = Paths.get(System.getProperty("user.dir"),"mph-table_graph");
     private final Path mphSmartByteSerializer = Paths.get(System.getProperty("user.dir"),"output","TestSmartByteSerializer#canRoundTripBytes.dot");
     private final Path mphSmartByteSerializerReachability = Paths.get(System.getProperty("user.dir"),"output","TestSmartByteSerializer#canRoundTripBytes-reachability.dot");

@@ -1,4 +1,5 @@
 cd output
+mkdir "$1"
 for i in `ls *-reachability.dot`;
 do
     echo Processing "$i"...
@@ -8,4 +9,6 @@ do
 done
 mv *.png "$1"
 rm *.dot
+rm *.ser
+rm *.csv
 echo Completed generating png files

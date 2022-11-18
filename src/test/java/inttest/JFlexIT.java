@@ -18,10 +18,10 @@ import static org.junit.Assert.assertTrue;
 public class JFlexIT {
     private static final Logger LOGGER = LoggerFactory.getLogger(JFlexIT.class);
 
-    private final Path jflexJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","jflex-1.8.2.jar");
-    private final Path jflexDependencyJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","jflex-1.8.2-jar-with-dependencies.jar");
-    private final Path jflexFullJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","jflex-full-1.8.2.jar");
-    private final Path jflexTestJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","jflex-1.8.2-tests.jar");
+    private final Path jflexJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","jflex", "jflex-1.8.2.jar");
+    private final Path jflexDependencyJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","jflex","jflex-1.8.2-jar-with-dependencies.jar");
+    private final Path jflexFullJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","jflex","jflex-full-1.8.2.jar");
+    private final Path jflexTestJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","jflex","jflex-1.8.2-tests.jar");
     private final Path jflexGraph = Paths.get(System.getProperty("user.dir"),"jflex_graph");
     private final Path removeAdd = Paths.get(System.getProperty("user.dir"), "output", "StateSetQuickcheck#removeAdd-reachability.dot");
     private final Path addStateDoesNotRemove = Paths.get(System.getProperty("user.dir"), "output", "StateSetQuickcheck#addStateDoesNotRemove-reachability.dot");
