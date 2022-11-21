@@ -245,9 +245,12 @@ public class RepoTool {
     }
 
     public void moveOutput() throws Exception {
+        String projectDirectory = getProjectDir();
+        if(!projectDirectory.contains("/"))
+            projectDirectory = projectDirectory + "/" + projectDirectory;
         copyFiles(
             Paths.get(System.getProperty("user.dir"), "/output"), // src
-            Paths.get(System.getProperty("user.dir"), "/artifacts/results/", getProjectDir() + timeStamp), // dst
+            Paths.get(System.getProperty("user.dir"), "/artifacts/results/", projectDirectory + timeStamp), // dst
             "*.*"  // g;ob
         );
     }

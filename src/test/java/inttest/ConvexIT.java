@@ -3,11 +3,13 @@ package inttest;
 import gr.gousiosg.javacg.stat.JCallGraph;
 import org.junit.After;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
@@ -29,6 +31,14 @@ public class ConvexIT {
     private final Path dataRoundTripReachability = Paths.get(System.getProperty("user.dir"),"output","GenTestFormat#dataRoundTrip-reachability.dot");
     private final Path messageRoundTrip = Paths.get(System.getProperty("user.dir"),"output","GenTestFormat#messageRoundTrip.dot");
     private final Path messageRoundTripReachability = Paths.get(System.getProperty("user.dir"),"output","GenTestFormat#messageRoundTrip-reachability.dot");
+
+    @Before
+    public void setUp(){
+        String outputDirectoryPath = System.getProperty("user.dir") + "/output/convex/";
+        File outputDir = new File(outputDirectoryPath);
+        if(!outputDir.exists())
+            outputDir.mkdir();
+    }
 
     @Test
     public void testA(){
@@ -100,12 +110,12 @@ public class ConvexIT {
         BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
         String line;
         while((line = br.readLine()) != null) {
+            LOGGER.info(line);
             if(line.contains("%")) {
                 String[] values = line.split(" : ");
                 Double percentDifference = Double.parseDouble(values[1].replace("%", ""));
                 Assert.assertTrue(percentDifference < 0.05);
             }
-            LOGGER.info(line);
         }
         process.waitFor();
     }

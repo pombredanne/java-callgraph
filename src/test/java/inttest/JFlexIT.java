@@ -2,11 +2,13 @@ package inttest;
 
 import gr.gousiosg.javacg.stat.JCallGraph;
 import org.junit.Assert;
+import org.junit.Before;
 import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.nio.file.Files;
@@ -30,6 +32,14 @@ public class JFlexIT {
     private final Path addSingleSingleton = Paths.get(System.getProperty("user.dir"), "output", "CharClassesQuickcheck#addSingleSingleton-reachability.dot");
     private final Path addSet = Paths.get(System.getProperty("user.dir"), "output", "CharClassesQuickcheck#addSet-reachability.dot");
     private final Path addString = Paths.get(System.getProperty("user.dir"), "output", "CharClassesQuickcheck#addString-reachability.dot");
+
+    @Before
+    public void setUp(){
+        String outputDirectoryPath = System.getProperty("user.dir") + "/output/jflex/";
+        File outputDir = new File(outputDirectoryPath);
+        if(!outputDir.exists())
+            outputDir.mkdir();
+    }
 
     @Test
     public void testA(){
@@ -102,9 +112,12 @@ public class JFlexIT {
         BufferedReader br = new BufferedReader(new InputStreamReader(process.getInputStream()));
         String line;
         while((line = br.readLine()) != null) {
-            if(line.contains("%"))
-                Assert.assertTrue(line.contains("0.0%"));
             LOGGER.info(line);
+            if(line.contains("%")) {
+                String[] values = line.split(" : ");
+                Double percentDifference = Double.parseDouble(values[1].replace("%", ""));
+                Assert.assertTrue(percentDifference < 0.05);
+            }
         }
         process.waitFor();
     }

@@ -1,5 +1,5 @@
 cd output
-mkdir "$1"
+mkdir -p "$1"
 for i in `ls *-reachability.dot`;
 do
     echo Processing "$i"...
