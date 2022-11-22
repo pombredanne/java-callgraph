@@ -6,7 +6,7 @@ import numpy as np
 import pandas as pd
 
 BASE_RESULT_DIR = "artifacts/results/"
-PROJECTS = ["jflex", "convex", "mph-table"]
+PROJECTS = ["convex", "jflex", "mph-table", "rpki-commons"]
 REPORT_NAME = "artifacts/output/rq4.csv"
 TEX_REPORT_NAME = "artifacts/output/rq4.tex"
 
