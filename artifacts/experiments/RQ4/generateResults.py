@@ -32,7 +32,13 @@ propertyShortNames = {
     "CharClassesQuickcheck#addString": 'addString',
     "StateSetQuickcheck#addStateDoesNotRemove": 'add',
     "StateSetQuickcheck#containsElements": 'contains',
-    "StateSetQuickcheck#removeAdd": 'remove'
+    "StateSetQuickcheck#removeAdd": 'remove',
+    "RoaCMSBuilderPropertyTest#buildEncodedParseCheck": 'roa',
+    "ManifestCMSBuilderPropertyTest#buildEncodedParseCheck": 'manifest',
+    "AspaCmsTest#should_generate_aspa": 'aspa',
+    "X509ResourceCertificateParentChildValidatorTest#validParentChildSubResources": 'resources',
+    "X509ResourceCertificateParentChildValidatorTest#validParentChildOverClaiming": 'claiming',
+    "X509ResourceCertificateParentChildValidatorTest#validParentChildOverClaimingLooseValidation": 'loose'
 }
 
 row_count = 1
@@ -46,6 +52,8 @@ def filter_for_recent_results(project_name: str, stats_directories: list[str]) -
     project_string = project_name if project_name != "convex" else project_name + "-core"  # edge case
     if "mph-table-fixed" in stats_directories[0]:  # edge case
         project_string = "mph-table-fixed"
+    elif "rpki-commons-fixed" in stats_directories[0]:
+        project_string = "rpki-commons-fixed"
     time_stamps = [datetime.datetime.strptime(x.replace(project_string, "").replace("_", ":").replace("T", " "), "%Y-%m-%d %H:%M:%S.%f")
                    for x in stats_directories]
     time_stamps.sort()
@@ -89,11 +97,14 @@ def generate_report_stats(stat_values: dict[str, dict]) -> dict[str, str]:
     property_dict = {}
     for key in first_iteration:
         property_dict[key] = []
-
+    
     # populate the dictionary with our results
     for key, val in stat_values.items():
         for prop, time in val.items():
             property_array = property_dict.get(prop)
+            if property_array is None:
+                property_dict[prop] = []
+                property_array = property_dict.get(prop)
             property_array.append(time)
 
     # generate mean, standard deviation and populate our final object
@@ -142,7 +153,7 @@ def main():
         fixed_stats_directories = obtain_stats_directories(results_directory=fixed_results_directory)
         evaluated_fixed_runs = filter_for_recent_results(project_name=project_name, stats_directories=fixed_stats_directories)
         fixed_raw_stats = evaluate_directories(project_name=fixed_project_name, results_directory=fixed_results_directory, directories=evaluated_fixed_runs)
-
+        
         # obtain mean/st dev
         final_stats = generate_report_stats(stat_values=raw_stats)
         final_fixed_stats = generate_report_stats(stat_values=fixed_raw_stats)
