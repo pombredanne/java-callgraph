@@ -6,11 +6,12 @@ import numpy as np
 import pandas as pd
 
 BASE_RESULT_DIR = "artifacts/results/"
-PROJECTS = ["jflex", "convex", "mph-table"]
+PROJECTS = ["convex", "jflex", "mph-table", "rpki-commons"]
 REPORT_NAME = "artifacts/output/rq4.csv"
 TEX_REPORT_NAME = "artifacts/output/rq4.tex"
 
-CALC_NAMES = ['Vanilla', 'Improved']
+RAW_NAMES = ['Vanilla', 'Improved']
+CALC_NAMES = ['Vanilla', 'Improved', 'Overhead']
 
 propertyShortNames = {
     "TestSmartByteSerializer#canRoundTripBytes": 'byte',
@@ -31,7 +32,13 @@ propertyShortNames = {
     "CharClassesQuickcheck#addString": 'addString',
     "StateSetQuickcheck#addStateDoesNotRemove": 'add',
     "StateSetQuickcheck#containsElements": 'contains',
-    "StateSetQuickcheck#removeAdd": 'remove'
+    "StateSetQuickcheck#removeAdd": 'remove',
+    "RoaCMSBuilderPropertyTest#buildEncodedParseCheck": 'roa',
+    "ManifestCMSBuilderPropertyTest#buildEncodedParseCheck": 'manifest',
+    "AspaCmsTest#should_generate_aspa": 'aspa',
+    "X509ResourceCertificateParentChildValidatorTest#validParentChildSubResources": 'resources',
+    "X509ResourceCertificateParentChildValidatorTest#validParentChildOverClaiming": 'claiming',
+    "X509ResourceCertificateParentChildValidatorTest#validParentChildOverClaimingLooseValidation": 'loose'
 }
 
 row_count = 1
@@ -45,6 +52,8 @@ def filter_for_recent_results(project_name: str, stats_directories: list[str]) -
     project_string = project_name if project_name != "convex" else project_name + "-core"  # edge case
     if "mph-table-fixed" in stats_directories[0]:  # edge case
         project_string = "mph-table-fixed"
+    elif "rpki-commons-fixed" in stats_directories[0]:
+        project_string = "rpki-commons-fixed"
     time_stamps = [datetime.datetime.strptime(x.replace(project_string, "").replace("_", ":").replace("T", " "), "%Y-%m-%d %H:%M:%S.%f")
                    for x in stats_directories]
     time_stamps.sort()
@@ -88,11 +97,14 @@ def generate_report_stats(stat_values: dict[str, dict]) -> dict[str, str]:
     property_dict = {}
     for key in first_iteration:
         property_dict[key] = []
-
+    
     # populate the dictionary with our results
     for key, val in stat_values.items():
         for prop, time in val.items():
             property_array = property_dict.get(prop)
+            if property_array is None:
+                property_dict[prop] = []
+                property_array = property_dict.get(prop)
             property_array.append(time)
 
     # generate mean, standard deviation and populate our final object
@@ -141,7 +153,7 @@ def main():
         fixed_stats_directories = obtain_stats_directories(results_directory=fixed_results_directory)
         evaluated_fixed_runs = filter_for_recent_results(project_name=project_name, stats_directories=fixed_stats_directories)
         fixed_raw_stats = evaluate_directories(project_name=fixed_project_name, results_directory=fixed_results_directory, directories=evaluated_fixed_runs)
-
+        
         # obtain mean/st dev
         final_stats = generate_report_stats(stat_values=raw_stats)
         final_fixed_stats = generate_report_stats(stat_values=fixed_raw_stats)
@@ -153,21 +165,24 @@ def main():
         df = pd.DataFrame()
         for project in PROJECTS:
             final_dataset[project]['_style'] = ''
-            proj_mean_and_std = final_dataset[project][CALC_NAMES].copy()
+            proj_mean_and_std = final_dataset[project][RAW_NAMES].copy()
             vanilla_mean = pd.DataFrame(proj_mean_and_std['Vanilla'].apply(lambda v: float(v.split(" \u00B1 ")[0]) if
                                                                 " \u00B1 " in str(v) else np.nan)).reset_index()
             improved_mean = pd.DataFrame(proj_mean_and_std['Improved'].apply(lambda v: float(v.split(" \u00B1 ")[0]) if
                                                                 " \u00B1 " in str(v) else np.nan)).reset_index()
 
-            proj_stats = pd.merge(vanilla_mean.copy(), improved_mean.copy(), how='outer', on='index')[CALC_NAMES]
-            final_dataset[project]['Difference'] = proj_stats[['Vanilla', 'Improved']].pct_change(axis='columns')['Improved']
-            proj_mean = pd.merge(vanilla_mean, improved_mean, how='outer', on='index')[CALC_NAMES].mean()
+            proj_stats = pd.merge(vanilla_mean, improved_mean, how='outer', on='index')[RAW_NAMES].reset_index()
+
+            final_dataset[project]['Overhead'] = proj_stats[['Improved']].values / proj_stats[['Vanilla']].values
+            overhead_stats = final_dataset[project]['Overhead'].copy().reset_index()
+
+            proj_mean = pd.merge(proj_stats, overhead_stats, how='outer', on='index')[CALC_NAMES].mean()
             proj_mean['_style'] = 'BOLD'
             proj_mean['N'] = ''
             proj_mean['Property'] = 'Average'
             final_dataset[project].loc['mean'] = proj_mean
 
-            header = dict(zip(['N', 'Property', 'Vanilla', 'Improved', 'Difference'], ['', '', '', '', '']))
+            header = dict(zip(['N', 'Property', 'Vanilla', 'Improved', 'Overhead'], ['', '', '', '', '']))
             df = pd.concat([
                 df,
                 pd.DataFrame(header | {'_style': 'HEADER', 'Property': project}, index=[0]),
@@ -201,7 +216,6 @@ def main():
                 outTable += line
 
         tf.write(outTable)
-
 
 
 if __name__ == "__main__":
