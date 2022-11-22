@@ -119,13 +119,16 @@ with open(byAllEntrypointNameFile, 'w') as tf:
     header_rows = newDF[ newDF['_style'] == 'HEADER' ].index
     data_rows = newDF[ newDF['_style'] != 'HEADER' ].index
 
+    impossiblePercent = newDF[FIELD_IMPOSSIBLE].apply(lambda x: "0" if x == "" else x).astype('int') / newDF[FIELD_JACOCO].apply(lambda x: "0" if x=="" else x).astype('int')
+    newDF[FIELD_IMPOSSIBLE] = list(zip(newDF[FIELD_IMPOSSIBLE], impossiblePercent * 100))
+
     latexTable = newDF \
         .drop(columns=['_style']) \
         .style \
         .hide(axis=0) \
         .format({
                 FIELD_JACOCO: "{:.0f}",
-                FIELD_IMPOSSIBLE: "-{:.0f}",
+                FIELD_IMPOSSIBLE: lambda x: "-{:.0f} ({:.0f}\%)".format(*x),
                 FIELD_MISSED: "+{:.0f}",
                 FIELD_SYSNAME: "{:.0f}"
             }, subset=pd.IndexSlice[data_rows, :]) \
