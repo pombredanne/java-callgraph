@@ -73,6 +73,24 @@ index 47904b61..185a3790 100644
          </executions>
        </plugin>
      </plugins>
+diff --git a/jflex/src/main/java/jflex/state/StateSet.java b/jflex/src/main/java/jflex/state/StateSet.java
+index 26b7591c..cfba5a35 100644
+--- a/jflex/src/main/java/jflex/state/StateSet.java
++++ b/jflex/src/main/java/jflex/state/StateSet.java
+@@ -407,4 +407,13 @@ public final class StateSet implements Iterable<Integer> {
+   public Iterator<Integer> iterator() {
+     return states();
+   }
++
++  /**
++   * Provide the max value that can be stored without a resize
++   *
++   * @return an int of the max value
++   */
++  public int getCurrentMaxState() {
++    return (bits.length << BITS) | ~(0xFFFFFFFF << BITS);
++  }
+ }
 diff --git a/jflex/src/test/java/jflex/core/unicode/BUILD.bazel b/jflex/src/test/java/jflex/core/unicode/BUILD.bazel
 index 109146e2..4af8ce29 100644
 --- a/jflex/src/test/java/jflex/core/unicode/BUILD.bazel
@@ -306,7 +324,7 @@ index e9962397..1f4d2443 100644
    }
  
 diff --git a/jflex/src/test/java/jflex/state/StateSetQuickcheck.java b/jflex/src/test/java/jflex/state/StateSetQuickcheck.java
-index 2537700d..0ac0e12c 100644
+index 2537700d..d15c4438 100644
 --- a/jflex/src/test/java/jflex/state/StateSetQuickcheck.java
 +++ b/jflex/src/test/java/jflex/state/StateSetQuickcheck.java
 @@ -11,9 +11,13 @@ package jflex.state;
@@ -323,35 +341,40 @@ index 2537700d..0ac0e12c 100644
  import com.pholser.junit.quickcheck.generator.InRange;
  import com.pholser.junit.quickcheck.generator.Size;
  import com.pholser.junit.quickcheck.runner.JUnitQuickcheck;
-@@ -157,7 +161,8 @@ public class StateSetQuickcheck {
-   @Property
-   public void removeAdd(
-       @Size(max = 90) @InRange(minInt = 0, maxInt = 100) StateSet s,
--      @InRange(minInt = 0, maxInt = 100) int e) {
+@@ -167,6 +171,32 @@ public class StateSetQuickcheck {
+     assertThat(s).isEqualTo(sPre);
+   }
+ 
++  @Property
++  public void removeAddResize(
++      @Size(max = 90) @InRange(minInt = 0, maxInt = 100) StateSet s,
 +      @InRange(minInt = 0, maxInt = 100) int e,
 +      @From(OffsetGen.class) int largeOffset) {
-     assumeTrue(s.hasElement(e));
-     StateSet sPre = new StateSet(s);
-     s.remove(e);
-@@ -165,6 +170,17 @@ public class StateSetQuickcheck {
-     assertThat(s).isNotEqualTo(sPre);
-     s.addState(e);
-     assertThat(s).isEqualTo(sPre);
++    assumeTrue(s.hasElement(e));
++    StateSet sPre = new StateSet(s);
++    s.remove(e);
++    assertThat(sPre.contains(s)).isTrue();
++    assertThat(s).isNotEqualTo(sPre);
++    s.addState(e);
++    assertThat(s).isEqualTo(sPre);
 +
 +    // add larger state value to force resize
-+    if ((Integer.MAX_VALUE - largeOffset) <= s.bits.length) { // avoid overrun wrap
-+      largeOffset = Integer.MAX_VALUE - s.bits.length;
++    int largerState;
++    try {
++      largerState = Math.addExact(s.getCurrentMaxState(), largeOffset);
++    } catch (ArithmeticException arithmeticException) {
++      largerState = Integer.MAX_VALUE;
 +    }
-+    int largerState =
-+        ((s.bits.length + largeOffset) << StateSet.BITS) & Integer.MAX_VALUE; // & resets sign bit
 +    s.addState(largerState);
 +    assertThat(s).contains(largerState);
 +    s.remove(largerState);
 +    assertThat(s).isEqualTo(sPre);
-   }
- 
++  }
++
    @Property
-@@ -181,10 +197,27 @@ public class StateSetQuickcheck {
+   public void clearMakesEmpty(StateSet set) {
+     set.clear();
+@@ -181,10 +211,27 @@ public class StateSetQuickcheck {
    }
  
    @Property
@@ -380,20 +403,19 @@ index 2537700d..0ac0e12c 100644
    }
  
    @Property
-@@ -208,6 +241,12 @@ public class StateSetQuickcheck {
+@@ -208,6 +255,11 @@ public class StateSetQuickcheck {
      StateSet comp = s1.complement(s2);
      // only elements of s2 are in the complement
      assertThat(s2.contains(comp)).isTrue();
 +
 +    // ensure that comp does not contain s1
-+    StateSet empty = new StateSet();
-+    if (!empty.contains(s1)) { // if s1 is {}, then it will always be contained in comp
++    if (s1.containsElements()) { // if s1 is {}, then it will always be contained in comp
 +      assertThat(comp.contains(s1)).isFalse();
 +    }
    }
  
    @Property
-@@ -228,6 +267,13 @@ public class StateSetQuickcheck {
+@@ -228,6 +280,13 @@ public class StateSetQuickcheck {
    public void containsElements(StateSet s, @InRange(minInt = 0, maxInt = 34) int e) {
      s.addState(e);
      assertThat(s.containsElements()).isTrue();
