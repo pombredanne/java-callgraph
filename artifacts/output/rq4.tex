@@ -3,42 +3,34 @@ N & Property & Vanilla & Improved & Overhead \\
 \hline
 \multicolumn{5}{c}{convex} \\
 \hline
-1 & message & 45.22 ± 3.36 & 42.80 ± 2.70 & 0.95 \\
-2 & data & 53.02 ± 1.99 & 53.92 ± 0.00 & 1.02 \\
-3 & primitive & 48.52 ± 0.88 & 50.12 ± 0.00 & 1.03 \\
-\textbf{} & \textbf{Average} & \textbf{48.92} & \textbf{48.95} & \textbf{1.00} \\
+1 & data & 39.01 ± 0.58 & nan & nan \\
+2 & message & 33.25 ± 2.40 & 30.88 ± 0.64 & 0.93 \\
+3 & primitive & 35.77 ± 0.61 & nan & nan \\
+\textbf{} & \textbf{Average} & \textbf{36.01} & \textbf{30.88} & \textbf{0.93} \\
 \hline
 \multicolumn{5}{c}{jflex} \\
 \hline
-1 & remove & 41.50 ± 6.41 & 31.56 ± 5.16 & 0.76 \\
-2 & addSingleton & 44.89 ± 0.77 & 51.57 ± 0.79 & 1.15 \\
-3 & contains & 43.82 ± 2.12 & 42.61 ± 1.68 & 0.97 \\
-4 & addSet & 44.56 ± 0.94 & 52.82 ± 0.87 & 1.19 \\
-5 & add & 43.06 ± 1.84 & 43.10 ± 1.80 & 1.00 \\
-6 & addString & 44.93 ± 1.64 & 51.53 ± 1.59 & 1.15 \\
-7 & addSingle & 44.40 ± 2.21 & 53.14 ± 1.53 & 1.20 \\
-\textbf{} & \textbf{Average} & \textbf{43.88} & \textbf{46.62} & \textbf{1.06} \\
+4 & addSingleton & 34.35 ± 0.59 & 42.69 ± 0.67 & 1.24 \\
+5 & contains & 34.33 ± 0.62 & 34.36 ± 0.57 & 1.00 \\
+6 & addSet & 34.47 ± 0.48 & 44.64 ± 0.98 & 1.30 \\
+7 & add & 34.58 ± 0.48 & 34.20 ± 0.77 & 0.99 \\
+8 & remove & 34.50 ± 1.02 & 24.36 ± 0.40 & 0.71 \\
+9 & addString & 34.65 ± 0.88 & 43.03 ± 0.63 & 1.24 \\
+10 & addSingle & 34.42 ± 0.55 & 45.21 ± 0.70 & 1.31 \\
+\textbf{} & \textbf{Average} & \textbf{34.47} & \textbf{38.36} & \textbf{1.11} \\
 \hline
 \multicolumn{5}{c}{mph-table} \\
 \hline
-1 & list & 13.49 ± 0.98 & 13.19 ± 0.94 & 0.98 \\
-2 & optionals & 12.75 ± 0.76 & 13.17 ± 1.08 & 1.03 \\
-3 & short & 12.68 ± 0.67 & 13.16 ± 0.58 & 1.04 \\
-4 & int & 13.09 ± 0.81 & 12.79 ± 1.00 & 0.98 \\
-5 & pair & 12.76 ± 0.81 & 13.16 ± 1.09 & 1.03 \\
-6 & byte & 12.57 ± 0.79 & 12.85 ± 1.04 & 1.02 \\
-7 & long & 12.80 ± 0.75 & 13.04 ± 0.91 & 1.02 \\
-8 & string & 12.73 ± 0.60 & 12.99 ± 0.97 & 1.02 \\
-9 & list* & nan & 27.19 ± 3.60 & nan \\
-\textbf{} & \textbf{Average} & \textbf{12.86} & \textbf{14.62} & \textbf{1.01} \\
+11 & list & 10.15 ± 0.31 & 20.30 ± 2.36 & 2.00 \\
+\textbf{} & \textbf{Average} & \textbf{10.15} & \textbf{20.30} & \textbf{2.00} \\
 \hline
 \multicolumn{5}{c}{rpki-commons} \\
 \hline
-1 & claiming & 25.33 ± 2.37 & nan & nan \\
-2 & aspa & 23.42 ± 1.72 & nan & nan \\
-3 & resources & 24.18 ± 1.60 & 26.14 ± 0.28 & 1.08 \\
-4 & roa & 24.29 ± 3.24 & nan & nan \\
-5 & manifest & 23.41 ± 2.44 & nan & nan \\
-6 & loose & 25.48 ± 2.62 & nan & nan \\
-\textbf{} & \textbf{Average} & \textbf{24.35} & \textbf{26.14} & \textbf{1.08} \\
+12 & claiming & 24.73 ± 0.55 & nan & nan \\
+13 & aspa & 22.98 ± 0.46 & nan & nan \\
+14 & resources & 23.39 ± 0.44 & 26.14 ± 0.40 & 1.12 \\
+15 & roa & 22.61 ± 0.62 & nan & nan \\
+16 & manifest & 22.62 ± 0.53 & nan & nan \\
+17 & loose & 24.65 ± 0.50 & nan & nan \\
+\textbf{} & \textbf{Average} & \textbf{23.50} & \textbf{26.14} & \textbf{1.12} \\
 \end{tabular}
