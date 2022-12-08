@@ -74,10 +74,10 @@ index 47904b61..185a3790 100644
        </plugin>
      </plugins>
 diff --git a/jflex/src/main/java/jflex/state/StateSet.java b/jflex/src/main/java/jflex/state/StateSet.java
-index 26b7591c..cfba5a35 100644
+index 2efd13f1..8f7ec527 100644
 --- a/jflex/src/main/java/jflex/state/StateSet.java
 +++ b/jflex/src/main/java/jflex/state/StateSet.java
-@@ -407,4 +407,13 @@ public final class StateSet implements Iterable<Integer> {
+@@ -403,4 +403,13 @@ public final class StateSet implements Iterable<Integer> {
    public Iterator<Integer> iterator() {
      return states();
    }
@@ -92,27 +92,32 @@ index 26b7591c..cfba5a35 100644
 +  }
  }
 diff --git a/jflex/src/test/java/jflex/core/unicode/BUILD.bazel b/jflex/src/test/java/jflex/core/unicode/BUILD.bazel
-index 109146e2..4af8ce29 100644
+index b7ac9de7..9bada3a8 100644
 --- a/jflex/src/test/java/jflex/core/unicode/BUILD.bazel
 +++ b/jflex/src/test/java/jflex/core/unicode/BUILD.bazel
-@@ -49,9 +49,14 @@ java_test(
- java_library(
-     name = "IntCharSetGen",
-     testonly = True,
--    srcs = ["IntCharSetGen.java"],
+@@ -45,3 +45,20 @@ java_test(
+         "//third_party/com/google/truth",
+     ],
+ )
++
++java_library(
++    name = "IntCharSetGen",
++    testonly = True,
 +    srcs = [
 +        "IntCharGen.java",
 +        "IntCharSetGen.java",
 +    ],
-     deps = [
++    deps = [
 +        "//jflex/src/main/java/jflex/chars",
-         "//jflex/src/main/java/jflex/core/unicode",
++        "//jflex/src/main/java/jflex/core/unicode",
 +        "//jflex/src/main/java/jflex/logging",
-         "//jflex/src/test/java/jflex/chars",
-         "//third_party/com/google/truth",
-         "//third_party/com/pholser/quickcheck",
++        "//jflex/src/test/java/jflex/chars",
++        "//third_party/com/google/truth",
++        "//third_party/com/pholser/quickcheck",
++    ],
++)
 diff --git a/jflex/src/test/java/jflex/core/unicode/CharClassesQuickcheck.java b/jflex/src/test/java/jflex/core/unicode/CharClassesQuickcheck.java
-index 876f0387..5c80c0dc 100644
+index c31b5221..357faf7e 100644
 --- a/jflex/src/test/java/jflex/core/unicode/CharClassesQuickcheck.java
 +++ b/jflex/src/test/java/jflex/core/unicode/CharClassesQuickcheck.java
 @@ -12,6 +12,7 @@ package jflex.core.unicode;
@@ -217,7 +222,7 @@ index 00000000..45e47ee8
 +  }
 +}
 diff --git a/jflex/src/test/java/jflex/core/unicode/IntCharSetGen.java b/jflex/src/test/java/jflex/core/unicode/IntCharSetGen.java
-index 7ff19e45..9d80976a 100644
+index bd480a22..90ea80eb 100644
 --- a/jflex/src/test/java/jflex/core/unicode/IntCharSetGen.java
 +++ b/jflex/src/test/java/jflex/core/unicode/IntCharSetGen.java
 @@ -15,6 +15,7 @@ import com.pholser.junit.quickcheck.generator.InRange;
@@ -245,11 +250,11 @@ index 7ff19e45..9d80976a 100644
    }
  
 diff --git a/jflex/src/test/java/jflex/state/BUILD.bazel b/jflex/src/test/java/jflex/state/BUILD.bazel
-index 936249c8..7481ca43 100644
+index cbfc093a..89aaee76 100644
 --- a/jflex/src/test/java/jflex/state/BUILD.bazel
 +++ b/jflex/src/test/java/jflex/state/BUILD.bazel
-@@ -3,6 +3,7 @@ java_test(
-     size = "small",
+@@ -2,6 +2,7 @@ java_test(
+     name = "StateSetQuickcheck",
      timeout = "short",
      srcs = [
 +        "OffsetGen.java",
@@ -308,7 +313,7 @@ index 00000000..fd9d5ab3
 +  }
 +}
 diff --git a/jflex/src/test/java/jflex/state/StateSetGen.java b/jflex/src/test/java/jflex/state/StateSetGen.java
-index e9962397..1f4d2443 100644
+index 57e55e30..ab287952 100644
 --- a/jflex/src/test/java/jflex/state/StateSetGen.java
 +++ b/jflex/src/test/java/jflex/state/StateSetGen.java
 @@ -50,6 +50,11 @@ public class StateSetGen extends Generator<StateSet> {
@@ -324,7 +329,7 @@ index e9962397..1f4d2443 100644
    }
  
 diff --git a/jflex/src/test/java/jflex/state/StateSetQuickcheck.java b/jflex/src/test/java/jflex/state/StateSetQuickcheck.java
-index 2537700d..d15c4438 100644
+index c3ac7e67..81c56afb 100644
 --- a/jflex/src/test/java/jflex/state/StateSetQuickcheck.java
 +++ b/jflex/src/test/java/jflex/state/StateSetQuickcheck.java
 @@ -11,9 +11,13 @@ package jflex.state;
@@ -378,7 +383,7 @@ index 2537700d..d15c4438 100644
    }
  
    @Property
--  public void addStateDoesNotRemove(StateSet set, @InRange(minInt = 0, maxInt = 34) int e) {
+-  public void addStateDoesNotRemove(StateSet set, @InRange(minInt = 0, maxInt = 2 ^ 32) int e) {
 +  public void addStateDoesNotRemove(
 +      StateSet set, @Also("2147483647") @InRange(minInt = 0, maxInt = 34) int e) {
      StateSet setPre = new StateSet(set);
@@ -416,7 +421,7 @@ index 2537700d..d15c4438 100644
  
    @Property
 @@ -228,6 +280,13 @@ public class StateSetQuickcheck {
-   public void containsElements(StateSet s, @InRange(minInt = 0, maxInt = 34) int e) {
+   public void containsElements(StateSet s, @InRange(minInt = 0, maxInt = 2 ^ 32) int e) {
      s.addState(e);
      assertThat(s.containsElements()).isTrue();
 +

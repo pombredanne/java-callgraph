@@ -99,7 +99,7 @@ public class RepoTool {
         while((line = br.readLine()) != null)
             LOGGER.info(line);
         process.waitFor();
-        moveJars();
+        copyJars();
     }
 
     public void testProperty(String property) throws IOException, InterruptedException {
@@ -179,12 +179,12 @@ public class RepoTool {
         return Optional.empty();
     }
 
-    private void moveJars() throws IOException {
+    private void copyJars() throws IOException {
         Path sourceDir = Paths.get(System.getProperty("user.dir"), getProjectDir(), "target");
-        Path targetDir = Paths.get(System.getProperty("user.dir"), "artifacts", "output", name);
+        Path targetDir = Paths.get(System.getProperty("user.dir"), "artifacts", "output", getProjectDir());
         File validateDirectory = targetDir.toFile();
         if(!validateDirectory.exists())
-            validateDirectory.mkdir();
+            validateDirectory.mkdirs();
         moveFiles(sourceDir, targetDir, "*.jar");
     }
 

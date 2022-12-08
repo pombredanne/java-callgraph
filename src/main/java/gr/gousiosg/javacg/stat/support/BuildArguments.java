@@ -53,10 +53,10 @@ public class BuildArguments {
                 Optional<RepoTool> rt = RepoTool.obtainTool(cmd.getOptionValue(CONFIG_NAME));
 
                 if (rt.isPresent()) {
-                    String mainJar = getJarRelativePath(rt.get().getMainJar());
+                    String mainJar = getJarRelativePath(rt.get().getMainJar(), rt.get().getProjectDir());
                     jarPaths.add(mainJar);
 
-                    String testJar = getJarRelativePath(rt.get().getTestJar());
+                    String testJar = getJarRelativePath(rt.get().getTestJar(), rt.get().getProjectDir());
                     Pair<String, File> testJarPair = pathAndJarFile(testJar);
                     jars.add(testJarPair);
                     maybeTestJar = Optional.of(testJarPair);
@@ -97,8 +97,8 @@ public class BuildArguments {
                 .forEach(this.jars::add);
     }
 
-    private static String getJarRelativePath(String jar) {
-        return jar.charAt(0) == '/' ? jar : Path.of(jarBasePath, jar).toString();
+    private static String getJarRelativePath(String jar, String projectDir) {
+        return jar.charAt(0) == '/' ? jar : Path.of(jarBasePath, projectDir, jar).toString();
     }
 
     private static Options getOptions() {
