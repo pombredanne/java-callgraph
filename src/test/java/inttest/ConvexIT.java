@@ -21,9 +21,12 @@ import static org.junit.Assert.assertTrue;
 public class ConvexIT {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(ConvexIT.class);
-    private final Path convexJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","convex","convex-core-0.7.1.jar");
-    private final Path convexDependencyJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","convex","convex-core-0.7.1-jar-with-dependencies.jar");
-    private final Path convexTestJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","convex","convex-core-0.7.1-tests.jar");
+
+    private final String jarBaseOutput = Paths.get("artifacts", "output", "convex", "convex-core").toString();
+
+    private final Path convexJar = Paths.get(System.getProperty("user.dir"),jarBaseOutput, "convex-core-0.7.1.jar");
+    private final Path convexDependencyJar = Paths.get(System.getProperty("user.dir"),jarBaseOutput, "convex-core-0.7.1-jar-with-dependencies.jar");
+    private final Path convexTestJar = Paths.get(System.getProperty("user.dir"),jarBaseOutput, "convex-core-0.7.1-tests.jar");
     private final Path convexGraph = Paths.get(System.getProperty("user.dir"),"convex-core_graph");
     private final Path primitiveRoundTrip = Paths.get(System.getProperty("user.dir"),"output","GenTestFormat#primitiveRoundTrip.dot");
     private final Path primitiveRoundTripReachability = Paths.get(System.getProperty("user.dir"),"output","GenTestFormat#primitiveRoundTrip-reachability.dot");
@@ -48,8 +51,8 @@ public class ConvexIT {
 
     @Test
     public void testB(){
-        String [] args = {"build", "-j", "./artifacts/output/convex/convex-core-0.7.1.jar",
-                "-t", "./artifacts/output/convex/convex-core-0.7.1-tests.jar", "-o", "convex-core_graph"};
+        String [] args = {"build", "-j", convexJar.toString(),
+                "-t", convexTestJar.toString(), "-o", "convex-core_graph"};
         JCallGraph.main(args);
     }
 

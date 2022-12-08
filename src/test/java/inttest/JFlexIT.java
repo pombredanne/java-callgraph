@@ -20,10 +20,12 @@ import static org.junit.Assert.assertTrue;
 public class JFlexIT {
     private static final Logger LOGGER = LoggerFactory.getLogger(JFlexIT.class);
 
-    private final Path jflexJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","jflex", "jflex-1.8.2.jar");
-    private final Path jflexDependencyJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","jflex","jflex-1.8.2-jar-with-dependencies.jar");
-    private final Path jflexFullJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","jflex","jflex-full-1.8.2.jar");
-    private final Path jflexTestJar = Paths.get(System.getProperty("user.dir"),"artifacts","output","jflex","jflex-1.8.2-tests.jar");
+    private final String jarBaseOutput = Paths.get("artifacts", "output", "jflex", "jflex").toString();
+
+    private final Path jflexJar = Paths.get(System.getProperty("user.dir"),jarBaseOutput, "jflex-1.8.2.jar");
+    private final Path jflexDependencyJar = Paths.get(System.getProperty("user.dir"),jarBaseOutput, "jflex-1.8.2-jar-with-dependencies.jar");
+    private final Path jflexFullJar = Paths.get(System.getProperty("user.dir"),jarBaseOutput, "jflex-full-1.8.2.jar");
+    private final Path jflexTestJar = Paths.get(System.getProperty("user.dir"),jarBaseOutput, "jflex-1.8.2-tests.jar");
     private final Path jflexGraph = Paths.get(System.getProperty("user.dir"),"jflex_graph");
     private final Path removeAdd = Paths.get(System.getProperty("user.dir"), "output", "StateSetQuickcheck#removeAdd-reachability.dot");
     private final Path addStateDoesNotRemove = Paths.get(System.getProperty("user.dir"), "output", "StateSetQuickcheck#addStateDoesNotRemove-reachability.dot");
@@ -49,8 +51,8 @@ public class JFlexIT {
 
     @Test
     public void testB(){
-        String [] args = {"build", "-j", "./artifacts/output/jflex/jflex-1.8.2.jar",
-                "-t", "./artifacts/output/jflex/jflex-1.8.2-tests.jar", "-o", "jflex_graph"};
+        String [] args = {"build", "-j", jflexJar.toString(),
+                "-t", jflexTestJar.toString(), "-o", "jflex_graph"};
         JCallGraph.main(args);
     }
 

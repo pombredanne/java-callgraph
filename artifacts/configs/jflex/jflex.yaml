@@ -9,7 +9,7 @@ testJar: jflex-1.8.2-tests.jar
 mvnOptions: -DfailIfNoTests=false
 properties:
   - name: StateSetQuickcheck#removeAdd
-    entryPoint: "jflex.state.StateSetQuickcheck.removeAdd(Ljflex/state/StateSet;II)V"
+    entryPoint: "jflex.state.StateSetQuickcheck.removeAdd(Ljflex/state/StateSet;I)V"
   - name: StateSetQuickcheck#addStateDoesNotRemove
     entryPoint: "jflex.state.StateSetQuickcheck.addStateDoesNotRemove(Ljflex/state/StateSet;I)V"
   - name: StateSetQuickcheck#containsElements
