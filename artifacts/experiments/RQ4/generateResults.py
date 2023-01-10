@@ -214,11 +214,9 @@ def main():
                                                                 " \u00B1 " in str(v) else np.nan)).reset_index()
             improved_mean = pd.DataFrame(proj_mean_and_std['Improved'].apply(lambda v: float(v.split(" \u00B1 ")[0]) if
                                                                 " \u00B1 " in str(v) else np.nan)).reset_index()
-            print(project)
-            print(improved_mean)
-            print(vanilla_mean)
+
             proj_stats = pd.merge(vanilla_mean, improved_mean, how='outer', on='index')[RAW_NAMES].reset_index()
-            #print(proj_stats)
+
             final_dataset[project]['Overhead'] = proj_stats[['Improved']].values / proj_stats[['Vanilla']].values
             overhead_stats = final_dataset[project]['Overhead'].copy().reset_index()
 
@@ -257,7 +255,7 @@ def main():
             possibleCommand = s[0].strip()
 
             if possibleCommand == '\HEADER':
-                outTable += '\\hline' + "\n" + '\multicolumn{' + c + '}{c}{\\' + s[1].strip()[7:].strip() + '}' + " \\\\\n" + '\\hline' + "\n"
+                outTable += '\\hline' + "\n" + '\multicolumn{' + c + '}{c}{\\' + s[1].strip()[7:].strip().replace("-", "") + '}' + " \\\\\n" + '\\hline' + "\n"
             else:
                 outTable += line
 
