@@ -10,7 +10,7 @@ mvnOptions: -DfailIfNoTests=false
 properties:
   - name: GenTestFormat#messageRoundTrip
     entryPoint: "convex.comms.GenTestFormat.messageRoundTrip(Ljava/lang/String;)V"
-  - name: GenTestFormat#primitiveRoundTrip
-    entryPoint: "convex.comms.GenTestFormat.primitiveRoundTrip(Lconvex/core/data/ACell;)V"
-  - name: GenTestFormat#dataRoundTrip
-    entryPoint: "convex.comms.GenTestFormat.dataRoundTrip(Lconvex/core/data/ACell;)V"
+#  - name: GenTestFormat#primitiveRoundTrip
+#    entryPoint: "convex.comms.GenTestFormat.primitiveRoundTrip(Lconvex/core/data/ACell;)V"
+#  - name: GenTestFormat#dataRoundTrip
+#    entryPoint: "convex.comms.GenTestFormat.dataRoundTrip(Lconvex/core/data/ACell;)V"

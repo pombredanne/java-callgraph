@@ -17,10 +17,10 @@ CALC_NAMES = [FIELD_JACOCO, FIELD_IMPOSSIBLE, FIELD_MISSED, FIELD_SYSNAME, FIELD
 TABLE_HEADER = PROP_NAMES + CALC_NAMES
 
 projects = [
-    ('convex', 'artifacts/experiment/rq1_convex.csv', 'artifacts/experiment/rq1_table_convex.tex'),
-    ('jflex', 'artifacts/experiment/rq1_jflex.csv', 'artifacts/experiment/rq1_table_jflex.tex'),
-    ('mphtable', 'artifacts/experiment/rq1_mph-table.csv', 'artifacts/experiment/rq1_table_mph-table.tex'),
-    ('rpkicommons', 'artifacts/experiment/rq1_rpki-commons.csv', 'artifacts/experiment/rq1_table_rpki-commons.tex'),
+    ('convex', 'artifacts/experiment/rq1_convex.csv', 'artifacts/experiment/rq1_paths_convex.csv', 'artifacts/experiment/rq1_table_convex.tex'),
+    ('jflex', 'artifacts/experiment/rq1_jflex.csv', 'artifacts/experiment/rq1_paths_jflex.csv', 'artifacts/experiment/rq1_table_jflex.tex'),
+    ('mphtable', 'artifacts/experiment/rq1_mph-table.csv', 'artifacts/experiment/rq1_paths_mph-table.csv', 'artifacts/experiment/rq1_table_mph-table.tex'),
+    ('rpkicommons', 'artifacts/experiment/rq1_rpki-commons.csv', 'artifacts/experiment/rq1_paths_rpki-commons.csv', 'artifacts/experiment/rq1_table_rpki-commons.tex'),
 ]
 
 byProjNameFile = 'artifacts/experiment/rq1_table_projects.tex'
