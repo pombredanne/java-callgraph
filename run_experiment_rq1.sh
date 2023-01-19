@@ -13,10 +13,11 @@ mkdir -p artifacts/experiment
 for PROJECT in mph-table convex jflex rpki-commons mph-table-fixed convex-fixed jflex-fixed rpki-commons-fixed
 do
 	FILE=artifacts/experiment/rq1_$PROJECT.csv
+	COUNTFILE=artifacts/experiment/rq1_paths_$PROJECT.csv
 
 	# run experiment
 	echo Running RQ1 for project $PROJECT with output going to $FILE
-	java -cp target/javacg-0.1-SNAPSHOT-jar-with-dependencies.jar edu.uic.bitslab.callgraph.Comparison -p $PROJECT -o $FILE
+	java -cp target/javacg-0.1-SNAPSHOT-jar-with-dependencies.jar edu.uic.bitslab.callgraph.Comparison -p $PROJECT -o $FILE -c $COUNTFILE
 
 	# check that the expected file exists
 	if [ ! -f $FILE ]; then

@@ -8,9 +8,12 @@ FIELD_SYSNAME = '\\sysname'
 FIELD_REACHABLE = 'Reachable'
 FIELD_IMPOSSIBLE = 'Impossible'
 FIELD_MISSED = 'Missed'
+FIELD_FIRST = 'First'
+FIELD_SECOND = 'Second'
+FIELD_THIRD = 'Third'
 
 PROP_NAMES = [FIELD_N, FIELD_PROPERTY]
-CALC_NAMES = [FIELD_JACOCO, FIELD_IMPOSSIBLE, FIELD_MISSED, FIELD_SYSNAME]
+CALC_NAMES = [FIELD_JACOCO, FIELD_IMPOSSIBLE, FIELD_MISSED, FIELD_SYSNAME, FIELD_FIRST, FIELD_SECOND, FIELD_THIRD]
 TABLE_HEADER = PROP_NAMES + CALC_NAMES
 
 projects = [
@@ -31,7 +34,11 @@ rowCount = 1
 for project in projects:
     projName = project[0]
     csvFile = project[1]
-    texFile = project[2]
+    csvPaths = project[2]
+    texFile = project[3]
+
+    dataPaths = pd.read_csv(csvPaths, sep=',', header=0)
+    dataPaths['Project'] = projName
 
     data = pd.read_csv(csvFile, sep=',', header=0)
     data['Project'] = projName
@@ -62,8 +69,12 @@ for project in projects:
 
     # add Name as a friendly name for each entrypoint
     data[FIELD_PROPERTY] = data['entryPoint'].apply(lambda v: shortNames[v])
+    dataPaths[FIELD_PROPERTY] = dataPaths['entryPoint'].apply(lambda v: shortNames[v])
 
-    df = data[[FIELD_PROPERTY, 'FP', 'FN', 'TP']].groupby(by=FIELD_PROPERTY).sum().round(2)
+    dfGrouped = data[[FIELD_PROPERTY, 'FP', 'FN', 'TP']].groupby(by=FIELD_PROPERTY).sum().round(2)
+    df = dfGrouped.merge(dataPaths[[FIELD_PROPERTY, 'First', 'Second', 'Third']], on=FIELD_PROPERTY, how='left')
+
+    # pd.concat([dfGrouped, dataPaths], axis=1, keys=['entryPoint'], join="left")
     df[FIELD_JACOCO] = df['FP'] + df['TP']
     df[FIELD_REACHABLE] = df['TP']
     df[FIELD_IMPOSSIBLE] = df['FP']
@@ -130,8 +141,11 @@ with open(byAllEntrypointNameFile, 'w') as tf:
                 FIELD_JACOCO: "{:.0f}",
                 FIELD_IMPOSSIBLE: lambda x: "-{:.0f} ({:.0f}\%)".format(*x),
                 FIELD_MISSED: "+{:.0f}",
-                FIELD_SYSNAME: "{:.0f}"
-            }, subset=pd.IndexSlice[data_rows, :]) \
+                FIELD_SYSNAME: "{:.0f}",
+                FIELD_FIRST: "{:.0f}",
+                FIELD_SECOND: "{:.0f}",
+                FIELD_THIRD: "{:.0f}"
+            }, subset=pd.IndexSlice[data_rows, :], na_rep="-") \
         .set_properties(subset=pd.IndexSlice[header_rows, :], **{'HEADER': ''}) \
         .set_properties(subset=pd.IndexSlice[bold_rows, :], **{'textbf': '--rwrap'}) \
         .to_latex(hrules=False, column_format="llrrrr")

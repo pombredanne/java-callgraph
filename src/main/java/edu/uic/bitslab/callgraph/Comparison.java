@@ -1,5 +1,6 @@
 package edu.uic.bitslab.callgraph;
 
+import com.opencsv.CSVReader;
 import gr.gousiosg.javacg.dyn.Pair;
 import gr.gousiosg.javacg.stat.coverage.ColoredNode;
 import gr.gousiosg.javacg.stat.coverage.JacocoCoverage;
@@ -14,6 +15,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.*;
+import java.util.stream.Collectors;
 
 public class Comparison {
     private static final String PROJECT_NAME = "p";
@@ -22,6 +24,8 @@ public class Comparison {
     private static final String OUTPUT_FILE_NAME_LONG = "output";
     private static final String ARTIFACT_TIMESTAMP = "t";
     private static final String ARTIFACT_TIMESTAMP_LONG = "timestamp";
+    private static final String OUTPUT_PATH_FILE_NAME = "c";
+    private static final String OUTPUT_PATH_FILE_NAME_LONG = "outpathcount";
 
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Comparison.class);
@@ -83,21 +87,27 @@ public class Comparison {
 
 
                     for (Report.Package.Class.Method.Counter counter : details.getCounter()) {
-                        if (counter.getType().equals("INSTRUCTION")) {
-                            instructionCovered = counter.getCovered();
-                            instructionMissed = counter.getMissed();
-                        } else if (counter.getType().equals("BRANCH")) {
-                            branchesCovered = counter.getCovered();
-                            branchedMissed = counter.getMissed();
-                        } else if (counter.getType().equals("LINE")) {
-                            linesCovered = counter.getCovered();
-                            linesMissed = counter.getMissed();
-                        } else if (counter.getType().equals("COMPLEXITY")) {
-                            complexityCovered = counter.getCovered();
-                            complexityMissed = counter.getMissed();
-                        } else if (counter.getType().equals("METHOD")) {
-                            methodCovered = counter.getCovered();
-                            methodMissed = counter.getMissed();
+                        switch (counter.getType()) {
+                            case "INSTRUCTION":
+                                instructionCovered = counter.getCovered();
+                                instructionMissed = counter.getMissed();
+                                break;
+                            case "BRANCH":
+                                branchesCovered = counter.getCovered();
+                                branchedMissed = counter.getMissed();
+                                break;
+                            case "LINE":
+                                linesCovered = counter.getCovered();
+                                linesMissed = counter.getMissed();
+                                break;
+                            case "COMPLEXITY":
+                                complexityCovered = counter.getCovered();
+                                complexityMissed = counter.getMissed();
+                                break;
+                            case "METHOD":
+                                methodCovered = counter.getCovered();
+                                methodMissed = counter.getMissed();
+                                break;
                         }
                     }
 
@@ -113,6 +123,54 @@ public class Comparison {
         }
 
         return null;
+    }
+
+    public Map<String, List<Integer>> pathCounts(List<String> pathFiles) throws Exception {
+        Map<String, List<Integer>> paths = new HashMap<>();
+
+        for (String pathFile : pathFiles) {
+            if (!Files.exists(Path.of(pathFile))) {
+                continue;
+            }
+
+            List<Integer> pathsList = new ArrayList<>();
+
+            try (CSVReader csvReader = new CSVReader(new FileReader(pathFile))) {
+                String[] values;
+                String entryPoint = null;
+
+                while ((values = csvReader.readNext()) != null) {
+                    // skip lines with less that expected values (expect 3+ columns)
+                    if (values.length < 3) continue;
+
+                    String nextEntryPoint = values[2];
+
+                    // skip empty entrypoints
+                    if (nextEntryPoint.isEmpty()) continue;
+
+                    // we don't have an entryPoint so set it
+                    if (entryPoint == null) entryPoint = nextEntryPoint;
+
+                    // put in some guard rails
+                    if (!entryPoint.equals(nextEntryPoint)) {
+                        throw new Exception("Entrypoint should be same within each file");
+                    }
+                    
+                    int pathLength = values.length - 2;
+
+                    pathsList.add(pathLength);
+                }
+
+                if (entryPoint != null) {
+                    paths.put(
+                            entryPoint,
+                            pathsList.stream().sorted(Comparator.reverseOrder()).collect(Collectors.toList())
+                    );
+                }
+            }
+        }
+
+        return paths;
     }
 
     @SuppressWarnings("unchecked")
@@ -146,6 +204,9 @@ public class Comparison {
         String project = null;
         String timeStamp = null;
         String outputFile = null;
+        String outputPathFile = null;
+
+        List<String> filePaths = new ArrayList<>();
 
         /* Setup cmdline argument parsing */
         CommandLineParser parser = new DefaultParser();
@@ -164,6 +225,10 @@ public class Comparison {
 
             if (cmd.hasOption(OUTPUT_FILE_NAME)) {
                 outputFile = cmd.getOptionValue(OUTPUT_FILE_NAME);
+            }
+
+            if (cmd.hasOption(OUTPUT_PATH_FILE_NAME)) {
+                outputPathFile = cmd.getOptionValue(OUTPUT_PATH_FILE_NAME);
             }
         } catch(ParseException pe) {
             LOGGER.error("Error parsing command-line arguments: " + pe.getMessage());
@@ -199,6 +264,7 @@ public class Comparison {
             // need pruned graph ser file part of artifacts!
             String jacocoXMLFilename = coverageFile.first;
             String prunedGraphSerFile = coverageFile.first.substring(0, coverageFile.first.length()-4) + "-reachability.ser";
+            filePaths.add(coverageFile.first.substring(0, coverageFile.first.length()-4) + "-paths.csv");
 
             rpt.putAll(comparison.pruneAndJaCoCo(jacocoXMLFilename, prunedGraphSerFile));
         }
@@ -222,6 +288,41 @@ public class Comparison {
 
                 for (Row r : rpt.values()) {
                     writer.write(r + "\n");
+                }
+            }
+        }
+
+        // build path counts
+        String headerPath = String.join(",", "entryPoint", "First", "Second", "Third");
+
+        Map<String, List<Integer>> paths = comparison.pathCounts(filePaths);
+
+        if (outputPathFile == null) {
+            System.out.println(headerPath);
+            paths.forEach(
+                    (entryPoint, pathCounts) -> System.out.println(
+                        "\"" + entryPoint + "\"," +
+                        pathCounts.stream().limit(3).map(Object::toString).collect(Collectors.joining(","))
+                    )
+                );
+        } else {
+            try(FileWriter writer = new FileWriter(outputPathFile)) {
+                writer.write(headerPath + "\n");
+
+                for (Map.Entry<String, List<Integer>> entry : paths.entrySet()) {
+                    String entryPoint = entry.getKey();
+                    List<Integer> pathCounts = entry.getValue();
+
+                    writer.write(
+                            "\"" +
+                                    entryPoint +
+                                    "\"," +
+                                    pathCounts.stream()
+                                            .limit(3)
+                                            .map(Object::toString)
+                                            .collect(Collectors.joining(",")) +
+                                    "\n"
+                    );
                 }
             }
         }
@@ -316,6 +417,13 @@ public class Comparison {
                         .required(false)
                         .build());
 
+        options.addOption(
+                Option.builder(OUTPUT_PATH_FILE_NAME)
+                        .longOpt(OUTPUT_PATH_FILE_NAME_LONG)
+                        .hasArg(true)
+                        .desc("[OPTIONAL] specify the path count output filename (default to stdout)")
+                        .required(false)
+                        .build());
 
         options.addOption(
                 Option.builder(ARTIFACT_TIMESTAMP)
