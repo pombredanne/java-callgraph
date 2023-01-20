@@ -199,8 +199,8 @@ public class RepoTool {
         }
     }
 
-    private void copyFiles(Path sourceDir, Path targetDir, String glob) throws IOException {
-        try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(sourceDir, glob)) {
+    private void copyFiles(Path sourceDir, Path targetDir) throws IOException {
+        try (DirectoryStream<Path> dirStream = Files.newDirectoryStream(sourceDir)) {
             for (Path source: dirStream) {
                 Files.copy(
                         source,
@@ -250,8 +250,7 @@ public class RepoTool {
             projectDirectory = projectDirectory + "/" + projectDirectory;
         copyFiles(
             Paths.get(System.getProperty("user.dir"), "/output"), // src
-            Paths.get(System.getProperty("user.dir"), "/artifacts/results/", projectDirectory + timeStamp), // dst
-            "*.*"  // g;ob
+            Paths.get(System.getProperty("user.dir"), "/artifacts/results/", projectDirectory + timeStamp) // dst
         );
     }
 

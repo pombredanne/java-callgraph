@@ -180,14 +180,6 @@ public class JCallGraph {
             maybeInspectAncestry(callgraph, arguments, jacocoCoverage, Optional.of(s.second), Optional.of(propertyName));
 
             try {
-              rt.moveOutput();
-            } catch (Exception exception) {
-              LOGGER.error("Error moving output to artifact: " + exception.getMessage());
-              System.exit(1);
-            }
-            rt.cleanTarget();
-
-            try {
               // write the best paths and annotated dot file
               GetBest getBest = new GetBest(prunedReachability, propertyName);
               getBest.run();
@@ -195,6 +187,14 @@ public class JCallGraph {
               // ok ... getbest blew up ... log it an continue
               LOGGER.error("Get Best Null Pointer Exception: " + Arrays.stream(e.getStackTrace()).map(StackTraceElement::toString));
             }
+
+            try {
+              rt.moveOutput();
+            } catch (Exception exception) {
+              LOGGER.error("Error moving output to artifact: " + exception.getMessage());
+              System.exit(1);
+            }
+            rt.cleanTarget();
           }
           break;
         }
