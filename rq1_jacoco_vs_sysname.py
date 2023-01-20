@@ -148,7 +148,7 @@ with open(byAllEntrypointNameFile, 'w') as tf:
             }, subset=pd.IndexSlice[data_rows, :], na_rep="-") \
         .set_properties(subset=pd.IndexSlice[header_rows, :], **{'HEADER': ''}) \
         .set_properties(subset=pd.IndexSlice[bold_rows, :], **{'textbf': '--rwrap'}) \
-        .to_latex(hrules=False, column_format="llrrrr")
+        .to_latex(hrules=False, column_format="llrrrrrrr")
 
     outTable = ''
 
