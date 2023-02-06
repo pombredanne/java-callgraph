@@ -5,12 +5,8 @@ from common import shortNames
 
 FIELD_N = 'N'
 FIELD_PROPERTY = 'Property'
-# FIELD_ORIGINAL_METHOD_COVERAGE = 'OMC' # 'Original Method Coverage'
-# FIELD_IMPROVED_METHOD_COVERAGE = 'IMC' # 'Improved Method Coverage'
 FIELD_IMPROVED_LOC_COVERAGE = 'Fixed' # 'Improved LOC Coverage'
 FIELD_ORIGINAL_LOC_COVERAGE = 'Vanilla' # 'Original LOC Coverage'
-# FIELD_METHOD_PERCENT_IMPROVEMENT = 'MPI' # 'Method Percent Improvement'
-# FIELD_LOC_PERCENT_IMPROVEMENT = 'LPI' # 'LOC Percent Improvement'
 FIELD_LOC_COUNT_IMPROVEMENT = 'Improved' # 'Improvement'
 
 PROP_NAMES = [FIELD_N, FIELD_PROPERTY]
@@ -36,9 +32,11 @@ for project in projects:
     fixedCsvFile = project[2]
 
     original = pd.read_csv(csvFile, sep=',', header=0)
+    original = original[ original['inPrunedGraph'] == "Y"]   # only include actual reachable methods
     original['entryPointKey'] = original['entryPoint'].apply(lambda v: v.split("(", 1)[0])
 
     fixed = pd.read_csv(fixedCsvFile, sep=',', header=0)
+    fixed = fixed[ fixed['inPrunedGraph'] == "Y"]    # only include actual reachable methods
     fixed['entryPointKey'] = fixed['entryPoint'].apply(lambda v: v.split("(", 1)[0])
     fixed.rename(columns=lambda x: x if x == 'entryPointKey' or x == 'method' else 'FIXED_'+x, inplace=True)
 
@@ -49,13 +47,9 @@ for project in projects:
     #data = data[ data['FIXED_linesCovered'] != "UNK" ]
 
     data['Project'] = projName
-    # data[FIELD_ORIGINAL_METHOD_COVERAGE] = data['methodCovered'].apply(lambda v: 0 if v == "UNK" else v).astype(float)
-    # data[FIELD_IMPROVED_METHOD_COVERAGE] = data['FIXED_methodCovered'].apply(lambda v: 0 if v == "UNK" else v).astype(float)
     data[FIELD_ORIGINAL_LOC_COVERAGE] = data['linesCovered'].apply(lambda v: 0 if v == "UNK" else v).astype(float)
     data[FIELD_IMPROVED_LOC_COVERAGE] = data['FIXED_linesCovered'].apply(lambda v: 0 if v == "UNK" else v).astype(float)
     data[FIELD_LOC_COUNT_IMPROVEMENT] = 0
-    # data[FIELD_METHOD_PERCENT_IMPROVEMENT] = 0
-    # data[FIELD_LOC_PERCENT_IMPROVEMENT] = 0
 
     # add Name as a friendly name for each entrypoint
     data[FIELD_PROPERTY] = data['entryPoint'].apply(lambda v: shortNames[v])
