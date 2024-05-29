@@ -28,6 +28,8 @@
 
 package gr.gousiosg.javacg.dyn;
 
+import javassist.*;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.lang.instrument.ClassFileTransformer;
@@ -37,12 +39,6 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.regex.PatternSyntaxException;
-
-import javassist.CannotCompileException;
-import javassist.ClassPool;
-import javassist.CtBehavior;
-import javassist.CtClass;
-import javassist.NotFoundException;
 
 public class Instrumenter implements ClassFileTransformer {
 
@@ -91,18 +87,24 @@ public class Instrumenter implements ClassFileTransformer {
                 } catch (PatternSyntaxException pse) {
                     err("pattern: " + pattern + " not valid, ignoring");
                 }
-                if (argtype.equals("incl"))
-                    pkgIncl.add(p);
-                else
-                    pkgExcl.add(p);
+                if (argtype.equals("incl")) pkgIncl.add(p);
+                else pkgExcl.add(p);
             }
         }
 
         instrumentation.addTransformer(new Instrumenter());
     }
 
-    public byte[] transform(ClassLoader loader, String className, Class<?> clazz,
-            java.security.ProtectionDomain domain, byte[] bytes) {
+    private static void err(String msg) {
+        // System.err.println("[JAVACG-DYN] " + msg);
+    }
+
+    public byte[] transform(
+            ClassLoader loader,
+            String className,
+            Class<?> clazz,
+            java.security.ProtectionDomain domain,
+            byte[] bytes) {
         boolean enhanceClass = false;
 
         String name = className.replace("/", ".");
@@ -167,15 +169,10 @@ public class Instrumenter implements ClassFileTransformer {
         String name = className.substring(className.lastIndexOf('.') + 1, className.length());
         String methodName = method.getName();
 
-        if (method.getName().equals(name))
-            methodName = "<init>";
+        if (method.getName().equals(name)) methodName = "<init>";
 
-        method.insertBefore("gr.gousiosg.javacg.dyn.MethodStack.push(\"" + className
-                + ":" + methodName + "\");");
+        method.insertBefore(
+                "gr.gousiosg.javacg.dyn.MethodStack.push(\"" + className + ":" + methodName + "\");");
         method.insertAfter("gr.gousiosg.javacg.dyn.MethodStack.pop();");
-    }
-
-    private static void err(String msg) {
-        //System.err.println("[JAVACG-DYN] " + msg);
     }
 }

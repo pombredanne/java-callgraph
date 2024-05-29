@@ -14,4 +14,12 @@ bin/
 # intellij
 .idea/
 *.iml
+lib
+output/*
 
+# binary
+jcg
+out
+
+# runtime artifacts
+artifacts/results/*/*

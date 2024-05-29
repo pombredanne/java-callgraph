@@ -31,43 +31,42 @@ package gr.gousiosg.javacg.dyn;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Stack;
+import java.util.*;
 
 public class MethodStack {
 
-    private static Stack<String> stack = new Stack<>();
-    private static Map<Pair<String, String>, Integer> callgraph = new HashMap<>();
-    static FileWriter fw; 
+    static FileWriter fw;
     static StringBuffer sb;
     static long threadid = -1L;
+    private static Stack<String> stack = new Stack<>();
+    private static Map<Pair<String, String>, Integer> callgraph = new HashMap<>();
 
     static {
-        Runtime.getRuntime().addShutdownHook(new Thread() {
-            public void run() {
-                try {
-                    fw.close();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-                //Sort by number of calls
-                List<Pair<String, String>> keys = new ArrayList<>();
-                keys.addAll(callgraph.keySet());
-                Collections.sort(keys, (o1, o2) -> {
-                    Integer v1 = callgraph.get(o1);
-                    Integer v2 = callgraph.get(o2);
-                    return v1.compareTo(v2);
-                });
+        Runtime.getRuntime()
+                .addShutdownHook(
+                        new Thread() {
+                            public void run() {
+                                try {
+                                    fw.close();
+                                } catch (IOException e) {
+                                    e.printStackTrace();
+                                }
+                                // Sort by number of calls
+                                List<Pair<String, String>> keys = new ArrayList<>();
+                                keys.addAll(callgraph.keySet());
+                                Collections.sort(
+                                        keys,
+                                        (o1, o2) -> {
+                                            Integer v1 = callgraph.get(o1);
+                                            Integer v2 = callgraph.get(o2);
+                                            return v1.compareTo(v2);
+                                        });
 
-                for (Pair<String, String> key : keys) {
-                    System.out.println(key + " " + callgraph.get(key));
-                }
-            }
-        });
+                                for (Pair<String, String> key : keys) {
+                                    System.out.println(key + " " + callgraph.get(key));
+                                }
+                            }
+                        });
         File log = new File("calltrace.txt");
         try {
             fw = new FileWriter(log);
@@ -78,18 +77,14 @@ public class MethodStack {
     }
 
     public static void push(String callname) throws IOException {
-        if (threadid == -1)
-            threadid = Thread.currentThread().getId();
-        
-        if (Thread.currentThread().getId() != threadid)
-            return;
-        
+        if (threadid == -1) threadid = Thread.currentThread().getId();
+
+        if (Thread.currentThread().getId() != threadid) return;
+
         if (!stack.isEmpty()) {
             Pair<String, String> p = new Pair<>(stack.peek(), callname);
-            if (callgraph.containsKey(p))
-                callgraph.put(p, callgraph.get(p) + 1);
-            else
-                callgraph.put(p, 1);
+            if (callgraph.containsKey(p)) callgraph.put(p, callgraph.get(p) + 1);
+            else callgraph.put(p, 1);
         }
         sb.setLength(0);
         sb.append(">[").append(stack.size()).append("]");
@@ -100,11 +95,9 @@ public class MethodStack {
     }
 
     public static void pop() throws IOException {
-        if (threadid == -1)
-            threadid = Thread.currentThread().getId();
+        if (threadid == -1) threadid = Thread.currentThread().getId();
 
-        if (Thread.currentThread().getId() != threadid)
-            return;
+        if (Thread.currentThread().getId() != threadid) return;
 
         String returnFrom = stack.pop();
         sb.setLength(0);

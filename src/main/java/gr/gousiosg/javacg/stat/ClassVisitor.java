@@ -28,32 +28,33 @@
 
 package gr.gousiosg.javacg.stat;
 
-import org.apache.bcel.classfile.Constant;
-import org.apache.bcel.classfile.ConstantPool;
-import org.apache.bcel.classfile.EmptyVisitor;
-import org.apache.bcel.classfile.JavaClass;
-import org.apache.bcel.classfile.Method;
+import gr.gousiosg.javacg.dyn.Pair;
+import gr.gousiosg.javacg.stat.support.JarMetadata;
+import org.apache.bcel.classfile.*;
 import org.apache.bcel.generic.ConstantPoolGen;
 import org.apache.bcel.generic.MethodGen;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- * The simplest of class visitors, invokes the method visitor class for each
- * method found.
+ * The simplest of class visitors, invokes the method visitor class for each method found.
  */
 public class ClassVisitor extends EmptyVisitor {
 
+    private final DynamicCallManager DCManager = new DynamicCallManager();
+    private final JarMetadata jarMetadata;
     private JavaClass clazz;
     private ConstantPoolGen constants;
     private String classReferenceFormat;
-    private final DynamicCallManager DCManager = new DynamicCallManager();
-    private List<String> methodCalls = new ArrayList<>();
+    private Set<Pair<String, String>> methodCalls = new HashSet<>();
+    private boolean isTestClass;
 
-    public ClassVisitor(JavaClass jc) {
+    public ClassVisitor(JavaClass jc, JarMetadata jarMetadata, boolean isTestClass) {
         clazz = jc;
         constants = new ConstantPoolGen(clazz.getConstantPool());
+        this.jarMetadata = jarMetadata;
+        this.isTestClass = isTestClass;
         classReferenceFormat = "C:" + clazz.getClassName() + " %s";
     }
 
@@ -65,26 +66,22 @@ public class ClassVisitor extends EmptyVisitor {
             DCManager.retrieveCalls(method, jc);
             DCManager.linkCalls(method);
             method.accept(this);
-
         }
     }
 
     public void visitConstantPool(ConstantPool constantPool) {
         for (int i = 0; i < constantPool.getLength(); i++) {
             Constant constant = constantPool.getConstant(i);
-            if (constant == null)
-                continue;
+            if (constant == null) continue;
             if (constant.getTag() == 7) {
-                String referencedClass = 
-                    constantPool.constantToString(constant);
-                System.out.println(String.format(classReferenceFormat, referencedClass));
+                String referencedClass = constantPool.constantToString(constant);
             }
         }
     }
 
     public void visitMethod(Method method) {
         MethodGen mg = new MethodGen(method, clazz.getClassName(), constants);
-        MethodVisitor visitor = new MethodVisitor(mg, clazz);
+        MethodVisitor visitor = new MethodVisitor(mg, clazz, jarMetadata, isTestClass);
         methodCalls.addAll(visitor.start());
     }
 
@@ -93,7 +90,7 @@ public class ClassVisitor extends EmptyVisitor {
         return this;
     }
 
-    public List<String> methodCalls() {
+    public Set<Pair<String, String>> methodCalls() {
         return this.methodCalls;
     }
 }
